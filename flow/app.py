@@ -802,6 +802,9 @@ if __name__=='__main__':
     except Exception as exc:print('ai budget/check failed:',type(exc).__name__,flush=True)
     try:__import__('tts_service').tick(db)  # 03:00–05:00: the fixed sentences the server voice says, made while idle
     except Exception as exc:print('tts prewarm failed:',type(exc).__name__,flush=True)
+    try:
+     with db() as c:__import__('privacy_service').purge_paused(c)  # paused accounts, 30 days on: deleted as 隐私和数据 says
+    except Exception as exc:print('paused-account deletion failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
   class Server(ThreadingHTTPServer):

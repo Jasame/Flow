@@ -738,3 +738,89 @@ final class GlanceTests: XCTestCase {
         XCTAssertEqual(r?["why"] as? String, "off")
     }
 }
+
+/// 「Siri 和专注模式」 (group 4): what Siri says, the pages it opens, the Focus filter's choices.
+final class AskTests: XCTestCase {
+    @MainActor private func input(due: Int = 0, new: Int = 0, minutes: Int = 0, words: Bool = true) -> ReminderPlan.Input {
+        var x = ReminderPlan.Input()
+        x.due = due
+        x.new = new
+        x.minutes = minutes
+        x.hasWords = words
+        return x
+    }
+
+    @MainActor func testSiriSaysTheCounts() {
+        XCTAssertEqual(AskLines.due(input(due: 12, new: 5, minutes: 8), outcome: .fresh), "今天还有 12 个词要复习，新词 5 个，大约 8 分钟。")
+        XCTAssertEqual(AskLines.due(input(due: 12), outcome: .fresh), "今天还有 12 个词要复习。")
+        XCTAssertEqual(AskLines.due(input(new: 5, minutes: 3), outcome: .fresh), "今天没有要复习的词，新词 5 个，大约 3 分钟。")
+        XCTAssertEqual(AskLines.due(input(), outcome: .fresh), "今天的单词都复习完了。")
+        XCTAssertEqual(AskLines.due(input(due: 2), outcome: .offline), "今天还有 2 个词要复习。（没连上网，这是上次的数字）")
+        XCTAssertTrue(AskLines.due(input(words: false), outcome: .fresh).contains("选一本词书"), "no words at all: how to start")
+    }
+
+    @MainActor func testNoNumbersForNobody() {
+        XCTAssertFalse(AskLines.due(input(due: 12), outcome: .signedOut).contains("12"), "signed out: nobody's words")
+        XCTAssertTrue(AskLines.due(input(due: 12), outcome: .signedOut).contains("登录"))
+        XCTAssertFalse(AskLines.due(input(due: 12), outcome: .paused).contains("12"))
+    }
+
+    func testTodaysTextOrToday() {
+        var card = TodayCard(updated: Date(), read: TodayCard.Read(title: "x", path: "#/m/abc"))
+        XCTAssertEqual(AskLines.todayPath(card), "#/m/abc")
+        XCTAssertEqual(AskLines.todayPath(nil), "#/", "nothing written yet: 今日")
+        card.updated = Date(timeIntervalSinceNow: -3 * 86_400)
+        XCTAssertEqual(AskLines.todayPath(card), "#/", "yesterday's text: 今日 has today's")
+        card.updated = Date()
+        card.state = .signedOut
+        XCTAssertEqual(AskLines.todayPath(card), "#/")
+        card.state = .ok
+        card.read = TodayCard.Read(title: "x", path: "#/review")
+        XCTAssertEqual(AskLines.todayPath(card), "#/", "only a text page")
+    }
+
+    func testFocusFilterLetsThroughByKind() {
+        XCTAssertEqual(Reminders.kind(of: "review-2026-11-26"), "review")
+        XCTAssertEqual(Reminders.kind(of: "plan-2026-11-26"), "plan")
+        XCTAssertNil(FocusReminders.all.predicate, "都提醒: no filter")
+        let review = FocusReminders.review.predicate!
+        XCTAssertTrue(review.evaluate(with: Reminders.reviewKind))
+        XCTAssertFalse(review.evaluate(with: Reminders.planKind))
+        let off = FocusReminders.off.predicate!
+        XCTAssertFalse(off.evaluate(with: Reminders.reviewKind))
+        XCTAssertFalse(off.evaluate(with: Reminders.planKind))
+    }
+
+    @MainActor func testSiriIsOnAndInItsGroup() {
+        XCTAssertTrue(Feature.siri.defaultOn)
+        XCTAssertEqual(Feature.siri.group, .ask)
+        XCTAssertNotNil(Feature.Group.ask.footer, "how to add the Focus filter")
+        XCTAssertNotNil(Features.state["siri"])
+    }
+}
+
+/// 「在系统搜索里找生词」 (item 7): the search entries made from the site's list, and the page a picked one opens.
+final class WordSearchTests: XCTestCase {
+    func testEntriesFromTheSitesList() {
+        let items = WordSearch.items([["id": 7, "text": "make up for", "zh": "弥补"], ["id": 8, "text": "  "], ["id": "9", "text": "rainbow"]])
+        XCTAssertEqual(items.count, 2, "an empty text makes no entry")
+        XCTAssertEqual(items[0].attributeSet.title, "make up for")
+        XCTAssertEqual(items[0].attributeSet.contentDescription, "弥补")
+        XCTAssertEqual(items[0].domainIdentifier, WordSearch.domain)
+        XCTAssertEqual(items[1].uniqueIdentifier, "card/9/rainbow")
+    }
+
+    func testAPickedWordOpensItsCard() {
+        // the site's route: #/cards/find/<encodeURIComponent(word)> (语流 B2, #366)
+        XCTAssertEqual(WordSearch.path(forIdentifier: WordSearch.identifier(id: "7", text: "make up for")), "#/cards/find/make%20up%20for")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/3/it's (not) a/b"), "#/cards/find/it's%20(not)%20a%2Fb")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/4/café"), "#/cards/find/caf%C3%A9")
+        XCTAssertNil(WordSearch.path(forIdentifier: "something-else"))
+        XCTAssertNil(WordSearch.path(forIdentifier: "card/5/"))
+    }
+
+    @MainActor func testOffUntilTurnedOn() {
+        XCTAssertFalse(Feature.wordSearch.defaultOn, "the learner's words in the phone's search: the learner turns it on")
+        XCTAssertEqual(Feature.wordSearch.group, .ask)
+    }
+}

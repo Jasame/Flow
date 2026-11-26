@@ -36,7 +36,7 @@ ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/l
              '/classes', '/class', '/export/classes.csv', '/teacher-links'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
-ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
+ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
 
 
 def operator(headers):
@@ -87,7 +87,9 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容'}
+                'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
+                'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
+                'account-purge-held': '暂停满 30 天的账号（备份不在，没删）'}
 
 
 def operator_log(c, limit=200):
@@ -243,6 +245,7 @@ def overview(c):
         'classes': _class_numbers(c),
         'task': __import__('console_ops').task_status()['state'],
         'backup': backup_status(), 'daily': __import__('daily_service').status(c),
+        'paused': __import__('privacy_service').paused_report(c),  # 数据存放在香港: paused, run out, deleted or not
         'server': server_label(),
         'generated_at': now,
     }
@@ -338,6 +341,7 @@ def console_get(c, path, one, op):
         if not admin:
             ex['task'].pop('by', None)
         return {'examples': ex, 'daily': __import__('daily_service').status(c), 'backup': backup_status(),
+                'paused': __import__('privacy_service').paused_report(c),
                 'books': [{'id': b['id'], 'title': b['title'], 'group': b['group']} for b in __import__('vocab_service').registry()]}
     if path == '/announcements':
         out = co.announcements(c)
