@@ -125,9 +125,13 @@ SESSION_DAYS=30
 # r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
-OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
+OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/account/ai','/api/next/'),
  'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/teacher/check','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 SIGN_IN_ROUTES=('/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/recovery/request','/api/recovery/reset','/api/teacher/check')
+def ai_path(path):
+ """A route that may call an AI model for the learner (and so counts in ai_quota): its answer says what is left."""
+ import next_service,ai_stream
+ return path in next_service.AI_PATHS or path in ai_stream.PATHS or path.startswith('/api/next/two/')
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -257,10 +261,20 @@ class Handler(BaseHTTPRequestHandler):
  def send(self,obj,status=200,cookie=None):
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
   body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+  quota=self.ai_quota_now()
+  if quota:self.send_header('X-Flow-AI-Quota',quota)  # 00-head.js: once a day, a line when little or none is left
   renew,self.renew=getattr(self,'renew',None),None
   if cookie:self.send_header('Set-Cookie',cookie)
   elif renew:self.send_header('Set-Cookie',session_cookie(renew))  # a session in use stays signed in (user())
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+ def ai_quota_now(self):
+  # An AI request's answer carries the account's AI calls left today (ai_quota.header: "<remaining>/<limit>/<level>",
+  # 语流 B7 #405): the page says once a day when little or none is left (「我的 → 设置 → AI 用量」 has the rest).
+  uid=getattr(self,'ai_quota_uid',None)
+  if not uid:return ''
+  try:
+   with db() as c:return __import__('ai_quota').header(c,uid)
+  except Exception:return ''  # never in the way of the answer itself
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
   self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
@@ -454,6 +468,7 @@ class Handler(BaseHTTPRequestHandler):
     if result is not None:return self.send(*result)
     if path=='/api/account':
      result=account.private(c,u,path,{},verify);return self.send(*result)
+    if path=='/api/account/ai':return self.send(__import__('ai_quota').today(c,u['id']))  # 我的 → 设置 → AI 用量
     if path=='/api/dashboard':return self.send(report(c,u['id']))
     if path=='/api/chat/history':
      topic=parse_qs(urlsplit(self.path).query).get('topic',[''])[0];out,status=chat_history(c,u['id'],topic);return self.send(out,status)
@@ -588,6 +603,7 @@ class Handler(BaseHTTPRequestHandler):
     # not agreed to 数据存放在香港: nothing; under 14 without a guardian's agreement: no AI on the learner's own words
     held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
     if held:return self.send(*held)
+    if ai_path(path):self.ai_quota_uid=u['id']
     if path in next_service.AI_PATHS:
      import ai_jobs
      try:self.ai_ticket=ai_jobs.enter(u['id'])
@@ -658,6 +674,7 @@ class Handler(BaseHTTPRequestHandler):
    if result is not None:
     c.commit();return self.send(*result)
    import ai_stream
+   if ai_path(path):self.ai_quota_uid=u['id']
    if path in ai_stream.PATHS and self.headers.get('Accept')=='text/event-stream':
     self.ai_transport=ai_stream.Transport(self,path)
     ai_stream.LOCAL.callback=self.ai_transport.write

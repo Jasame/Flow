@@ -40,3 +40,16 @@
 .sw-in:focus-visible+.sw{outline:2px solid var(--green);outline-offset:2px}
 .gfoot #mePersInfo{margin-left:4px}
 @media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
+
+/* 我的 → 设置 → AI 用量 (81-me.js aiUsageSheet): the day's number, a thin bar, then the calls by task */
+.aiq-num{display:flex;align-items:baseline;gap:6px}
+.aiq-num b{font-size:32px;font-weight:700;line-height:1.1}
+.aiq-num .small{margin-left:auto}
+.aiq-bar{-webkit-appearance:none;appearance:none;width:100%;height:6px;border:0;border-radius:3px;background:var(--sunk);overflow:hidden}
+.aiq-bar::-webkit-progress-bar{background:var(--sunk);border-radius:3px}
+.aiq-bar::-webkit-progress-value{background:var(--brand);border-radius:3px}
+.aiq-bar::-moz-progress-bar{background:var(--brand);border-radius:3px}
+.aiq-bar.low::-webkit-progress-value{background:var(--amber)}
+.aiq-bar.low::-moz-progress-bar{background:var(--amber)}
+.aiq-kinds{list-style:none;margin:0;padding:0}
+.aiq-kinds li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:15px}
