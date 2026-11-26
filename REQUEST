@@ -1,3 +1,3 @@
-e80f59f2ed2d3d8dca9ffc6ddb7623f00251206f 7004074fa0504ae3a0392b71ab088b8738f81f0adfa65e48e133ad8a86a874d6 e2e light ref=build-2bd8ce3d05bc tag=b119 tools=d2b435d89f85153177d99a743a26d0b7c706a216608190d1cb13a18b44801ac4
-# b119 main: Merge pull request #415 from Jasame/about-harmony = build of 2bd8ce3d05bc
+fc50e8dc5eb1ae6833fa13860d628bc51831af18 184587d7de365e0188b434ae4e94aaf3cb3bb30b29897777d969d607ff0928a4 e2e light ref=build-f13729411c3e tag=b120 tools=d2b435d89f85153177d99a743a26d0b7c706a216608190d1cb13a18b44801ac4
+# b120 main: Merge pull request #417 from Jasame/ledger-beta-console = build of f13729411c3e
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
