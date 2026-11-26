@@ -124,6 +124,13 @@ def retell(c, uid, data):
 
 # ---------- role-play dialogue ----------
 
+# A round is the AI's opening and 8 of the learner's lines, each with the AI's answer: a turn is taken while the history
+# has at most 16 entries, so the 8th line is the last. 「结束并看反馈」 is taken whatever the round's length (the owner,
+# 2026-11-26: after 8 lines 「对话太长了」 came up and 结束并看反馈 was refused by the same limit, so the round never ended).
+DIALOG_LINES = 8
+DIALOG_MAX, DIALOG_END_MAX = 2 * DIALOG_LINES, 40
+
+
 def dialog(c, uid, data):
     """Role-play around the material's speaking task, or a scene of the speaking route (data['scenario']).
     The client keeps the history; each call is one AI turn."""
@@ -141,7 +148,8 @@ def dialog(c, uid, data):
     voice = SC.voice_for(sc['sid'], sc['mode'], prof.get('voice')) if sc else (prof.get('voice') or 'us-f')
     opener_key = p['id'] + ('@persona' if sc else '')
     hist = data.get('history') or []
-    if not isinstance(hist, list) or len(hist) > 16:
+    end = bool(data.get('end'))
+    if not isinstance(hist, list) or len(hist) > (DIALOG_END_MAX if end else DIALOG_MAX):
         return {'error': '对话太长了，先结束这一轮吧'}, 400
     if not hist:
         # The opening (scene, role, first line) is the same for everyone on this text at this level: asked once, kept.
@@ -158,7 +166,6 @@ def dialog(c, uid, data):
         if not isinstance(h, dict) or h.get('role') not in ('ai', 'me') or not isinstance(h.get('text'), str) or len(h['text']) > 500:
             return {'error': '对话记录格式不正确'}, 400
         turns.append(f"{'AI' if h['role'] == 'ai' else '学习者'}：{h['text']}")
-    end = bool(data.get('end'))
     text, audio = '', None
     if hist and not end:
         text, audio, err = _audio_or_text(data, 1, 500)
