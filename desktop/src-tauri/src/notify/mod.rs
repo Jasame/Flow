@@ -155,6 +155,7 @@ mod none {
         Ok(0)
     }
     pub fn clear() {}
+    pub fn clear_shown() {}
     pub fn pending() -> Vec<(String, Option<i64>)> {
         vec![]
     }

@@ -21,6 +21,7 @@
     "allow-notify-off",
     "allow-notify-hold",
     "allow-notify-pending",
+    "allow-notify-account",
     "allow-smoke-report"
   ]
 }

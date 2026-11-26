@@ -524,6 +524,7 @@ pub fn run() {
             bridge::notify_off,
             bridge::notify_hold,
             bridge::notify_pending,
+            bridge::notify_account,
             smoke::smoke_report
         ])
         .on_menu_event(|app, e| on_menu(app, e.id().as_ref()))
