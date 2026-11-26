@@ -24,7 +24,7 @@
   function n(v) { return Number(v || 0).toLocaleString('zh-CN'); }
   function pct(a, b) { return b ? Math.round(100 * a / b) : 0; }
   function getJSON(path) {
-    return fetch(API + path, { credentials: 'same-origin' }).then(function (r) {
+    return fetch(API + path, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {  // a hash change reads afresh (A1: a stale 邀请码 switch)
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
         return j;
@@ -126,7 +126,7 @@
           '<section class="card"><h2>近 7 天 AI 调用</h2>' +
             '<div class="spark">' + ai.week.map(function (x) { return '<div title="' + esc(x.day + '：' + x.count) + '" style="height:' + Math.max(3, pct(x.count, max)) + '%"></div>'; }).join('') + '</div>' +
             '<div class="spark-days">' + ai.week.map(function (x) { return '<span>' + esc(x.day.slice(5)) + '</span>'; }).join('') + '</div>' +
-            '<dl class="kv" style="margin-top:14px"><dt>模型</dt><dd>' + esc(ai.model || '未配置') + '</dd>' +
+            '<dl class="kv" style="margin-top:14px"><dt>模型</dt><dd>' + esc(ai.model || '没有设置（见「AI 用量、费用和质量」）') + '</dd>' +
             '<dt>每账号每日上限</dt><dd>' + (ai.user_limit ? n(ai.user_limit) + ' 次（员工账号不受限）' : '不限') + (lim.user_limit_source === 'console' ? ' <span class="pill">后台设置</span>' : '') + '</dd>' +
             '<dt>全站每日上限</dt><dd>' + (ai.site_limit ? n(ai.site_limit) + ' 次' : '不限') + (lim.site_limit_source === 'console' ? ' <span class="pill">后台设置</span>' : '') + '</dd>' +
             '<dt>重置时间</dt><dd>每天北京时间 08:00（UTC 0 点）</dd></dl>' +
