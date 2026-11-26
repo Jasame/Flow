@@ -1310,3 +1310,13 @@
   - #521 服务器变动：单词搭配全量跑完，夜间计划结束（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45867449069
+
+### b159 · 2026-11-27 01:38
+- main `31443f6`，构建 `58bf86c`
+- 新合并的 PR（自 b158 起）：
+  - #523 iOS 测试：切换账号记住的其他账号（flow_more）在钥匙串里的那份跟着 cookie 走（网站其他）
+  - #522 全英文界面：新账号选目标页的英文，内测版更新说明留中文（开局和考试、后台和班级）
+  - #524 鸿蒙：每个 product 打开的网站只由 product 决定（正式版包之前打开的是内测版）（网站其他）
+  - #525 AI 结果保存 180 天：每天清理更早的 lab_jobs 和它们的异议（AI）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45869301359
