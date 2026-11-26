@@ -15,6 +15,7 @@
 .sw-add:disabled .sw-name,.sw-add:disabled .sw-av{color:var(--muted);opacity:.6}
 .sw-why{margin:0}
 .sw-note{margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--muted)}
-/* 我的: 「切换 ›」 by the name, only with two or more accounts here */
+/* 我的: 「切换 ›」 on the name's line (the lines under it keep the card's width), only with two or more accounts here */
+.sw-nameline{display:flex;align-items:baseline;gap:8px;min-width:0}
 .me-switch-top{margin-left:auto;flex:none;color:var(--brand)}
 .me-switch-top[hidden]{display:none}

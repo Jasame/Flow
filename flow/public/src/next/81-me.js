@@ -120,10 +120,11 @@
     ].filter(Boolean);
     const sec = (h, body, foot) => `<section class="me-sec" aria-label="${h}"><h2 class="me-h">${h}</h2>${body}${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`;
     view.innerHTML = `<section class="me-card me-head">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
-        <div class="t"><h1 class="me-name">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1>
+        <div class="t"><div class="sw-nameline"><h1 class="me-name">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1>
+          ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : ''}</div>
           <span class="me-line">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span>
           ${st ? `<span class="me-line">这周学了 ${days} 天 · 学完 ${st.materials_done} 篇 · ${st.cards} 个词</span>` : u ? '' : '<span class="me-line">登录后才能保存进度、收藏表达和使用 AI。</span>'}</div>
-        ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
+        ${u ? '' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
       ${u ? '<div id="meTeach"></div>' : ''}
       ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', `这周 ${days} 天`, '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
       ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
