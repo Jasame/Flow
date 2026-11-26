@@ -7,15 +7,43 @@
 - 注销账号: with the password once more (wrong ones count toward the same 15-minute pause as signing in), every row
   that belongs to the account is deleted. The rows are found from the database itself, so a table added later is
   not missed: every table with a user_id column, and every row that refers to those rows or to the account (as ON
-  DELETE CASCADE would: owned imports, their bookmarks, word-graph nodes and edges ...). Then the screenshots it sent
-  with 问题反馈. Nothing is kept: signing up again with the same name or email starts from nothing.
+  DELETE CASCADE would: owned imports, their bookmarks, word-graph nodes and edges ...); the tables that name the
+  account in a column of another name, without a foreign key (ACCOUNT_COLUMNS). Then the screenshots it sent with
+  问题反馈. Nothing is kept: signing up again with the same name or email starts from nothing.
+  tests/test_account_tables.py lists every column of every table that looks like an account (by name, or a foreign
+  key to users) and fails until a new one is covered here or said not to be one (NOT_ACCOUNT).
+- Rows left from accounts deleted before a table was covered (tts_usage until 2026-11-26):
+
+    python3 account_data.py orphans            # how many rows in each table name an account that no longer exists
+    python3 account_data.py orphans --apply    # delete them (the 正式版's database: A1, with the owner's OK)
 """
 import csv, datetime, html, io, json, shutil, sqlite3, time
 from urllib.parse import quote
 
 CN = datetime.timezone(datetime.timedelta(hours=8))
-LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures', 'users'}
+# Tables that name the account in a column other than user_id and without a foreign key to users: deleted with the
+# account and in 导出我的数据 like a user_id table. (who 0 and below are the site's own rows, never an account.)
 WHO_TABLES = ('tts_usage', 'tts_import')  # AI 朗读's characters a day name the account `who` (0 the site, -1 overnight)
+ACCOUNT_COLUMNS = {**{t: 'who' for t in WHO_TABLES},
+                   # a learner's own 参考词条 (the classic site's reference_service: owner and actor the learner): the versions
+                   # and the audit name the entry by text, not by a foreign key, so they did not go with it
+                   'lexicon_versions': 'actor', 'lexicon_audit': 'actor'}
+# Columns that look like an account but are not one, and why (tests/test_account_tables.py).
+NOT_ACCOUNT = {
+    ('meeting_visits', 'visitor'): 'a random id the page makes before anyone signs in, not an account',
+    ('flow_admin_log', 'email'): "the staff member's own mail (the console's operator log)",
+    ('email_codes', 'email'): 'a sign-in code for an address: deleted by email with the account (forget)',
+    ('recovery_tokens', 'email'): 'a reset link for an address; the row has user_id and goes with the account',
+    ('beta_invites', 'by'): 'the staff member who made the invite code',
+    ('ai_quota', 'changed_by'): 'the staff member who set the AI quota (not exported, LEFT_OUT_COLUMNS)',
+    ('ai_quota_log', 'changed_by'): 'the staff member who changed the AI quota (not exported, LEFT_OUT_COLUMNS)',
+    ('announcements', 'by'): 'the staff member who wrote the 公告', ('classes', 'by'): 'the staff member who made the class',
+    ('teacher_links', 'by'): 'the staff member who made the 老师注册链接', ('material_hidden', 'by'): 'the staff member who hid the material',
+    ('beta_test_accounts', 'by'): 'the staff member who made the 内测 test account (the account itself is user_id)',
+    ('content_audit', 'actor'): 'the staff account that wrote a question (an admin-only route)',
+    ('corpus_import_runs', 'actor'): 'who ran a corpus import (the operator)', ('corpus_reviews', 'actor'): 'who reviewed a material (the operator)',
+}
+LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures', 'users'}
 LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt', 'changed_by'}  # changed_by: the staff member who set an AI quota (B6)
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
@@ -32,6 +60,7 @@ GUIDE = {
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
     'beta_invite_uses': '内测版注册时用的邀请码和使用时间（只在内测版）',
+    'lexicon_versions': '你生成的参考词条以前的版本', 'lexicon_audit': '你生成的参考词条的修改记录',
 }
 
 
@@ -151,7 +180,7 @@ def records(c, u):
             continue
         cols = _columns(c, t)
         key = ('user_id' if 'user_id' in cols else 'owner' if t in ('lab_packs', 'lexicon', 'kg_nodes') and 'owner' in cols
-               else 'who' if t in WHO_TABLES and 'who' in cols else None)
+               else ACCOUNT_COLUMNS[t] if ACCOUNT_COLUMNS.get(t) in cols else None)
         if not key:
             continue
         keep = [x for x in cols if x not in LEFT_OUT_COLUMNS]
@@ -259,6 +288,8 @@ def forget(c, uid, data_dir=None):
         for t in _tables(c):
             if t != 'users' and 'user_id' in _columns(c, t):
                 n += _cascade(c, refs, t, 'user_id', [uid])
+            elif ACCOUNT_COLUMNS.get(t) in _columns(c, t):
+                n += c.execute(f'DELETE FROM "{t}" WHERE "{ACCOUNT_COLUMNS[t]}"=?', (uid,)).rowcount
         for t, col, _ in refs.get('users', []):
             if col not in ('user_id', 'owner'):  # a shared record that only names the account (who reviewed a material) keeps the record
                 try:
@@ -269,9 +300,6 @@ def forget(c, uid, data_dir=None):
         if stored['email']:
             n += c.execute('DELETE FROM email_codes WHERE email=?', (stored['email'],)).rowcount
         c.execute('DELETE FROM login_failures WHERE key IN (?, ?, ?)', (key, 'class:%d' % uid, 'pw:%d' % uid))  # and the invite-code and own-password pauses
-        for t in WHO_TABLES:  # AI 朗读's characters: `who`, not user_id (B6, 2026-11-26); the site's own rows stay
-            if t in _tables(c):
-                n += c.execute(f'DELETE FROM "{t}" WHERE who=?', (uid,)).rowcount
         if 'mail_limits' in _tables(c):
             c.execute('DELETE FROM mail_limits WHERE key=?', ('bind:%d' % uid,))
         c.commit()
@@ -285,3 +313,51 @@ def forget(c, uid, data_dir=None):
         for rid in shots:
             shutil.rmtree(base / str(rid), ignore_errors=True)
     return n
+
+
+# ---------- rows left from deleted accounts ----------
+
+def orphans(c, apply=False):
+    """{table: rows} naming an account (user_id, or ACCOUNT_COLUMNS) that no longer exists; apply: delete them. Ids of 0
+    and below are the site's own rows (ai_usage, tts_usage), never touched."""
+    found = {}
+    for t in _tables(c):
+        if t == 'users':
+            continue
+        cols = _columns(c, t)
+        col = 'user_id' if 'user_id' in cols else ACCOUNT_COLUMNS.get(t) if ACCOUNT_COLUMNS.get(t) in cols else None
+        if not col:
+            continue
+        where = f'"{col}" > 0 AND "{col}" NOT IN (SELECT id FROM users)'
+        n = c.execute(f'SELECT COUNT(*) FROM "{t}" WHERE {where}').fetchone()[0]
+        if n:
+            found[t] = n
+            if apply:
+                c.execute(f'DELETE FROM "{t}" WHERE {where}')
+    if apply:
+        c.commit()
+    return found
+
+
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description='语流账号数据：已注销账号留下的行')
+    sub = ap.add_subparsers(dest='cmd', required=True)
+    o = sub.add_parser('orphans', help='列出（--apply 删除）已经不存在的账号留下的行')
+    o.add_argument('--apply', action='store_true')
+    a = ap.parse_args(argv)
+    import app
+    with app.db() as c:
+        found = orphans(c, apply=a.apply)
+    if not found:
+        print('没有找到已注销账号留下的行。')
+    for t, n in sorted(found.items()):
+        print(f'{t}: {n} 行' + ('，已删除' if a.apply else ''))
+    if found and not a.apply:
+        print('加 --apply 删除这些行。')
+
+
+if __name__ == '__main__':
+    import os, sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    main()
