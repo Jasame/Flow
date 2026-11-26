@@ -1432,7 +1432,12 @@ def cards(c, uid, q='', page=1, per=30, f=''):
     page = max(1, page)
     import vocab_service
     now = time.time()
-    return {'total': len(rows), 'page': page, 'per': per, 'items': [vocab_service.card_out(r, now) for r in rows[(page - 1) * per: page * per]]}
+    items, cache = [], {}
+    for r in rows[(page - 1) * per: page * per]:
+        out = vocab_service.card_out(r, now)
+        src = vocab_service.card_from(c, r, cache) if f == 'mistake' else None  # 错题本: where each mistake came from (练习记录)
+        items.append({**out, 'from': src} if src else out)
+    return {'total': len(rows), 'page': page, 'per': per, 'items': items}
 
 
 def card_index(c, uid, have=''):

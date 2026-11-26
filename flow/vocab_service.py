@@ -436,6 +436,25 @@ def mode(r):
     return 'spell' if s >= SPELL_FROM else 'recall'
 
 
+def card_from(c, r, cache=None):
+    """练习记录 (practice-history/api.md 第 4 节): the practice a mistake card came from, {id, label, title, at}, for the
+    line 「来自 11月6日 · 口语情景：在咖啡店点单 ›」 on its back and in 错题本; None when it cannot be found or was deleted.
+    B7's history_service.source_of finds the record (the rid in extra; an older card by pack, kind and the corrections
+    of a record made just before it). Until that module is here, and if it fails, no line: a review never stops for it.
+    cache: one dict for a page of cards (the pack titles looked up once)."""
+    if c is None or r['source'] != 'mistake':
+        return None
+    try:
+        hist = __import__('history_service')
+    except ImportError:
+        return None
+    try:
+        src = hist.source_of(c, r['user_id'], r, cache)
+    except Exception:  # noqa: BLE001 - the card is shown without the line
+        return None
+    return {k: src[k] for k in ('id', 'label', 'title', 'at')} if src and src.get('id') else None
+
+
 def card_out(r, now=None, level=None, rich=False, c=None):
     out = {k: r[k] for k in ('id', 'text', 'meaning', 'context', 'pack', 'kind', 'created', 'due', 'reps', 'lapses', 'state',
                              'stability', 'difficulty', 'last', 'source', 'known')}
@@ -466,6 +485,9 @@ def card_out(r, now=None, level=None, rich=False, c=None):
             out['extras'] = extras(c, r['user_id'], r['norm'])
         if r['source'] == 'mistake':
             out['extra'] = json.loads(r['extra'] or '{}') if 'extra' in r.keys() else {}
+            src = card_from(c, r)
+            if src:
+                out['from'] = src
             norm = r['norm'] or ''
             if r['kind'] == 'question' and norm.startswith('q:') and c is not None:
                 out['passage'] = nx.excerpt(c, r['pack'], out['extra'].get('evidence') or r['meaning'] or '')

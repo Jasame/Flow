@@ -211,3 +211,49 @@ class WeekProgressTests(Db):
         guide = (root / 'guide' / 'guide.md').read_text(encoding='utf-8')
         for s in ('**这周的一次进步**', '**还要接着练**', '你写的句子不放进邮件'):
             self.assertIn(s, guide)
+
+
+class MistakeSourceTests(Db):
+    """练习记录 第 4 节 (practice-history/api.md): a fix card keeps the practice it came from (extra.rid, the request_id);
+    review cards, a card opened in 错题本 and 错题本's rows carry from: {id, label, title, at} when B7's history module
+    finds the record, and nothing when it does not, is not there yet, or fails."""
+
+    def card(self):
+        return self.c.execute("SELECT * FROM next_cards WHERE user_id=? AND source='mistake'", (self.uid,)).fetchone()
+
+    def fake(self, found=True, boom=False):
+        import types
+        m = types.ModuleType('history_service')
+
+        def source_of(c, uid, r, cache=None):
+            if boom:
+                raise RuntimeError('history down')
+            rid = __import__('json').loads(r['extra'] or '{}').get('rid')
+            return {'id': 'j7', 'label': '作文批改', 'title': 'A weekend I remember', 'at': NOW - DAY, 'more': 1} if found and uid == self.uid and rid == 'r1' else None
+        m.source_of = source_of
+        return patch.dict(sys.modules, {'history_service': m})
+
+    def test_a_fix_card_keeps_the_first_practice_it_came_from(self):
+        import json
+        self.corrected('r1', NOW - DAY, GONE)
+        self.corrected('r2', NOW, GONE)  # the same mistake again, in another practice: the card comes back, its source stays
+        self.assertEqual(json.loads(self.card()['extra'])['rid'], 'r1')
+        sk.mistakes_from_changes(self.c, self.uid, [ART], 'I ate a apple.', 'writing', 'p1')  # no request_id: no rid
+        row = self.c.execute("SELECT extra FROM next_cards WHERE user_id=? AND text='an apple'", (self.uid,)).fetchone()
+        self.assertNotIn('rid', json.loads(row['extra']))
+
+    def test_from_on_the_review_card_the_opened_card_and_the_mistake_list(self):
+        import vocab_service as vs
+        self.corrected('r1', NOW - DAY, GONE)
+        want = {'id': 'j7', 'label': '作文批改', 'title': 'A weekend I remember', 'at': NOW - DAY}
+        with self.fake():
+            self.assertEqual(vs.card_out(self.card(), NOW, rich=True, c=self.c)['from'], want)
+            self.assertEqual(vs.detail(self.c, self.uid, self.card()['id'])[0]['card']['from'], want)
+            self.assertEqual(nx.cards(self.c, self.uid, f='mistake')['items'][0]['from'], want)
+        with self.fake(found=False):  # deleted, or an older card that cannot be matched: no line
+            self.assertNotIn('from', vs.card_out(self.card(), NOW, rich=True, c=self.c))
+            self.assertNotIn('from', nx.cards(self.c, self.uid, f='mistake')['items'][0])
+        with self.fake(boom=True):  # the history failing never stops a review
+            self.assertNotIn('from', vs.card_out(self.card(), NOW, rich=True, c=self.c))
+        with patch.dict(sys.modules, {'history_service': None}):  # B7's module not here yet
+            self.assertNotIn('from', vs.card_out(self.card(), NOW, rich=True, c=self.c))

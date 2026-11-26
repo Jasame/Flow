@@ -86,8 +86,11 @@ def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3, 
             continue
         # keep the sentence the mistake was in, not the whole essay or retelling
         ctx = next((x for x in nx.sentences(sentence or '') if frm.lower() in x.lower()), sentence or '')[:600]
+        # rid: the practice it came from (lab_jobs.request_id), for 练习记录 (「来自 … ›」 on the card, and deleting a
+        # record with its mistakes; practice-history/api.md 第 4 节). A mistake made again keeps its first one.
+        extra = {'from': frm, **({'kind': kind} if kind else {}), **({'rid': str(request_id)} if request_id else {})}
         add_mistake(c, uid, 'fix', to, 'fix:' + nx._norm(frm + ' > ' + to), ch.get('why') or '', ctx, skill,
-                    ch.get('node'), pack, {'from': frm, 'kind': kind} if kind else {'from': frm}, commit=False)
+                    ch.get('node'), pack, extra, commit=False)
         if ch.get('node') and uid:
             c.execute('INSERT OR IGNORE INTO next_corrections(user_id,node,source,kind,skill,pack,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
                       (uid, ch['node'], source, kind or '', skill or '', pack, None if assisted is None else int(bool(assisted)), time.time()))

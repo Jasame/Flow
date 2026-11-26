@@ -5,7 +5,7 @@
     '熟知': 'Known', '待学': 'To learn', '已掌握': 'Learned', '已掌握 ·': 'Learned ·', '学习中': 'Learning',
     '记得 {n}%': 'Recall {1}%', '记得 {x}': 'Recall {1}', '此刻记得的概率': 'Chance you remember it now',
     '导入': 'Import',
-    '该复习了': 'Due now', '今天晚些时候复习': 'Review later today', '明天复习': 'Review tomorrow', '{n} 天后复习': 'Review in {1} {1|day|days}',
+    '来自': 'From', '该复习了': 'Due now', '今天晚些时候复习': 'Review later today', '明天复习': 'Review tomorrow', '{n} 天后复习': 'Review in {1} {1|day|days}',
     '周一': 'Mon', '周二': 'Tue', '周三': 'Wed', '周四': 'Thu', '周五': 'Fri', '周六': 'Sat', '周日': 'Sun',
     // 50-words.js: 这次什么时候复习 (a time today or tomorrow for the next reminder only) and the app's notifications
     '今天中午 12:30': 'Today, 12:30 p.m.', '今天傍晚 18:00': 'Today, 6 p.m.', '今晚 21:00': 'Tonight, 9 p.m.',
