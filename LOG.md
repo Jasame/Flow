@@ -1040,3 +1040,11 @@
   - #435 内测版也每天备份：ops.py 按 FLOW_CHANNEL 选站点，正式版不变［服务器脚本，确认后再合］（测试）
 - 自检：DEPLOYED，装了 13 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45776043233
+
+### b128 · 2026-11-26 15:43
+- main `9803200`，构建 `4b2ac47`
+- 新合并的 PR（自 b127 起）：
+  - #438 harmony: short permission reasons (zh_CN, en_US), versionCode 1000001（网站其他）
+  - #439 后台「单词搭配反馈」：学员标「这条不对」的条目，按人数排、不带名字；下架（写原因）和放回（后台和班级）
+- 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45777362341
