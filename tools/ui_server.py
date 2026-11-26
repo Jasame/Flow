@@ -29,20 +29,20 @@ os.environ.update({'FLOW_TOUR_FROM': '4102444800',  # 新手引导 for no accoun
 os.environ['FLOW_WORDBOOKS'] = os.pathsep.join(str(ROOT.parent / 'tools' / 'ui-fixtures' / n) for n in ('wordbooks.json', 'wordbooks-open.json'))
 sys.path.insert(0, str(ROOT))
 import app, chat_service, next_service as nx, vocab_service as vs, skills_service as sk  # noqa: E402
-# 练习记录 (B7's practice_history, practice-history/api.md 第 4 节): until it is merged, a stand-in that finds a mistake's
-# practice by its rid in lab_jobs, so 「来自 … ›」 can be checked (review_side_run); the real module replaces it once here
+# 练习记录 (B7's history_service, practice-history/api.md 第 4 节): until it is merged, a stand-in that finds a mistake's
+# practice by its rid in lab_jobs, so 「来自 … ›」 can be checked (review_side_run); the real module is used once here
 try:
-    import practice_history  # noqa: E402,F401
+    import history_service  # noqa: E402,F401
 except ImportError:
     import types
-    _ph = types.ModuleType('practice_history')
+    _ph = types.ModuleType('history_service')
 
-    def _source_of(c, uid, r):
+    def _source_of(c, uid, r, cache=None):
         rid = json.loads(r['extra'] or '{}').get('rid')
         j = c.execute("SELECT id, created FROM lab_jobs WHERE user_id=? AND request_id=? AND kind LIKE 'next-%' AND status='complete'", (uid, rid)).fetchone() if rid else None
         return {'id': f"j{j['id']}", 'label': '作文批改', 'title': 'A weekend I remember', 'at': j['created']} if j else None
     _ph.source_of = _source_of
-    sys.modules['practice_history'] = _ph
+    sys.modules['history_service'] = _ph
 
 app.DB = Path(tmp) / 'flow.sqlite3'
 # Audio in R2 (flow/media.py): one serial episode is listed as having narration while neither this server nor the

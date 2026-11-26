@@ -223,15 +223,15 @@ class MistakeSourceTests(Db):
 
     def fake(self, found=True, boom=False):
         import types
-        m = types.ModuleType('practice_history')
+        m = types.ModuleType('history_service')
 
-        def source_of(c, uid, r):
+        def source_of(c, uid, r, cache=None):
             if boom:
                 raise RuntimeError('history down')
             rid = __import__('json').loads(r['extra'] or '{}').get('rid')
             return {'id': 'j7', 'label': '作文批改', 'title': 'A weekend I remember', 'at': NOW - DAY, 'more': 1} if found and uid == self.uid and rid == 'r1' else None
         m.source_of = source_of
-        return patch.dict(sys.modules, {'practice_history': m})
+        return patch.dict(sys.modules, {'history_service': m})
 
     def test_a_fix_card_keeps_the_first_practice_it_came_from(self):
         import json
@@ -255,5 +255,5 @@ class MistakeSourceTests(Db):
             self.assertNotIn('from', nx.cards(self.c, self.uid, f='mistake')['items'][0])
         with self.fake(boom=True):  # the history failing never stops a review
             self.assertNotIn('from', vs.card_out(self.card(), NOW, rich=True, c=self.c))
-        with patch.dict(sys.modules, {'practice_history': None}):  # B7's module not here yet
+        with patch.dict(sys.modules, {'history_service': None}):  # B7's module not here yet
             self.assertNotIn('from', vs.card_out(self.card(), NOW, rich=True, c=self.c))

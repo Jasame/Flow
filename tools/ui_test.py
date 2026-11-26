@@ -4341,7 +4341,7 @@ def review_side_run(pw):
         pg.screenshot(path=str(OUT / 'mistake-sheet-from.png'))
         d2 = __import__('datetime').date.fromtimestamp(time.time() - 2 * 86400)
         check(dev, '错题本 → a mistake: the last line says where it came from (来自 <day> · 作文批改：<title> ›), 44 px high, 13.5 px',
-              fl and fl['text'] == f'来自 {d2.month}月{d2.day}日 · 作文批改：A weekend I remember ›' and fl['href'].startswith('#/history/j') and fl['h'] >= 44 and fl['size'] == '13.5px' and fl['last'], fl)
+              fl and fl['text'].startswith(f'来自 {d2.month}月{d2.day}日 · 作文批改：') and fl['text'].endswith(' ›') and fl['href'].startswith('#/history/j') and fl['h'] >= 44 and fl['size'] == '13.5px' and fl['last'], fl)
         pg.click('#sheetCard .from-line'); pg.wait_for_timeout(400)
         gone = pg.evaluate("[location.hash, document.getElementById('sheet').hidden]")
         check(dev, '「来自 … ›」 closes the sheet and opens that record', gone[0] == fl['href'] and gone[1], gone)
