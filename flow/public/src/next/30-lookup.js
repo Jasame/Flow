@@ -43,10 +43,10 @@
     try {
       const r = await api('/api/next/explain', { pack, sentence, request_id: rid('nx') });
       const x = r.result;
-      openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-pair"><button class="icon-btn say-btn" id="sayS" type="button" aria-label="朗读这句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</span></div>
+      openSheet(`<div class="stack explain enter" data-ex-block><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-pair"><button class="icon-btn say-btn" id="sayS" type="button" aria-label="朗读这句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</span></div>
         <div class="text" id="sheetTitle">${esc(sentence)}</div>
-        <div class="tr" data-zh>${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
-        ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small">${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
+        <div class="tr" data-zh>${esc(x.translation)}</div>${x.structure ? `<div class="small muted" data-ex>${esc(x.structure)}</div>` : ''}
+        ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small" data-ex>${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
         ${x.pattern ? `<div class="card sunk stack-s"><div class="kicker">可模仿的句型</div><div class="frame">${esc(x.pattern.frame)}</div>${x.pattern.example ? `<div class="text small">${esc(x.pattern.example)}</div>` : ''}<div><button class="btn small" id="savePat">收藏这个句型</button></div></div>` : ''}
         <button class="btn ghost" data-close>关闭</button></div>`, card => {
         card.querySelector('#sayS').onclick = () => TTS.say(sentence, null, null, { pack });  // an import's sentence: its owner's file

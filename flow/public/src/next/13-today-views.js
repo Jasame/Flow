@@ -131,7 +131,7 @@
   // tilted, coloured or thrown, so it does not look like answering a word card. Reminders sit in one line above.
   function todayCards(h, news) {
     const f = planFacts(h), w = weekFacts(h), l = h.line, m = S.user && h.mine, it = m && m.item, extra = f.extra.concat(f.wk);
-    const WK = '一二三四五六日';
+    const WK = uiLang() === 'en' ? 'MTWTFSS' : '一二三四五六日';  // i18n: keep (a day's first letter, Monday first)
     const cards = {
       week: () => w && `<p class="tv-lb">这周</p><h2 class="tv-big">${esc(w.title)}</h2>${w.sub ? `<p class="tv-sub">${esc(w.sub)}</p>` : ''}
         <div class="tv-wk7 tv-mid" aria-hidden="true">${w.days.map((d, k) => `<span><i class="${d.active ? 'on' : ''}${d.today ? ' today' : ''}"></i>${WK[k]}</span>`).join('')}</div>
