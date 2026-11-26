@@ -47,7 +47,7 @@
 .hist-link{min-height:44px;padding:0 8px;border:0;background:none;font:inherit;font-size:13.5px;font-weight:600;color:var(--green-ink);cursor:pointer}
 .hist-del p{margin:0;font-size:15.5px;line-height:1.6;color:var(--ink2)}
 .hist-del p.q{color:var(--ink);font-weight:600}
-.hist-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hist-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .hist-two .btn{min-height:56px}
 /* 我的 → 进步: four tiles, two a row (练习记录 is the fourth) */
 .me-tiles.four{grid-template-columns:repeat(2,minmax(0,1fr))}
