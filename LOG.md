@@ -885,3 +885,10 @@
   - #385 更新记录 r37：复习分开、背单词左中右三块、精听和离线朗读（内容）
 - 自检：DEPLOYED，装了 10 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45744380880
+
+### b110 · 2026-11-26 11:11
+- main `37fb6e4`，构建 `9c59349`
+- 新合并的 PR（自 b109 起）：
+  - #396 e2e：错题卡到「错题和句型」复习里找（#344 以后内测版一直挂这一项）（测试）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45747148634
