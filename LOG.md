@@ -1247,3 +1247,10 @@
   - #509 更新记录 r40（今晚）：今日列表和卡片、调整顺序、小彩蛋、周报改版（内容）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45848315014
+
+### b151 · 2026-11-26 23:53
+- main `92c080e`，构建 `59508db`
+- 新合并的 PR（自 b150 起）：
+  - #511 Word sounds always at 1×; 语速 is for the whole text and 伴读（单词、听和说、开局和考试、操作指南）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45853152712
