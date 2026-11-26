@@ -6,9 +6,11 @@
      the way of a tap (the canvas takes no pointer events, and is made only to play and taken away after); not at all
      with 减少动态效果; nothing kept or sent. B9's drawing (ui-refine/batch1/compare-page.html), sized to the screen. */
   const EGG = (() => {
-    const HELLO = [['Hello', '英语'], ['Bonjour', '法语'], ['Hola', '西班牙语'], ['Ciao', '意大利语'], ['Hallo', '德语'], ['Olá', '葡萄牙语'],
-      ['こんにちは', '日语'], ['안녕하세요', '韩语'], ['Merhaba', '土耳其语'], ['Aloha', '夏威夷语'], ['Namaste', '印地语'], ['Hej', '瑞典语'],
-      ['Sawubona', '祖鲁语'], ['Xin chào', '越南语'], ['Habari', '斯瓦希里语'], ['Shalom', '希伯来语']];
+    // the word, the language in Chinese, and in English (the line under it follows 界面语言: zhEn, 00-i18n.js)
+    const HELLO = [['Hello', '英', 'English'], ['Bonjour', '法', 'French'], ['Hola', '西班牙', 'Spanish'], ['Ciao', '意大利', 'Italian'], ['Hallo', '德', 'German'],
+      ['Olá', '葡萄牙', 'Portuguese'], ['こんにちは', '日', 'Japanese'], ['안녕하세요', '韩', 'Korean'], ['Merhaba', '土耳其', 'Turkish'], ['Aloha', '夏威夷', 'Hawaiian'],
+      ['Namaste', '印地', 'Hindi'], ['Hej', '瑞典', 'Swedish'], ['Sawubona', '祖鲁', 'Zulu'], ['Xin chào', '越南', 'Vietnamese'], ['Habari', '斯瓦希里', 'Swahili'],
+      ['Shalom', '希伯来', 'Hebrew']];
     const MS = 1500;
     let last = -1, busy = false;
     const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -90,7 +92,7 @@
             ctx.globalAlpha = out(u) * Math.min(1, (1 - t) * 3); ctx.fillStyle = ink; ctx.fillText(ch, px, -8 + (1 - out(u)) * 18); px += cw;
           });
           ctx.font = `400 13.5px ${font}`; ctx.fillStyle = muted; ctx.globalAlpha = Math.max(0, Math.min(1, t * 4 - 1)) * Math.min(1, (1 - t) * 3);
-          const s = w[1] + '里的「你好」'; ctx.fillText(s, -ctx.measureText(s).width / 2, 30);
+          const s = zhEn(`${w[1]}语里的「你好」`, `“Hello” in ${w[2]}`); ctx.fillText(s, -ctx.measureText(s).width / 2, 30);
           ctx.restore();
         };
       };
