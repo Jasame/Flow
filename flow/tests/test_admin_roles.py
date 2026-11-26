@@ -109,7 +109,7 @@ class ClassicArchivedTests(Servers):
         import hashlib, re
         body = self.call(self.site, '/about', raw=True)[1].decode()
         sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
-        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'ios'])
+        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'harmony', 'ios'])
         self.assertEqual(re.findall(r'data-dl="([\w-]+)"', sec),  # iPhone and iPad: 开发中, no button
                          ['android', 'windows', 'mac', 'linux-appimage', 'linux-deb'])
         self.assertEqual(re.findall(r'aria-disabled="true">([^<]*)</a>', sec),
@@ -133,6 +133,40 @@ class ClassicArchivedTests(Servers):
             for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
                          '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
                 self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+
+    def test_the_harmony_card_shows_each_site_its_own_part(self):
+        """鸿蒙 (/about#download), the owner 2026-11-26: 语流 says the app is in 内测 and how to ask to join (问题反馈), with no
+        AppTest link anywhere in the page; the 内测版 has the two install steps and the AppTest link saved in its console
+        (「鸿蒙内测链接」, console-settings.json: a whole https link), else 即将开放. Neither site gets the other's
+        part, even hidden; a new link shows at once, no release."""
+        import console_ops
+        link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=1&invitationCode=ab'
+        with tempfile.TemporaryDirectory() as d, patch.object(console_ops, 'data_dir', return_value=Path(d)):
+            def card(channel):
+                with patch.object(app, 'CHANNEL', channel):
+                    body = self.call(self.site, '/about', raw=True)[1].decode()
+                self.assertNotIn('<!--channel', body); self.assertNotIn('__HARMONY_TEST__', body)
+                return body[body.index('data-app="harmony"'):body.index('data-app="ios"')]
+            beta = card('beta')
+            self.assertIn('AppTest', beta); self.assertNotIn('申请鸿蒙内测', beta)
+            self.assertIn('data-harmony="" data-tap="about-harmony-join" aria-disabled="true">即将开放</a>', beta)
+            console_ops.set_harmony_test_url(' ' + link + ' ', 'op')
+            self.assertEqual(console_ops.settings()['harmony_test_url'], link)
+            self.assertIn('data-harmony="https://appgallery.huawei.com/link/invite-test-wap?taskId=1&amp;invitationCode=ab"', card('beta'))
+            prod = card('prod')  # 语流, with the link saved: still none of it
+            self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
+            for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
+                self.assertNotIn(word, prod)
+            self.assertEqual(console_ops.harmony_test_host(), 'appgallery.huawei.com')  # shown next to the link in the console
+            for bad in ('http://appgallery.huawei.com/x', 'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)',
+                        'https://a.huawei.com/x y', 'https:///x', 'appgallery.huawei.com/x'):
+                with self.assertRaises(ValueError):
+                    console_ops.set_harmony_test_url(bad, 'op')
+            self.assertEqual(console_ops.harmony_test_url(), link)  # a refused one leaves the saved link as it was
+            console_ops.save_settings({'harmony_test_url': 'javascript:alert(1)'}, 'op')  # even if the file is edited by hand
+            self.assertIn('data-harmony=""', card('beta'))
+            console_ops.set_harmony_test_url('', 'op')  # emptied: back to 即将开放
+            self.assertNotIn('harmony_test_url', console_ops.settings()); self.assertIn('>即将开放</a>', card('beta'))
 
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
