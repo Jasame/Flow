@@ -1014,3 +1014,10 @@
   - #423 后台：按账号调 AI 额度（次数、倍数或暂停，必填原因），按人的 AI 用量只给管理员（后台和班级）
 - 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45770459337
+
+### b125 · 2026-11-26 15:03
+- main `2b80664`，构建 `ef08df0`
+- 新合并的 PR（自 b124 起）：
+  - #428 服务器变动：内测版后台接通（Cloudflare 应用、env 三行、杭州隧道和 nginx）（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45771685998
