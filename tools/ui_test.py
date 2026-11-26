@@ -4907,7 +4907,10 @@ def start_run(pw):
                 pg = ctx.new_page(); errs = []
                 pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
                 # a first visit: the full mark (name and line), about a second, then the page, which is the one-page start
-                pg.goto(BASE + '/', wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000); pg.wait_for_timeout(120)
+                pg.goto(BASE + '/', wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
+                # read the mark once next.js has run (it sets <html data-size> in the same go as the mark's 「first」): a
+                # fixed 120 ms was before that on a busy runner, and the mark was read as if it were not a first visit
+                pg.wait_for_function("() => !!document.documentElement.dataset.size || !document.getElementById('splash')", timeout=5000)
                 first = pg.evaluate(SPLASH_JS)
                 if size == 'phone':
                     pg.wait_for_timeout(500); pg.screenshot(path=str(OUT / f'start-splash-{theme}.png'))
