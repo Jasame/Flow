@@ -110,6 +110,8 @@
   function tourStop(result) {
     if (!TOUR.el) return;
     api('/api/next/tour', { tour: TOUR.name, result, step: TOUR.i + 1, again: TOUR.again }).catch(() => {});
+    // seen through: what it said (where things are, 右滑「认识」) need not be said again (一次性入口, 08-tips.js)
+    if (result === 'done' && TOUR.name === 'learner') { TIPS.mark('guide'); TIPS.mark('swipe-tip'); }
     TOUR.el.remove(); TOUR.el = null; TOUR.at = null; document.body.classList.remove('touring');
     removeEventListener('resize', tourPlace); removeEventListener('scroll', tourPlace);
     const back = TOUR.prev && TOUR.prev.isConnected ? TOUR.prev : view; if (back && back.focus) back.focus({ preventScroll: true });
