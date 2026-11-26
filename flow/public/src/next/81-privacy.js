@@ -74,7 +74,7 @@
   // The wording is privacy_service.STORAGE_VERSION: change it, change that version too (语流 23 reviewed this one).
   const STORAGE_TEXT = '我同意语流在香港的服务器上存放和处理我的账号和学习数据';
   const STORAGE_WHY = '语流的网站和数据库都在香港的服务器上运行。你的账号、学习记录、写的作文和练习的文字、问题反馈都存在那里。你说的录音不保存，但批改时会经过香港的服务器转给 AI。这些数据由语流的运营者处理，只用来给你提供学习服务。香港在中国内地以外，所以单独问你。';
-  const STORAGE_RIGHTS = '你可以随时在「我的 → 账号」里导出数据、注销账号或撤回同意；有问题请用「我的 → 问题反馈」，或写信到 i@jasa.hk。';
+  const STORAGE_RIGHTS = '你可以随时在「我的 → 账号和隐私」里导出数据、注销账号或撤回同意；有问题请用「我的 → 帮助 → 问题反馈」，或写信到 i@jasa.hk。';
   // A tick is ticked by its box or its words, at once; only a document's name opens it (docOver, over the page: the form
   // underneath keeps what was typed and ticked). The box takes a 44px tap (.tickbox); the names are not .link, so 99-tap.css
   // puts no wider tap area of theirs over the box (the user, 2026-11-25: 「一般都是直接勾选」).
