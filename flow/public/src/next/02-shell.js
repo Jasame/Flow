@@ -108,8 +108,10 @@
     return changed;
   }
   function setDueBadge() {
-    const due = S.home && S.home.stats ? S.home.stats.due + S.home.stats.new : 0;
+    const st = S.home && S.home.stats, due = st ? st.due + st.new : 0, other = st ? st.other_due || 0 : 0;
     const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
+    // 「练习」: the mistakes, patterns and sentences due again (练习 → 复习, 49-practice.js); words are 「单词」's
+    const o = document.getElementById('otherBadge'); if (o) { o.hidden = !other; o.textContent = other > 99 ? '99+' : other; }
   }
   // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
   // would not take anything from the learner (a sheet open, typing in a field, another page by now, a whole text being

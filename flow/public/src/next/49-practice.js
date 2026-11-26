@@ -16,9 +16,8 @@
       ['#/speak', '口语路线', '12 个生活和校园情景，和 AI 对话'],
       ['#/sounds', '发音入门', '中国学习者容易混的音，听辨再跟读']]],
     ['单词', [
-      ['#/review', '复习单词', '到期的词和错过的题，一张张过', 'due'],
+      ['#/review', '复习单词', '到期的单词和短语，一张张过', 'due'],
       ['#/words/confuse', '词汇辨析', '最容易混的词放在一起练'],
-      ['#/cards/mistake', '错题本', '做错过的词和题都在这里'],
       ['#/vocab/plan', '背词计划', '换词书、改每天学多少'],
       ['#/vocab/test', '测词汇量', '5 分钟估一估你认识多少词']]],
     ['考试和测评', [
@@ -36,6 +35,7 @@
     '#/review': '<path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/>',
     '#/words/confuse': '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
     '#/cards/mistake': '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>',
+    '#/review/other': '<path d="M8 4h8v3H8z"/><path d="M8 5H6v16h12V5h-2"/><path d="m9 13.5 2 2 4-4.5"/>',
     '#/vocab/plan': '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>',
     '#/vocab/test': '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>',
     '#/exam': '<circle cx="12" cy="13" r="7"/><path d="M12 9v4l3 2M10 3h4"/>',
@@ -44,9 +44,22 @@
   const practiceRow = ([href, title, line, badge], due) => `<a class="px-row" href="${href}"><span class="pico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PICON[href] || ''}</svg></span>
     <span class="t"><b>${title}${badge === 'due' && due ? ` <i class="pbadge">${due > 99 ? '99+' : due}</i>` : ''}</b>${/AI/.test(line) ? `<span class="tiny muted">${line}</span>` : ''}</span><span class="go" aria-hidden="true">›</span></a>`;
 
+  // 复习 (the user, 2026-11-25: 「单词复习不要和其他的东西混在一起，其他东西复习单独开个板块」): the mistakes, sentence
+  // patterns and whole sentences due again have a block of their own on top of 练习 (#/review/other, B2's review-split),
+  // with 错题本 beside it (moved here from 单词); the 「练习」 tab carries their number (02-shell.js setDueBadge).
+  // Nothing due: the block stays, its row says 都复习完了, so the way in is always there.
+  function reviewBlock(st) {
+    if (!S.user) return '';
+    const n = st ? st.other_due || 0 : 0;
+    const icon = k => `<span class="pico" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${PICON[k]}</svg></span>`;
+    return `<section class="pgroup stack-s review-block"><h2 class="h2 pgroup-h">复习</h2><div class="px-list">
+      <a class="px-row${n ? '' : ' has-v'}" href="#/review/other" data-tap="practice-review-other">${icon('#/review/other')}<span class="t"><b>错题和句型复习${n ? ` <i class="pbadge">${n > 99 ? '99+' : n}</i>` : ''}</b><span class="tiny muted">做错的题、句型和整句</span></span>${n ? '' : '<span class="v small muted">都复习完了</span>'}<span class="go" aria-hidden="true">›</span></a>
+      <a class="px-row" href="#/cards/mistake">${icon('#/cards/mistake')}<span class="t"><b>错题本</b></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
+  }
   async function practiceView() {
     const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
     view.innerHTML = `<h1 class="h1">练习</h1>
+      ${reviewBlock(st)}
       <div id="pSuggest">${practiceTip(null, due)}</div>
       ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2>
         ${items.filter(x => x[3] === 'map').map(([href, title, line]) => mapTile(href, title, line)).join('')}

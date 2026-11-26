@@ -62,3 +62,6 @@
   .study-head .title-en,.study-head .origin{display:none}
   .study-head .h1{font-size:19px;margin:0}
 }
+/* 练习 → 复习 (49-practice.js reviewBlock): 「都复习完了」 on the right of its row, before the › */
+.px-row.has-v{grid-template-columns:36px minmax(0,1fr) auto 14px}
+.px-row > .v{white-space:nowrap}
