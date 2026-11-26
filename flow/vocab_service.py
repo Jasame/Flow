@@ -131,6 +131,8 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
     rmcols = {r[1] for r in c.execute('PRAGMA table_info(next_reminders)')}
     if 'once_at' not in rmcols:  # 这次什么时候复习: the next reminder only, at a time the learner chose (then back to the hour)
         c.execute('ALTER TABLE next_reminders ADD COLUMN once_at REAL')
+    if 'last_mailed' not in rmcols:  # the day a reminder mail last went (last_sent is the day the hour was handled, mail or not)
+        c.execute('ALTER TABLE next_reminders ADD COLUMN last_mailed TEXT')
     if 'catch_up' not in pcols:  # after a break: {"day": the first day, "total": reviews due then} until caught up
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN catch_up TEXT')
     if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
@@ -1385,11 +1387,15 @@ def send_reminders(c, now=None, send=None):
         if od:
             say += f"另有 {od} 道错题和句型到期，在「练习 → 复习」里。"
         # the one look of every mail 语流 sends (mail_layout, 「A 简洁卡片」): plain text and HTML with the same words
-        text, page = mail_layout.message([f"{r['username']}，你好：", say], button=('去复习', f'{origin}/#/review'),
+        # ?from=remind&k=…: the visits a reminder brought back are counted per day and kind, no one's name (语流 B1 / B6)
+        k = 'once' if r['user_id'] in chosen else 'review'
+        text, page = mail_layout.message([f"{r['username']}，你好：", say], button=('去复习', f'{origin}/?from=remind&k={k}#/review'),
                                          foot=[('不想再收到提醒，可以在「单词 → 调整计划」里关掉', f'{origin}/#/vocab/plan')])
         try:
             send(r['email'], subject, text, html=page)
             sent += 1
+            # one date, overwritten: whether a reminder went that day, for the day's counts of who came back (语流 B1)
+            c.execute('UPDATE next_reminders SET last_mailed=? WHERE user_id=?', (today, r['user_id'])); c.commit()
         except Exception:
             pass  # a mail outage must not stop the loop; tomorrow is another try
     return sent

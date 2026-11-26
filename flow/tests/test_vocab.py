@@ -1,4 +1,4 @@
-import unittest, tempfile, sys, os, sqlite3, time, json, base64, datetime
+import unittest, tempfile, sys, os, re, sqlite3, time, json, base64, datetime
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -242,8 +242,8 @@ class BacklogTests(unittest.TestCase):
         self.assertNotIn('120', sub + text)
         self.assertIn(f"约 {vs.minutes_for(40, 0, vs.ANSWER_SECONDS)} 分钟", sub)
         # the card layout (mail_layout): the same words as text and HTML, a button to the review, the way to turn it off
-        self.assertIn('去复习：', text); self.assertIn('/#/review', text); self.assertIn('调整计划', text.split('——')[-1])
-        self.assertIn('class="fl-btn"', html); self.assertIn('/#/review', html); self.assertIn('/#/vocab/plan', html)
+        self.assertIn('去复习：', text); self.assertIn('/?from=remind&k=review#/review', text); self.assertIn('调整计划', text.split('——')[-1])
+        self.assertIn('class="fl-btn"', html); self.assertIn('from=remind', html); self.assertIn('#/review', html); self.assertIn('/#/vocab/plan', html)
 
 
     def test_a_reminder_goes_as_text_and_the_card_layout(self):
@@ -304,8 +304,9 @@ class OnceReminderTests(unittest.TestCase):
 
     def mails(self, at):
         sent = []
-        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub)))
+        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub, text)))
         self.assertEqual(n, len(sent))
+        self.links = [re.search(r'from=remind&k=(\w+)', t[2]).group(1) for t in sent]  # which reminder brought the visit back
         return n
 
     def test_a_time_tonight_takes_the_place_of_the_hour_and_then_the_hour_is_back(self):
@@ -315,9 +316,17 @@ class OnceReminderTests(unittest.TestCase):
         self.assertEqual((st, r['once']), (200, self.day + 21 * 3600))  # to the minute
         self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)  # 20:05: not the daily one while a time is chosen
         self.assertEqual(self.mails(self.day + 21 * 3600 + 60), 1)  # 21:01: the chosen time
+        self.assertEqual(self.links, ['once'])  # its button says so (?from=remind&k=once)
         self.assertIsNone(vs.reminder(self.c, 1, self.day + 21 * 3600 + 60)['once'])
         self.assertEqual(self.mails(self.day + 21 * 3600 + 600), 0)  # once a day
         self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 1)  # tomorrow: every day at 20:00 again
+        self.assertEqual(self.links, ['review'])
+        mailed = lambda: self.c.execute('SELECT last_sent, last_mailed FROM next_reminders WHERE user_id=1').fetchone()
+        tomorrow = datetime.datetime.fromtimestamp(self.day + 86400, nx.TZ).date().isoformat()
+        self.assertEqual(tuple(mailed()), (tomorrow, tomorrow))  # a mail went: both say so
+        self.c.execute("DELETE FROM next_cards WHERE user_id=1"); self.c.commit()
+        self.assertEqual(self.mails(self.day + 2 * 86400 + 20 * 3600 + 300), 0)  # nothing to review: the hour is handled, no mail
+        self.assertEqual(tuple(mailed()), (datetime.datetime.fromtimestamp(self.day + 2 * 86400, nx.TZ).date().isoformat(), tomorrow))
 
     def test_tomorrow_morning_comes_instead_of_tonight_and_that_day_has_no_second_mail(self):
         vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
