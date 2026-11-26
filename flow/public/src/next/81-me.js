@@ -191,9 +191,9 @@
         card.querySelectorAll('[data-zones]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
         toast(KNOW.tap() ? '点卡片的左、中、右也能作答了' : '点卡片作答关了，只用按钮和滑动');
       });
-      document.getElementById('zonesGuide').onclick = () => { try { localStorage.removeItem('flow-tap-guide'); } catch (e) { /* private mode */ } toast('下次复习时再看一次'); };
+      document.getElementById('zonesGuide').onclick = () => { try { localStorage.removeItem('flow-tap-guide'); } catch (e) { /* private mode */ } TIPS.unmark('review-zones'); toast('下次复习时再看一次'); };
       card.querySelectorAll('[data-know]').forEach(b => b.onclick = () => {
-        KNOW.set(b.dataset.know); save('flow-know-tip', 1);  // chosen here: the one-time tip of the move is not needed
+        KNOW.set(b.dataset.know); TIPS.mark('know-side');  // chosen here: the one-time tip of the move is not needed
         card.querySelectorAll('[data-know]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
         const v = document.getElementById('meKnowV'); if (v) v.textContent = knowLabel();
         toast('「认识」放在' + knowLabel());

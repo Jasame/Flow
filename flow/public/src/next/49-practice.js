@@ -63,7 +63,7 @@
       ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2>
         ${items.filter(x => x[3] === 'map').map(([href, title, line]) => mapTile(href, title, line)).join('')}
         <div class="px-list">${items.filter(x => x[3] !== 'map').map(x => practiceRow(x, due)).join('')}</div></section>`).join('')}
-      <a class="guide-cta link" href="#/guide">第一次用？看操作指南 ›</a>`;
+      ${tipSeen('guide') === false ? '<a class="guide-cta link" href="#/guide" data-tip-seen="guide">第一次用？看操作指南 ›</a>' : ''}`;  // 一次性 (08-tips.js)
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.gbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     if (S.user) api('/api/next/radar').then(r => {
       const el = document.getElementById('pSuggest'); if (el && r && r.gap) el.innerHTML = practiceTip(r, due);

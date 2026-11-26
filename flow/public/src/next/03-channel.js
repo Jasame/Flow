@@ -29,13 +29,24 @@
     if (brand) brand.insertAdjacentHTML('beforeend', '<span class="beta-pill" aria-label="内测版">内测</span>');
     if (load('flow-beta-bar') !== BETA_NOTE) {
       document.getElementById('bar').insertAdjacentHTML('afterend', `<p class="beta-bar" id="betaBar" role="note"><b>内测版</b><span>新功能先在这里试，账号和数据与正式版分开，详见「我的」</span><button class="bb-x" type="button" aria-label="关闭内测版提示" data-tap="beta-bar-close">✕</button></p>`);
-      document.querySelector('#betaBar .bb-x').onclick = () => { save('flow-beta-bar', BETA_NOTE); document.getElementById('betaBar').remove(); };
+      document.querySelector('#betaBar .bb-x').onclick = () => { save('flow-beta-bar', BETA_NOTE); TIPS.mark('beta-note'); document.getElementById('betaBar').remove(); };
+      // closed on another device (kept on the account, 08-tips.js): gone here too once the phone knows. A new BETA_NOTE
+      // that everyone should read again needs a new name in tour_service.TIPS.
+      document.addEventListener('flow-tips', () => {
+        const bar = document.getElementById('betaBar');
+        if (bar && tipSeen('beta-note') === true) { save('flow-beta-bar', BETA_NOTE); bar.remove(); }
+      });
     }
   }
-  // Once per phone, after the first page is up.
-  if (BETA_BEFORE !== null && !IN_FLOW_APP) setTimeout(() => openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这里是语流内测版</h2>
+  // Once per phone, after the first page is up, and once per account: it waits until the phone knows what the account
+  // has seen (08-tips.js), so a second phone of the same learner does not show it again.
+  if (BETA_BEFORE !== null && !IN_FLOW_APP) document.addEventListener('flow-tips', () => setTimeout(() => {
+    if (tipSeen('beta-hello') === true) return;
+    TIPS.mark('beta-hello');
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这里是语流内测版</h2>
     ${BETA_BEFORE ? '<p><b>语流的网址改成了 flowlang.cn。</b></p><p class="small">你的账号和学习记录都在 flowlang.cn，用原来的用户名和密码登录就行（换了网址，要重新登录一次）。加到了手机桌面的话，也请在 flowlang.cn 重新添加一次。</p>'
       : '<p>语流正式版的网址是 <b>flowlang.cn</b>。</p>'}
     <p class="small muted">这里（flow.jasa.hk）用来先试还没正式上线的新功能。账号和数据都和正式版分开，内测期间可能会清空。</p>
     <a class="btn primary" href="${MAIN_SITE}/" data-tap="beta-main">去正式版 flowlang.cn</a>
-    <button class="btn ghost" data-close type="button">留在内测版</button></div>`), 700);
+    <button class="btn ghost" data-close type="button">留在内测版</button></div>`);
+  }, 700), { once: true });
