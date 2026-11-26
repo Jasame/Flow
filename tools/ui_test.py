@@ -3177,12 +3177,12 @@ CARD_JS = r"""() => {
 # 今日 from the top: 好句, 热点, the plan, 这周进步; nothing in the 好句 card cut off; its buttons big enough to tap
 FOLD_JS = """() => { const q = s => document.querySelector(s), r = e => e.getBoundingClientRect();
   const tabs = q('.tabs'), cs = tabs && getComputedStyle(tabs), tabTop = tabs && cs.position === 'fixed' && cs.display !== 'none' ? r(tabs).top : innerHeight;
-  const lc = q('#lineCard'), nc = q('#view .news-card'), h1 = q('#tpTitle'), go = q('#view .today-plan .go-next'), say = q('#lcSay'), ai = nc && nc.querySelector('.ai-mark');
+  const lc = q('#lineCard'), nc = q('#view .news-card:not(.mine-card)'), h1 = q('#tpTitle'), go = q('#view .today-plan .go-next'), say = q('#lcSay'), ai = nc && nc.querySelector('.ai-mark');
   return { lineH: lc ? Math.round(r(lc).height) : null, newsH: nc ? Math.round(r(nc).height) : null, newsAI: !!(ai && r(ai).height > 0 && r(ai).bottom <= r(nc).bottom),
     planInView: !!(h1 && go && r(h1).top >= 0 && r(go).bottom <= tabTop), say: !!(say && say.offsetParent !== null), foldShown: !!(q('#lcFold') && q('#lcFold').offsetParent !== null) }; }"""
 TOP_JS = r"""() => {
   const r = el => el.getBoundingClientRect();
-  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
+  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card:not(.mine-card)'], ['mine', '#view .mine-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
     .map(([k, sel]) => [k, document.querySelector(sel)]).filter(([, el]) => el).sort((a, b) => r(a[1]).top - r(b[1]).top).map(([k]) => k);
   const card = document.getElementById('lineCard');
   return { order: blocks, wide: document.scrollingElement.scrollWidth - innerWidth,
@@ -3319,8 +3319,14 @@ def progress_run(pw):
                 first_h = pg.evaluate("(() => { const h = document.querySelector('#view h1, #view h2, #view h3'); return h ? h.tagName + ' ' + h.textContent.trim() : null; })()")
                 check(dev, f'{tag}: 今日\'s first heading is its h1 (今日好句 names its section, it is not a heading before it)', bool(first_h) and first_h.startswith('H1'), first_h)
                 top = pg.evaluate(TOP_JS)
-                check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
-                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                check(dev, f'{tag}: 今日 runs 好句, 今日一读, 我的材料, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'news', 'mine', 'week'] if h < 500 else ['lineCard', 'news', 'mine', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                mine = pg.evaluate("() => { const m = document.querySelector('#view .mine-card'), n = document.querySelector('#view .news-card:not(.mine-card)'); "
+                                   "return m && { href: m.getAttribute('href'), text: m.querySelector('.nc-h').textContent.trim(), label: m.querySelector('.nc-title').textContent, "
+                                   "h: Math.round(m.getBoundingClientRect().height), newsH: n ? Math.round(n.getBoundingClientRect().height) : 0 }; }")
+                check(dev, f'{tag}: 我的材料 is a third row like 今日一读; with nothing of their own yet it asks for a text to paste in',
+                      mine and mine['href'] == '#/import' and mine['text'] == '贴课本或讲义进来练' and mine['label'] == '我的材料'
+                      and (w >= 760 or abs(mine['h'] - mine['newsH']) <= 2), mine)  # under 760 px both are one row
                 nc = pg.text_content('#view .news-card') or ''
                 check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
                 # the plan's rows, 本周任务 included (an exam learner has one): nothing squashed, filled or out of its row
@@ -3333,11 +3339,11 @@ def progress_run(pw):
                 ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
-                ring = pg.get_attribute('#view .today-plan .ring', 'aria-label') or ''
-                check(dev, f'{tag}: the ring says the steps done to a screen reader (the line under the title gives the minutes only)',
+                ring = pg.get_attribute('#view .today-plan .tp-count', 'aria-label') or ''
+                check(dev, f'{tag}: done / total beside the title says the steps done to a screen reader (the line gives the minutes)',
                       ring == f"今天的计划，已完成 {path['done']} 步，共 {path['total']} 步", ring)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
-                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
+                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else ('今天学了约' if path.get('studied') else '都做完了') if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
                 check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
                       plan and (plan['must'], plan['extra'], plan['week']) == (path['total'], len(grp['extra']), len(grp['week'])) and head in plan['head']
                       and plan['wide'] <= 0 and (not grp['extra'] or (plan['summaryH'] >= 44 and plan['open'] == (path['done'] >= path['total']))), (plan, head))

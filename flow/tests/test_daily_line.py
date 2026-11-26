@@ -105,7 +105,7 @@ class PageTests(unittest.TestCase):
                   '今日一读</span>${aiTag()}', 'const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', '${weekCardSlot()}', 'function mountWeekCards',
                   "api('/api/next/week?brief=1')"):
             self.assertIn(s, JS, s)
-        order = [JS.index(s) for s in ("${short ? '' : lineCardHTML(h) + newsCardHTML(news)}", '${top}', '${weekCardSlot()}')]
+        order = [JS.index(s) for s in ("${short ? '' : lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h)}", '${top}', '${weekCardSlot()}')]  # 我的材料 under 一读 (r29)
         self.assertEqual(order, sorted(order))
         self.assertIn("${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>", JS)  # the voice is synthesized: 「AI 合成」 at the end of the row (标识办法)
         for s in ('.line-card', '.lc-en', '.news-card', '.week-slot'):
