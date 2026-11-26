@@ -161,8 +161,9 @@ Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines ca
 | 今日的样子 · 列表 · 卡片 | Today view · List · Cards | |
 | 主题色 · 松绿 · 靛蓝 | Accent · Green · Indigo | |
 | 新词卡 · 复习卡 · 简洁 · 详细 | New-word card · Review card · Simple · Detailed | |
-| 字号 · 标准 · 大 · 特大 | Text size · Standard · Large · Extra large | |
-| 行距 · 标准 · 宽松 | Spacing · Standard · Wide | 标准 is Standard everywhere |
+| 点卡片作答 | Tap to answer | 使用习惯 |
+| 字号 · 标准 · 大 · 特大 | Text size · Normal · Large · Extra large | |
+| 行距 · 标准 · 宽松 | Spacing · Normal · Wide | 标准 is Normal everywhere (B9) |
 | 朗读声音 · 美音 · 英音 · 女声 · 男声 | Voice · American · British · female · male | |
 | 学习目标 | Goal | |
 | 水平 | Level | |

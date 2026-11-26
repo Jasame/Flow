@@ -43,6 +43,12 @@ TODAY_VIEWS = ('list', 'cards')
 TODAY_KEYS = ('plan', 'week', 'line', 'mine', 'news', 'extra')
 # 界面语言 (全英文界面, 语流 E1): 'zh', the default, or 'en'; kept with the account like 主题色 (07-lang.js, ui_lang.py)
 LANGS = ('zh', 'en')
+# 使用习惯 (我的 → 使用习惯, the user and B9, 2026-11-26): the learner's own ways, kept with the account so another phone
+# or computer has them too; the page keeps a copy on the device for drawing at once. 主题色 has its own column above and
+# 今日的样子 its own (today_view); these are the rest: 「认识」 on the left or right, the new-word and review cards simple or
+# detailed, tapping the review card's parts on or off, the reading text's size and line height.
+PREFS = {'know': ('left', 'right'), 'card_new': ('simple', 'detailed'), 'card_review': ('simple', 'detailed'), 'tap': ('on', 'off'),
+         'size': ('m', 'l', 'xl'), 'lh': ('n', 'w')}
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -115,6 +121,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute('ALTER TABLE next_profiles ADD COLUMN goals TEXT')
     if 'lang' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 界面语言, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN lang TEXT NOT NULL DEFAULT 'zh'")
+    if 'prefs' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 使用习惯 (PREFS), a JSON object
+        c.execute("ALTER TABLE next_profiles ADD COLUMN prefs TEXT NOT NULL DEFAULT '{}'")
     if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         # 按我的学习记录推荐 (我的 → 设置; 个保法第二十四条, 算法推荐规定第十七条): 1 = on (the default), 0 = off
         c.execute('ALTER TABLE next_profiles ADD COLUMN personalize INTEGER NOT NULL DEFAULT 1')
@@ -406,6 +414,7 @@ def profile(c, uid):
             'today_view': r['today_view'] if 'today_view' in r.keys() and r['today_view'] in TODAY_VIEWS else 'list',
             'today_order': _today_order(r['today_order'] if 'today_order' in r.keys() else None),
             'lang': r['lang'] if 'lang' in r.keys() and r['lang'] in LANGS else 'zh',
+            'prefs': _prefs(r['prefs'] if 'prefs' in r.keys() else None),
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
 
 
@@ -417,6 +426,15 @@ def _goals(raw, goal):
         kept = []
     rest = [g for g in kept if isinstance(g, str) and g in GOALS and g != goal] if isinstance(kept, list) else []
     return ([goal] if goal in GOALS else []) + list(dict.fromkeys(rest))[:MAX_GOALS - 1]
+
+
+def _prefs(raw):
+    """The 使用习惯 kept for this account: only known keys with known values (nothing set: an empty object)."""
+    try:
+        d = json.loads(raw or '{}')
+    except ValueError:
+        return {}
+    return {k: v for k, v in d.items() if k in PREFS and v in PREFS[k]} if isinstance(d, dict) else {}
 
 
 def follows_records(prof):
@@ -556,6 +574,19 @@ def set_lang(c, uid, data):
     if kept:
         c.commit()
     return {'lang': lang, 'kept': kept}, 200
+
+
+def set_prefs(c, uid, data):
+    """{key: value, …} for 使用习惯 (PREFS): each one checked, the rest of what is kept stays. More than one at a time
+    when a phone first hands the account what it had chosen before (07-prefs.js)."""
+    if not isinstance(data, dict) or not data or any(k not in PREFS or data[k] not in PREFS[k] for k in data):
+        return {'error': '没有这个设置'}, 400
+    r = c.execute('SELECT prefs FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
+    if not r:
+        return {'prefs': {}}, 200  # no 学习目标 yet: the device keeps them until there is a profile
+    kept = {**_prefs(r['prefs']), **data}
+    c.execute('UPDATE next_profiles SET prefs=?, updated=? WHERE user_id=?', (json.dumps(kept, sort_keys=True), time.time(), uid)); c.commit()
+    return {'prefs': kept}, 200
 
 
 def set_accent(c, uid, data):
@@ -2033,6 +2064,8 @@ def post(c, uid, path, data):
         return set_today_view(c, uid, data)
     if path == '/api/next/lang':  # 界面语言 (LANGS)
         return set_lang(c, uid, data)
+    if path == '/api/next/prefs':  # 使用习惯 (PREFS)
+        return set_prefs(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404

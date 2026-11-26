@@ -110,6 +110,7 @@
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
     if (S.user && S.home.profile) langFromAccount(S.home.profile);  // and 界面语言 (07-lang.js)
+    if (S.user && S.home.profile) prefsFromAccount(S.home.profile);  // and the rest of 使用习惯 (07-prefs.js)
     setDueBadge();
     return changed;
   }
@@ -135,6 +136,18 @@
     if (LONG.r || audioBusy()) return;
     S.homeFresh = true; route(true, true);
   }
+  // Back in front after a while (the phone unlocked the next morning, a tab left open): the page still said what was
+  // true when it was drawn, yesterday's 已完成 3 / 3, a tab's dot for words reviewed since on another device (B9's
+  // audit, 2026-11-26: 提醒和真实状态对不上). The home data is asked for again: the tabs' dots follow at once, and 今日 and
+  // 练习, which are made of it, are drawn again quietly if anything changed. A short look away asks nothing.
+  const AWAY = { at: 0, long: 5 * 60000 };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { AWAY.at = Date.now(); return; }
+    if (!AWAY.at || Date.now() - AWAY.at < AWAY.long || !S.home) return;
+    AWAY.at = 0;
+    const drawnFor = location.hash, name = parts()[0];
+    refreshHome().then(changed => { if (changed && (name === '' || name === 'practice')) redrawQuietly(drawnFor); }).catch(() => { /* offline: the page stays */ });
+  });
   function needLogin(reason) { openLogin(reason); return false; }
   /* ---------- sign in, sign up, a forgotten password ---------- */
   // With mail configured (production), sign-up, code login and a forgotten password use an emailed 6-digit code;
@@ -373,6 +386,10 @@
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       // 数据存放在香港 not agreed (an older account, or paused): that page first, every page but the guide (81-privacy.js)
       if (S.user && (S.user.storage !== 'ok' || S.user.terms !== 'ok') && name !== 'guide') { setNav(''); await storageView(); }
+      // 选方向和目标 is the first-time page: a guest lands on it (no goals yet), and when it signs in there (「已有账号？
+      // 登录」, or 认识语流's 「免费开始学」 → the sign-in sheet over it) to an account that has its goals, 今日 follows instead
+      // of the questions again (the owner, 2026-11-26: an older account was asked again after signing in from a link)
+      else if (name === 'welcome' && a !== 'edit' && S.user && S.home && S.home.profile) { location.replace('#/'); return; }
       else if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // 老师模式 (82-class.js): #/teacher/<token> is a 老师注册链接; a teacher account's home is its classes
       else if (name === 'teacher') { setNav(''); await teacherSignup(decodeURIComponent(a || '')); }
@@ -406,7 +423,7 @@
       else if (name === 'library') { setNav('practice'); await libraryView(); }
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'me') { setNav('me'); await meView(a); }  // #/me/account, #/me/help: that fold open
+      else if (name === 'me') { setNav('me'); if (a === 'habits') habitsView(); else await meView(a); }  // #/me/account, #/me/help: that fold open; 使用习惯 (81-habits.js)
       else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
       else if (name === 'class' && a) { setNav(S.user && S.user.teacher ? 'today' : 'me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }

@@ -24,7 +24,7 @@
   const WEEKDAY = '日一二三四五六';
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [['#/vocab/plan', '背词计划', 'cal'], ['#/words/confuse', '词汇辨析', 'venn'], ['#/vocab/test', '测词汇量', 'gauge'], ['imp', '导入', 'inbox']];  // B9's icons (00-icons.js)
-  // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
+  // 「认识」放在 (我的 → 使用习惯; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
   // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
   // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
   // 复习时的轻触震动 (语流 C1; the iOS app's own setting turns it off): a light tap where the app can, nothing in a browser.
@@ -46,7 +46,7 @@
   function haptic(kind) { try { if (window.FlowApp && FlowApp.has && FlowApp.has('haptic')) FlowApp.call('app.haptic', { kind }).catch(() => {}); } catch (e) { /* no app */ } }
   const KNOW = {
     side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },
-    set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } },
+    set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } prefSave('know', v === 'left' ? 'left' : 'right'); },  // also with the account (07-prefs.js)
     // the choices in their order on screen, from the 「认识」 end of the list
     order(list) { return this.side() === 'right' ? list.slice().reverse() : list.slice(); },
     // what a swipe does, for onSwipe(right, left): 「认识」's side gets know
@@ -55,14 +55,14 @@
     keys(acts) { const m = {}; acts.forEach((f, k) => { m[k + 1] = f; }); m.ArrowLeft = acts[0]; m.ArrowRight = acts[acts.length - 1]; return m; },
     // 点卡片作答 (the owner, 2026-11-25): the card's left, middle and right thirds answer like the buttons below them, so
     // 认识 is on its side too. On by default where a finger points; with a mouse a click into the card (to select a word)
-    // should not answer, so there it is off until chosen in 我的 → 设置.
+    // should not answer, so there it is off until chosen in 我的 → 使用习惯.
     tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
-    setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } },
+    setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } prefSave('tap', on ? 'on' : 'off'); },
     // 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words and reviews apart, new words detailed (the
     // first look is the one to take in), reviews simple (quick). Only what is shown changes: the front asks the same
     // (detailed adds a grey line of tags and history, nothing of the answer), so a rating means the same in both.
     view(kind) { const d = kind === 'new' ? 'detailed' : 'simple'; try { const v = localStorage.getItem('flow-card-view-' + kind); return v === 'simple' || v === 'detailed' ? v : d; } catch (e) { return d; } },
-    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } },
+    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } prefSave(kind === 'new' ? 'card_new' : 'card_review', v); },
   };
   // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
   // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the
@@ -246,8 +246,8 @@
       : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
     view.innerHTML = `<div><a class="link small hit44 wp-back" href="#/practice">‹ 练习</a></div>
       <div class="wp-head"><h1 class="h1">错题本</h1><span class="wp-sub">共 ${list.total} 道 · 做错的题都在这里</span></div>
-      <section class="wp-blk"><div class="wp-blk-h"><h2 class="wp-blk-t">到期要复习的</h2>${due ? `<span class="wp-blk-r">约 ${mins} 分钟</span>` : ''}</div>
-        <p class="wp-big">${due ? `${due} 道` : '都复习完了'}</p><p class="wp-note">到期了会在「错题和句型复习」里再考你</p></section>
+      ${list.total || q || due ? `<section class="wp-blk"><div class="wp-blk-h"><h2 class="wp-blk-t">到期要复习的</h2>${due ? `<span class="wp-blk-r">约 ${mins} 分钟</span>` : ''}</div>
+        <p class="wp-big">${due ? `${due} 道` : '现在没有到期的'}</p><p class="wp-note">到期了会在「错题和句型复习」里再考你</p></section>` : ''}
       ${due ? `<a class="btn primary wp-go" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
       ${list.total || q ? `<form class="searchrow wp-msearch" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
       <div id="listSlot">${body(list)}</div>`;

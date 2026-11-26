@@ -26,7 +26,7 @@
     // 49-practice.js
     '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed drill', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
     '{n} 个生活和校园情景，和 AI 对话': '{1} scenes with AI',
-    '做错的题、句型和整句': 'Missed questions, patterns and sentences', '都复习完了': 'All reviewed',
+    '做错的题、句型和整句': 'Missed questions, patterns and sentences', '现在没有到期的': 'Nothing due now',
     '第一次用？看操作指南 ›': 'New here? Read the guide ›',
     '需要留意：{x}': 'Needs work: {1}', '该复习：{x}': 'Due for review: {1}', '已点亮 {n} / {n}': '{1} / {2} lit',
     '今天建议': 'Suggested for today',
@@ -86,7 +86,7 @@
     '你的额度由管理员调整过。': 'Your limit was adjusted by an admin.',
 
     // 81-me.js: 外观 (字号、行距、主题色)
-    '标准': 'Standard', '大': 'Large', '特大': 'Extra large', '宽松': 'Wide', '行距宽松': 'Wide spacing',
+    '标准': 'Normal', '大': 'Large', '特大': 'Extra large', '宽松': 'Wide', '行距宽松': 'Wide spacing',
     '主题色': 'Accent', '字号': 'Text size', '行距': 'Spacing',
     '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone.',
     '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。{x}': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone. {1}',
@@ -111,7 +111,7 @@
     '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。': "Like most word apps; easy for the right hand. Swipe right if you know it, left if you don't.",
     '往左滑是认识，往右滑是不认识。': "Swipe left if you know it, right if you don't.",
     '复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。': 'Review and the vocabulary test both follow it: button positions, swipe directions, and on a computer the keys (1 2 3 and ← →) match the buttons on screen. Only on this device.',
-    '点卡片作答': 'Tap the card to answer', '开': 'On', '关': 'Off',
+    '点卡片作答': 'Tap to answer', '开': 'On', '关': 'Off',
     '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。': 'The left, middle and right of a review card work like the three buttons below (the “Know it” side is Know it). A tap only flips the card; after flipping, rate it with the buttons. Tapped by mistake? Use “Undo”.',
     '只用下面的按钮、滑动和按键。': 'Use only the buttons below, swipes and keys.',
     '手机和平板默认开，用鼠标的电脑默认关。': 'On by default on phones and tablets; off on computers with a mouse.',
@@ -199,10 +199,10 @@
     '语法混合复习': 'Mixed grammar review', '口语路线的情景对话': 'Speaking scenes',
     // 81-me.js after 我的's new look (tiles, folds)
     '这周学了 {n} 天 · 学完 {n} 篇 · {n} 个词': 'This week: {1} {1|day|days} · {2} {2|text|texts} · {3} {3|word|words}',
-    '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '这周 {n} 天': '{1} {1|day|days} this week', '{n} 道': '{1}', '还没有': 'None yet',
+    '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '最近 7 天': 'Last 7 days', '{n} 道': '{1}', '还没有': 'None yet',
     '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
     '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
     // 81-habits.js: 我的 → 使用习惯 (B5), and its summary on 我的's row (今日列表 · 松绿 · 字号标准)
-    '今日列表': 'List view', '今日卡片': 'Card view', '字号标准': 'Standard text', '字号大': 'Large text', '字号特大': 'Extra large text',
+    '今日列表': 'List view', '今日卡片': 'Card view', '字号标准': 'Normal text', '字号大': 'Large text', '字号特大': 'Extra large text',
     '新词卡': 'New-word card', '背单词「认识」在': '“Know it” on the', '右边': 'Right', '返回我的': 'Back to Me',
   });

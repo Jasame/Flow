@@ -117,6 +117,25 @@ class RoundTests(unittest.TestCase):
             self.assertIn('challenge_met', calls[3][1]['content'])
         self.assertEqual(SC.mode_for(self.c, 1, 'flat-viewing'), 'swap')  # round 2 finished today: the next one swaps the roles
 
+    def test_a_full_round_of_eight_lines_still_ends_with_its_feedback(self):
+        # the owner, 2026-11-26: after 8 lines 「对话太长了，先结束这一轮吧」, and 结束并看反馈 was refused by the same limit
+        hist = [{'role': 'ai', 'text': 'Hi! Come in. What would you like to know?'}]
+        for k in range(out.DIALOG_LINES):
+            hist += [{'role': 'me', 'text': f'Line number {k + 1} from me.'}, {'role': 'ai', 'text': f'Answer {k + 1}.'}]
+        self.assertEqual(len(hist), 17)
+        summary = {'summary': '说满了一轮。', 'good': ['Line number 1 from me.'], 'fixes': [], 'expressions': [], 'score': 0.7}
+        with patch('chat_service.request_model', return_value=(json.dumps(summary, ensure_ascii=False), 'stop')) as m:
+            r, code = out.dialog(self.c, 1, {'scenario': 'flat-viewing', 'history': hist, 'text': 'one more', 'request_id': 'full-round-09'})
+            self.assertEqual((code, r['error']), (400, '对话太长了，先结束这一轮吧'))  # a 9th line: no
+            m.assert_not_called()
+            r, code = out.dialog(self.c, 1, {'scenario': 'flat-viewing', 'history': hist, 'end': True, 'request_id': 'full-round-end'})
+            self.assertEqual((code, r['result']['summary']), (200, '说满了一轮。'))  # 结束并看反馈: yes
+            self.assertIn('Line number 8 from me.', m.call_args[0][0][1]['content'])  # every line in the feedback
+            r, code = out.dialog(self.c, 1, {'pack': 'v5-science-b2-noise-cancelling', 'history': hist, 'end': True, 'request_id': 'full-round-pk'})
+            self.assertEqual(code, 200)  # 读后对话's 结束并总结 too
+        r, code = out.dialog(self.c, 1, {'scenario': 'flat-viewing', 'history': hist * 3, 'end': True, 'request_id': 'full-round-big'})
+        self.assertEqual(code, 400)  # still a limit (40)
+
     def test_material_dialogues_are_unchanged(self):
         pid = 'v5-science-b2-noise-cancelling'
         reply = {'heard': 'yes', 'reply': 'Why?', 'correction': None, 'hint': ''}

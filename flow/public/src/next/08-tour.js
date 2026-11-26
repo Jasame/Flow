@@ -3,13 +3,7 @@
      gets three on 我的班级. Once per account (tour_service.py); 我的 → 帮助 → 「再看一遍新手引导」 plays it again. That
      first day 今日's notices step aside (html.tour-day: one notice at a time). ---------- */
   const TOUR_STEPS = {
-    learner: [
-      { at: ['#view .today-plan', '#view .hero'], t: '今天的计划', d: '每天要做的几步都在这里。必做的做完会自动打勾；还有时间的话，下面还能多学一点。' },
-      { at: ['.tabs a[href="#/cards"]'], t: '单词', d: '背新词和复习都在这里。复习时右滑「认识」、左滑「不认识」；「认识」放在哪边，可以在「我的 → 设置」里改。' },
-      { at: ['#view .today-plan a[href^="#/m/"]', '#view .hero', '#view a[href^="#/m/"]'], t: '学一篇', d: '每篇文章分四步：听、读、理解、用出来，大约 10 分钟，学过的表达会进单词本。' },
-      { at: ['.tabs a[href="#/practice"]'], t: '口语和更多练习', d: '在「练习」里和 AI 扮演的角色对话练口语，还有考试练习、语法和跟读。' },
-      { at: ['.tabs a[href="#/me"]'], t: '我的', d: '学习目标、朗读声音、字号这些设置，还有操作指南和更新记录，都在这里。', last: '开始今天的第一项' },
-    ],
+    // learner: 新手引导 v2 (08-intro.js) since 2026-11-26
     teacher: [
       { at: ['#tNew'], t: '建一个班', d: '写上班级名，点「新建班级」。建好以后可以改名。' },
       { at: ['#view .cls-row .muted'], t: '把邀请码发给学生', d: '每个班有一个 6 位邀请码。学生在「我的 → 班级」里输入，就加进来了。',
@@ -23,14 +17,42 @@
 
   // After each page: 今日 (我的班级 for a 老师账号) asks once per page load whether this account still has its tour.
   async function tourMaybe() {
-    if (!S.user || TOUR.el) return;
-    const h = location.hash.replace(/^#\/?/, ''), name = S.user.teacher ? 'teacher' : 'learner';
+    coachFollow();  // 08-intro.js: the page the first step opened
+    if (TOUR.el || INTRO.el) return;
+    const h = location.hash.replace(/^#\/?/, '');
+    // a guest: the steps once on this browser (from 欢迎, 09-start.js); on 今日 only to go on from where they were left
+    if (!S.user) { if (h === '' && !load('flow-intro') && introLeftAt()) introSoon({ from: introLeftAt() }); return; }
+    const name = S.user.teacher ? 'teacher' : 'learner';
     if (!(S.user.teacher ? h === '' || h === 'teach' : h === '')) return;
-    if (tourMaybe.replay === name) { tourMaybe.replay = ''; tourSoon(name, true, 350); return; }
+    // a learner gets the steps (新手引导 v2, 08-intro.js); a 老师账号 keeps pointing at 我的班级
+    if (tourMaybe.replay === name) { tourMaybe.replay = ''; if (name === 'learner') introSoon({ again: true }); else tourSoon(name, true, 350); return; }
     if (tourMaybe.asked === S.user.id) return;
     tourMaybe.asked = S.user.id;  // once per page load and account (another account signing in here is asked again)
     let d = null; try { d = await api('/api/next/tour'); } catch (e) { return; }
-    if (d && d[name]) tourSoon(name, false, 500);  // after the page has settled
+    if (!d || !d[name]) return;
+    if (name === 'teacher') { tourSoon(name, false, 500); return; }  // after the page has settled
+    // seen or skipped here before signing up: kept on the new account, not shown again
+    const was = load('flow-intro');
+    if (was === 'done' || was === 'skip') { api('/api/next/tour', { tour: 'learner', result: was, step: 1 }).catch(() => {}); return; }
+    introSoon({ from: introLeftAt() });
+  }
+  // the steps, after the start animation and with no sheet open; how they ended kept on the account (a guest: this browser)
+  function introSoon(opts) {
+    const at = location.hash;
+    setTimeout(function wait() {
+      if (INTRO.el || location.hash !== at || !sheetEl.hidden) return;
+      const sp = document.getElementById('splash');
+      if (sp && !sp.classList.contains('out')) { setTimeout(wait, 150); return; }
+      if (!opts.again) { save('flow-tour-day', new Date().toDateString()); document.documentElement.classList.add('tour-day'); }
+      introStart(opts, (result, step) => {
+        if (result === 'later') return;  // to 登录 / 注册: goes on from this step afterwards
+        if (S.user) api('/api/next/tour', { tour: 'learner', result, step, again: !!opts.again }).catch(() => {});
+        if (!opts.again) save('flow-intro', result);
+        // 一次性 (one-time-list.md): what the steps said is not said again on its own (右滑认识, 第一次用？看操作指南)
+        if (result === 'done') { TIPS.mark('swipe-tip'); TIPS.mark('guide'); }
+        if (!opts.again) introThen(result);  // the first time only: 今日's first step done together
+      });
+    }, opts.again ? 300 : 450);
   }
   // after the start animation (09-start.js) has gone, and only on the page it was meant for, with no sheet open
   function tourSoon(name, again, ms) {
