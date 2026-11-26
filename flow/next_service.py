@@ -581,11 +581,21 @@ def set_prefs(c, uid, data):
     when a phone first hands the account what it had chosen before (07-prefs.js)."""
     if not isinstance(data, dict) or not data or any(k not in PREFS or data[k] not in PREFS[k] for k in data):
         return {'error': '没有这个设置'}, 400
-    r = c.execute('SELECT prefs FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
-    if not r:
-        return {'prefs': {}}, 200  # no 学习目标 yet: the device keeps them until there is a profile
-    kept = {**_prefs(r['prefs']), **data}
-    c.execute('UPDATE next_profiles SET prefs=?, updated=? WHERE user_id=?', (json.dumps(kept, sort_keys=True), time.time(), uid)); c.commit()
+    # read, merge and write as one: two choices a moment apart (复习卡 详细, then 字号 大) are two requests, and on a busy
+    # server both read the same old prefs, so the second write dropped the first (the nightly check, 2026-11-27)
+    c.commit()  # (nothing of this request left open)
+    c.execute('BEGIN IMMEDIATE')
+    try:
+        r = c.execute('SELECT prefs FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
+        if not r:
+            c.rollback()
+            return {'prefs': {}}, 200  # no 学习目标 yet: the device keeps them until there is a profile
+        kept = {**_prefs(r['prefs']), **data}
+        c.execute('UPDATE next_profiles SET prefs=?, updated=? WHERE user_id=?', (json.dumps(kept, sort_keys=True), time.time(), uid))
+        c.commit()
+    except Exception:
+        c.rollback()
+        raise
     return {'prefs': kept}, 200
 
 

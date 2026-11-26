@@ -525,6 +525,34 @@ class NextAudioTests(unittest.TestCase):
             self.assertEqual(nx.profile(c, 1)['prefs'], {'lh': 'w'})  # an unknown value is not passed on
             self.assertEqual(nx.post(c, 1, '/api/next/prefs', {'card_new': 'simple'})[0]['prefs'], {'lh': 'w', 'card_new': 'simple'})  # the route
 
+    def test_two_prefs_a_moment_apart_are_both_kept(self):
+        """Two choices a moment apart (复习卡 详细, then 字号 大) are two requests; on a busy server both read the kept
+        prefs before either wrote, and the second write dropped the first (the nightly check, 2026-11-27). Here both
+        requests read, then wait for each other before writing: the account must end up with both."""
+        from unittest.mock import patch
+        with app.db() as c:
+            nx.save_profile(c, 1, {'level': 'B1'})
+        real, gate = nx._prefs, threading.Barrier(2, timeout=1)
+
+        def read_then_wait(raw):
+            out = real(raw)
+            try:
+                gate.wait()
+            except threading.BrokenBarrierError:
+                pass
+            return out
+        results = {}
+
+        def choose(key, value):
+            with app.db() as c2:
+                results[key] = nx.set_prefs(c2, 1, {key: value})
+        with patch.object(nx, '_prefs', read_then_wait):
+            ts = [threading.Thread(target=choose, args=kv) for kv in (('card_review', 'detailed'), ('size', 'l'))]
+            [t.start() for t in ts]; [t.join(10) for t in ts]
+        self.assertEqual({k: v[1] for k, v in results.items()}, {'card_review': 200, 'size': 200})
+        with app.db() as c:
+            self.assertEqual(nx.profile(c, 1)['prefs'], {'card_review': 'detailed', 'size': 'l'})
+
 
 if __name__ == '__main__':
     unittest.main()
