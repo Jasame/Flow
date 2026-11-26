@@ -36,7 +36,7 @@ jobs:
     # whether the UI shares run (always on main; on a pull request, when it touches anything the UI depends on), and
     # where the shares run (tools/ci_runner.py pick: the MSI or GitHub's machines)
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 5  # 3, plus the history the undo check reads
     permissions:
       contents: read
       actions: write  # to dispatch the MSI probe; a fork's pull request gets a read-only token and never asks
@@ -54,6 +54,17 @@ jobs:
           if [ "${{ github.event_name }}" != pull_request ]; then printf 'ui=true\nweb=true\n' >> "$GITHUB_OUTPUT"; exit 0; fi
           git diff --name-only HEAD^1 HEAD | tee /dev/stderr | python3 tools/run_tests.py --needs >> "$GITHUB_OUTPUT"
           cat "$GITHUB_OUTPUT"
+      - name: The pull request takes back nothing merged in the last 48 hours (tools/check_undo.py)
+        # 2026-11-26: #456, squashed onto an origin/main that had moved, took #450 back out of main. A pull request that
+        # removes most of what another merged in the last 48 hours added and puts back what that one had replaced
+        # fails here. On purpose: the label allow-undo, then a new push (the label is read from the pull request event).
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'allow-undo')
+        env:
+          PR: ${{ github.event.number }}
+        run: |
+          since=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          git fetch -q --no-tags --shallow-since="$since" origin "+refs/heads/main:refs/remotes/origin/main" "+refs/pull/$PR/head:refs/remotes/pr/head"
+          python3 tools/check_undo.py --head refs/remotes/pr/head --base origin/main --hours 48
       - id: pick
         env:
           MSI_RUNNER: ${{ vars.MSI_RUNNER }}

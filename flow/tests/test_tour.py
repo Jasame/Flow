@@ -58,9 +58,12 @@ class TourTests(unittest.TestCase):
 
     def test_the_steps_match_the_counts(self):
         # each tour's steps in 08-tour.js are as many as tour_service counts (the skip step is kept within them)
-        for name, n in ts.TOURS.items():
-            block = re.search(name + r': \[(.*?)\n    \],', JS, re.S).group(1)
-            self.assertEqual(len(re.findall(r"\{ at: \[", block)), n, name)
+        # (the learner's: 新手引导 v2's steps in 08-intro.js, the first three only for a new learner)
+        block = re.search(r'teacher: \[(.*?)\n    \],', JS, re.S).group(1)
+        self.assertEqual(len(re.findall(r"\{ at: \[", block)), ts.TOURS['teacher'])
+        intro = (ROOT / 'public' / 'src' / 'next' / '08-intro.js').read_text()
+        block = re.search(r'const all = \[(.*?)\n    \];', intro, re.S).group(1)
+        self.assertEqual(len(re.findall(r"\{ id: '", block)), ts.TOURS['learner'])
 
     def test_tips_are_kept_per_account_and_come_back_together(self):
         """使用提示: put away once, gone on every device of that account; 重新显示使用提示 brings them all back; the

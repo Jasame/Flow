@@ -120,7 +120,7 @@
     // a word's own recording, as in the word books; the voice only for a word without one
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
       const v = missed.find(x => x.word === b.dataset.say);
-      if (v && v.audio && (v.audio.us || v.audio.uk)) CLIP.word({ text: v.word, audio: v.audio }); else TTS.say(b.dataset.say);
+      if (v && v.audio && (v.audio.us || v.audio.uk)) CLIP.word({ text: v.word, audio: v.audio }); else TTS.word(b.dataset.say);
     });
     const add = document.getElementById('exAdd');
     if (add) add.onclick = async () => {

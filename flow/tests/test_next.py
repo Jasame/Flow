@@ -508,6 +508,23 @@ class NextAudioTests(unittest.TestCase):
             self.assertEqual(nx.profile(c, 1)['accent'], 'indigo')
             self.assertEqual(nx.post(c, 1, '/api/next/accent', {'accent': 'green'}), ({'accent': 'green'}, 200))  # the route
 
+    def test_prefs_are_kept_with_the_account(self):
+        """使用习惯 (2026-11-26): 「认识」 side, the card views, tapping the card, text size and line height, with the account."""
+        with app.db() as c:
+            self.assertEqual(nx.set_prefs(c, 1, {'know': 'left'}), ({'prefs': {}}, 200))  # no profile yet: nothing kept
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['prefs'], {})  # nothing chosen: the pages' defaults
+            self.assertEqual(nx.set_prefs(c, 1, {'know': 'middle'})[1], 400)
+            self.assertEqual(nx.set_prefs(c, 1, {'colour': 'red'})[1], 400)
+            self.assertEqual(nx.set_prefs(c, 1, {})[1], 400)
+            self.assertEqual(nx.set_prefs(c, 1, {'know': 'left', 'size': 'xl'}), ({'prefs': {'know': 'left', 'size': 'xl'}}, 200))
+            self.assertEqual(nx.set_prefs(c, 1, {'size': 'l'})[0]['prefs'], {'know': 'left', 'size': 'l'})  # one changed, the rest kept
+            nx.save_profile(c, 1, {'level': 'B2'})  # other settings saved later keep them
+            self.assertEqual(nx.profile(c, 1)['prefs'], {'know': 'left', 'size': 'l'})
+            c.execute("UPDATE next_profiles SET prefs='{\"know\": \"up\", \"lh\": \"w\"}' WHERE user_id=1")
+            self.assertEqual(nx.profile(c, 1)['prefs'], {'lh': 'w'})  # an unknown value is not passed on
+            self.assertEqual(nx.post(c, 1, '/api/next/prefs', {'card_new': 'simple'})[0]['prefs'], {'lh': 'w', 'card_new': 'simple'})  # the route
+
 
 if __name__ == '__main__':
     unittest.main()
