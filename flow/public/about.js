@@ -357,7 +357,7 @@ document.documentElement.classList.add('js');
      keep 即将开放. 下载安装 first opens a sheet with what the app is, who makes it, the permissions, the privacy notes
      and the checksum; the file only comes with 下载 there (or 取消). ---------- */
   const mb = n => n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
-  const FILE_NAME = /^[a-z0-9][a-z0-9._-]{0,99}\.(apk|exe|dmg)$/, SHA256 = /^[0-9a-f]{64}$/, CERT = /^[0-9A-Fa-f:]{64,95}$/;
+  const FILE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}\.(apk|exe|dmg|deb|AppImage)$/, SHA256 = /^[0-9a-f]{64}$/, CERT = /^[0-9A-Fa-f:]{64,95}$/;
   function downloads() {
     const boxes = $$('[data-dl]'), ask = $('#dlAsk'); if (!boxes.length || !window.fetch) return;
     fetch('/download/latest.json', { cache: 'no-cache' }).then(r => r.json().then(m => (r.ok ? m : null), () => null)).then(m => {
@@ -369,7 +369,7 @@ document.documentElement.classList.add('js');
         const ver = [a.version && '版本 ' + a.version, a.date && a.date + ' 更新', size > 0 && mb(size)].filter(Boolean).join(' · ');
         const btn = $('.dl-btn', box), meta = $('.dl-meta', box), sum = $('.dl-sum', box), chip = $('[data-chip]', box.closest('.app-card'));
         const url = '/download/' + a.file;
-        btn.href = url; btn.setAttribute('download', a.file); btn.removeAttribute('aria-disabled'); btn.textContent = '下载安装';
+        btn.href = url; btn.setAttribute('download', a.file); btn.removeAttribute('aria-disabled'); btn.textContent = box.dataset.label || '下载安装';
         meta.textContent = ver; meta.hidden = !ver;
         $('.dl-hash', sum).textContent = a.sha256; sum.hidden = false;
         if (cert) { const c = $('.dl-cert', sum); $('code', c).textContent = cert; c.hidden = false; }

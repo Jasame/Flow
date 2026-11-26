@@ -1100,8 +1100,8 @@ iPhone 和 iPad 上多一项「单词读音方式」，管单词、例句、AI �
 
 语流在手机、平板、电脑的浏览器里都能用，不装 App 也什么都不缺。想在桌面上一点就开、让复习提醒走系统通知，可以装 App：
 
-- **安卓、Windows、Mac**：安装包在「认识语流」页（flowlang.cn/about）的「在哪儿都能学」一节下载。点「下载安装」会先列出这个安装包的版本、大小、要用的权限和校验值，点「下载」才开始下载，点「取消」就不下。按钮上写着「即将开放」的，是还没放上去。
-- **iPhone、iPad**：App 还在开发，还不能下载。现在请用 Safari 把网页版添加到主屏幕，做法见「我的」一章的「添加到手机桌面」。
+- **安卓、Windows、Mac，以及 Linux 测试版**：安装包在「认识语流」页（flowlang.cn/about）的「在哪儿都能学」一节下载。点「下载安装」会先列出这个安装包的版本、大小、要用的权限和校验值，点「下载」才开始下载，点「取消」就不下。按钮上写着「即将开放」的，是还没放上去。
+- **iPhone、iPad**：App 还在开发，还不能下载：要先有付费的 Apple 开发者账号，才能装到别人的手机上。「在哪儿都能学」里有开发中的样子。现在请用 Safari 把网页版添加到主屏幕，做法见「我的」一章的「添加到手机桌面」。
 
 App 是语流正式版网站的外壳：打开的就是 flowlang.cn，用网站的账号，账号和进度跟网页版是同一份；第一次打开时，和网页版一样先选年龄段、同意数据存放的说明。开发运营者是「语流 Flow 开发者」，有问题在「我的」→「问题反馈」里说，或者写信到 i@jasa.hk。安装包只从 flowlang.cn 下载，不在应用商店里。
 
@@ -1147,6 +1147,26 @@ App 是语流正式版网站的外壳：打开的就是 flowlang.cn，用网站�
 3. 以后从「应用程序」或程序坞打开就行。
 
 **更新**：从 0.1.1 起会自动更新：打开语流后，它在后台下载新版本，关掉语流时装上，下次打开就是新版。一定要先把「语流」拖进「应用程序」再打开；直接在下载的文件里打开的话，系统会把它放在一个只读的临时位置，更新装不上。已经装了 0.1.0 的，请到下载页再下载安装一次新版。
+
+## Linux（测试版）
+
+Linux 电脑版还在测试，欢迎试用和反馈。只有 64 位（x86_64），没有 ARM 版和 rpm 包。装好后是一个标题为「语流」的窗口，打开的就是 flowlang.cn。
+
+- **AppImage**（各种发行版都能用，推荐）：在文件所在的文件夹打开终端，运行 `chmod +x flow-linux-*.AppImage`，再运行 `./flow-linux-*.AppImage`。Ubuntu 22.04 及以后如果提示缺 FUSE，先运行 `sudo apt install libfuse2`。
+- **deb**（Ubuntu 22.04 及以后、Debian 12 及以后、Linux Mint 21 及以后、深度、统信 UOS、麒麟）：运行 `sudo apt install ./flow-linux-*-amd64.deb`，装好后在应用菜单里找「语流」。
+- Fedora、openSUSE、Arch 等请用 AppImage。
+
+**更新**：AppImage 会自己更新，和 Mac、Windows 一样；deb 不会，有新版本时请到下载页下载新的 deb 再装一次。
+
+**复习提醒**：在语流里点「到点用 App 通知提醒」就开了，由桌面的通知服务弹出。Linux 上提醒只在语流开着时弹；关掉窗口后语流默认留在托盘里继续提醒。GNOME 桌面默认没有托盘图标，要装 AppIndicator 扩展；不装也行，关掉窗口后从应用菜单再点一次「语流」，窗口就回来了。
+
+**遇到问题**：
+
+- 没有声音：多半是缺解码器，运行 `sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good`（Fedora：`sudo dnf install gstreamer1-libav`）。AppImage 自带解码器，一般不会遇到。
+- 中文显示成方框：缺中文字体，运行 `sudo apt install fonts-noto-cjk`。
+- 个别显卡在 Wayland 下白屏：用 `WEBKIT_DISABLE_DMABUF_RENDERER=1 ./flow-linux-*.AppImage` 打开。
+
+**卸载**：AppImage 直接删掉文件；deb 运行 `sudo apt remove flow`。学习记录存在账号里，不会丢。
 
 ## 核对安装包
 
