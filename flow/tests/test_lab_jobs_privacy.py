@@ -1,7 +1,8 @@
 """每次用 AI 的结果 (lab_jobs.result: the marking, and in 口语练习 what the AI heard; the 隐私说明 since 2026-11-27):
 the learner's own, so 导出我的数据 carries every row and 注销账号 deletes them with the corrections hung on them
 (feedback_disputes); the console sees them as numbers only: no page or CSV of xmc.hk/flow shows any word of a result
-(console_data.ai_quality reads a score or a verdict out of it, never the text)."""
+(console_data.ai_quality reads a score or a verdict out of it, never the text, and no average from fewer than 5), and
+a teacher's class page shows none either (B9)."""
 import json, os, sys, tempfile, threading, time, unittest, urllib.error, urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -38,6 +39,18 @@ class LabJobsPrivacy(unittest.TestCase):
                                 "VALUES(?,?,?,'p1','speaking','fp','complete',?,'',?,?)",
                                 (self.uid, f'rid-{i}', kind, json.dumps(r, ensure_ascii=False), now - 3600, now - 3500)).lastrowid
             c.execute('INSERT INTO feedback_disputes(user_id,job,correction,created) VALUES(?,?,?,?)', (self.uid, job, MARK + ' dispute', now))
+            for i in range(4):  # 复述 five times in all: enough for its average (QUALITY_MIN)
+                c.execute('INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,result,error,created,updated) '
+                          "VALUES(?,?,'next-retell','p1','speaking','fp','complete',?,'',?,?)",
+                          (self.uid, f'retell-{i}', json.dumps(results['next-retell']), now - 3600, now - 3500))
+            # a 老师账号 with a class of five, this learner in it
+            self.teacher = c.execute("INSERT INTO users(username,password,email,admin,role,created) VALUES('lj-teacher','x','t@example.com',0,'teacher',?)",
+                                     (now,)).lastrowid
+            __import__('class_service').schema(c)
+            self.cid = c.execute("INSERT INTO classes(name,code,teacher,created) VALUES('三班','LJCLS1',?,?)", (self.teacher, now)).lastrowid
+            members = [self.uid] + [c.execute("INSERT INTO users(username,password,created) VALUES(?,'x',?)", (f'lj-m{i}', now)).lastrowid for i in range(4)]
+            for m in members:
+                c.execute('INSERT INTO class_members(user_id,class_id,joined_at) VALUES(?,?,?)', (m, self.cid, now - 86400))
             c.commit()
 
     def test_the_console_never_shows_a_word_of_a_result(self):
@@ -56,15 +69,25 @@ class LabJobsPrivacy(unittest.TestCase):
             self.assertNotIn(MARK, body, path)
             seen += st == 200
         self.assertGreater(seen, 20)  # the pages did answer (an empty run would prove nothing)
-        with app.db() as c:  # the quality numbers still come from the results
+        with app.db() as c:  # the quality numbers still come from the results, from five or more only
             q = {x['kind']: x for x in __import__('console_data').ai_quality(c, 30)}
         self.assertIn('平均讲到 50% 的要点', q['next-retell']['notes'])
+        self.assertEqual((q['next-essay']['done'], q['next-essay']['notes']), (1, []))  # one essay: counted, no average
+
+    def test_the_teacher_sees_no_word_of_a_result(self):
+        cs = __import__('class_service')
+        with app.db() as c:
+            mine, st = cs.mine(c, self.teacher)
+            page, st2 = cs.teach(c, self.teacher, self.cid)
+        self.assertEqual((st, st2), (200, 200))
+        self.assertTrue(page.get('ready', True))  # five members: the page has its numbers
+        self.assertNotIn(MARK, json.dumps([mine, page], ensure_ascii=False))
 
     def test_export_carries_them_and_deleting_the_account_removes_them(self):
         with app.db() as c:
             u = c.execute('SELECT * FROM users WHERE id=?', (self.uid,)).fetchone()
             out = json.loads(account_data.records(c, u))
-            self.assertEqual(len(out['tables']['lab_jobs']), 8)
+            self.assertEqual(len(out['tables']['lab_jobs']), 12)  # 8 kinds + 4 more 复述
             self.assertIn(MARK, json.dumps(out['tables']['lab_jobs'], ensure_ascii=False))
             self.assertIn('lab_jobs', out['目录']); self.assertIn('feedback_disputes', out['tables'])
             account_data.forget(c, self.uid, Path(self.tmp.name)); c.commit()
