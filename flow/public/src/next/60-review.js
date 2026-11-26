@@ -84,7 +84,7 @@
     // 「读音由 AI 合成」 on the left, a grey 「太简单」 on the right for a word to recall
     const sub = voice => { const easy = c && c.kind === 'word' && !['fix', 'question', 'sound'].includes(c.mode);
       return voice || easy ? `<div class="rsub">${voice ? aiVoiceNote('读音由 AI 合成', 'p', 'rvoice') : '<span></span>'}${easy ? '<button class="link small easy-btn" id="easyBtn" type="button" aria-label="太简单，以后不用再背">太简单</button>' : ''}</div>` : ''; };
-    const badge = res => { const b = document.getElementById('dueBadge'); if (b && !other && res && res.due != null) { const n = res.due + res.new; b.hidden = !n; b.textContent = n > 99 ? '99+' : n; } };
+    const badge = res => { if (!other && res && res.due != null) tabCount('dueBadge', res.due + res.new, '单词'); };  // 02-shell.js
     // Touch: swipe the card right for "I know it" (or the main button), left for "I don't".
     let swipe = null;
     const onSwipe = (right, left2) => { swipe = { right, left: left2 }; };

@@ -3867,20 +3867,21 @@ def review_side_run(pw):
         pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
         home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
         stt = home.get('stats') or {}
-        badge = pg.text_content('#dueBadge') or ''
+        # 底栏: a small ink dot, no number (the user, 2026-11-26); the count is in the tab's name for a screen reader
+        badge = pg.evaluate("(b => ({ label: b.closest('a').getAttribute('aria-label'), text: b.textContent, shown: !b.hidden, w: Math.round(b.getBoundingClientRect().width) }))(document.getElementById('dueBadge'))")
         extra = [x for x in (home.get('path') or {}).get('steps', []) if x.get('group') == 'extra']
         check(dev, '单词 counts words only (2), 其他复习 apart (2): the 单词 badge, home.stats.other_due, and 错题和句型复习 first in 还有时间的话',
-              stt.get('due') == 2 and stt.get('other_due') == 2 and badge.strip() == '2' and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
+              stt.get('due') == 2 and stt.get('other_due') == 2 and badge['label'] == '单词，有 2 项' and badge['text'] == '' and badge['shown'] and badge['w'] == 8 and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
               [stt.get('due'), stt.get('other_due'), badge, extra[:1]])
         # 练习 → 复习 (语流 B9): a block of its own on top, 错题和句型复习 with its number, 错题本 beside it (moved from 单词:
         # one way in, not two); the 「练习」 tab carries the same number
         go(pg, '#/practice'); pg.wait_for_selector('#view .review-block', timeout=6000)
         rb = pg.evaluate("""() => { const b = document.querySelector('#view .review-block'), rows = [...b.querySelectorAll('.px-row')], first = b === document.querySelector('#view .pgroup');
           return { first, rows: rows.map(r => [r.getAttribute('href'), (r.querySelector('b') || {}).textContent.replace(/\\s+/g, ' ').trim()]),
-                   mistake: document.querySelectorAll('#view a[href="#/cards/mistake"]').length, tab: (document.getElementById('otherBadge') || {}).textContent || '',
+                   mistake: document.querySelectorAll('#view a[href="#/cards/mistake"]').length, tab: document.getElementById('otherBadge').closest('a').getAttribute('aria-label') || '', dotText: document.getElementById('otherBadge').textContent,
                    tabShown: !document.getElementById('otherBadge').hidden }; }""")
-        check(dev, '练习 → 复习 on top: 错题和句型复习 2 (#/review/other) and 错题本 (only there); the 「练习」 tab says 2',
-              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型复习 2'], ['#/cards/mistake', '错题本']] and rb['mistake'] == 1 and rb['tab'] == '2' and rb['tabShown'], rb)
+        check(dev, '练习 → 复习 on top: 错题和句型复习 2 (#/review/other) and 错题本 (only there); the 「练习」 tab has a dot, and says 2 to a screen reader',
+              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型复习 2'], ['#/cards/mistake', '错题本']] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         seen = set()
         for k in range(6):

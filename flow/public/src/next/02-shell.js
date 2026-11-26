@@ -107,11 +107,17 @@
     setDueBadge();
     return changed;
   }
+  // 底栏 「练习」「单词」: a small ink dot when something waits, never a number (the user, 2026-11-26: 少数字，角标给人压力;
+  // B9); a screen reader still hears how many, in the tab's own name: 「单词，有 10 项」
+  function tabCount(id, n, name) {
+    const b = document.getElementById(id); if (!b) return;
+    b.hidden = !n; b.textContent = '';
+    const a = b.closest('a'); if (a) { if (n) a.setAttribute('aria-label', `${name}，有 ${n} 项`); else a.removeAttribute('aria-label'); }
+  }
   function setDueBadge() {
     const st = S.home && S.home.stats, due = st ? st.due + st.new : 0, other = st ? st.other_due || 0 : 0;
-    const b = document.getElementById('dueBadge'); b.hidden = !due; b.textContent = due > 99 ? '99+' : due;
-    // 「练习」: the mistakes, patterns and sentences due again (练习 → 复习, 49-practice.js); words are 「单词」's
-    const o = document.getElementById('otherBadge'); if (o) { o.hidden = !other; o.textContent = other > 99 ? '99+' : other; }
+    tabCount('dueBadge', due, '单词');
+    tabCount('otherBadge', other, '练习');  // the mistakes, patterns and sentences due again (练习 → 复习, 49-practice.js)
   }
   // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
   // would not take anything from the learner (a sheet open, typing in a field, another page by now, a whole text being
