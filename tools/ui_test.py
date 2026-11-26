@@ -103,6 +103,24 @@ def go(pg, hash_):
     settle(pg)
 
 
+def answer_all(pg, pick=0):
+    """理解 is one question a screen (23-study-check.js): answer each (pick 0 = the first option, -1 = the last), then 下一题,
+    and 看结果 after the last. Returns what each screen showed after its answer."""
+    seen = []
+    for _ in range(12):
+        opts = pg.query_selector_all('#pane .q .ans:not([disabled])')
+        if not opts:
+            break
+        opts[pick].click(); pg.wait_for_selector('#chkGo', timeout=6000); pg.wait_for_timeout(350)
+        seen.append(pg.evaluate("""() => { const b = document.getElementById('chkGo').getBoundingClientRect(), tabs = document.querySelector('nav.tabs'), t = tabs ? tabs.getBoundingClientRect() : null;
+          return { qs: document.querySelectorAll('#pane .q').length, left: document.querySelectorAll('#pane .chk-o:not(.gone)').length, right: document.querySelectorAll('#pane .ans.right').length,
+                   mine: document.querySelectorAll('#pane .ans .me').length, wrong: document.querySelectorAll('#pane .ans.wrong').length, go: document.getElementById('chkGo').textContent,
+                   head: document.querySelector('#pane .chk-h b').textContent, dots: document.querySelectorAll('#pane .chk-dots i').length, on: document.querySelectorAll('#pane .chk-dots i.on').length,
+                   goBottom: Math.round(b.bottom), floor: t && getComputedStyle(tabs).position === 'fixed' && t.top > innerHeight / 2 ? Math.round(t.top) : innerHeight }; }"""))
+        pg.click('#chkGo'); pg.wait_for_timeout(300)
+    return seen
+
+
 def touch_swipe(pg, sel, dx, dy=0):
     """A one-finger swipe made of real TouchEvents (Playwright only taps)."""
     pg.evaluate("""([sel, dx, dy]) => {
@@ -814,10 +832,19 @@ def run_device(pw, dev, opts):
     go(pg, '#/library')
     lib = pg.evaluate("() => { const rows = [...document.querySelectorAll('#lib .mrow')]; return [rows.length, Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))]; }")
     check(dev, 'library: one short row per material', lib[0] >= 3 and lib[1] <= 80, lib)
-    pg.select_option('#fl', 'B2'); pg.wait_for_timeout(500)
+    # the page's parts: two ways out on top, the serial stories side by side (the second one peeks in on a phone), 单篇
+    # with its two small filters on the same line as its count, the level as a five-cell switch; nothing wider than the screen
+    lay = pg.evaluate("""() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; }, cap = r('.lib-caprow .lib-cap'), ft = r('#ft'), ff = r('#ff');
+      return { ways: document.querySelectorAll('.lib-way').length, sers: document.querySelectorAll('.lib-ser').length, levels: [...document.querySelectorAll('#fl [role=radio]')].map(b => b.textContent),
+               oneLine: !!cap && !!ft && !!ff && ft.top < cap.bottom && ff.top < cap.bottom && ff.right <= innerWidth, tall: Math.round(Math.min(ft.height, ff.height)),
+               wide: document.documentElement.scrollWidth > innerWidth }; }""")
+    check(dev, 'library: two ways out, the stories as cards, 单篇 with its filters on one line and the level as a switch',
+          lay['ways'] == 2 and lay['sers'] >= 1 and lay['levels'] == ['全部', 'A2', 'B1', 'B2', 'C1'] and lay['oneLine'] and lay['tall'] >= 44 and not lay['wide'], lay)
+    pg.click('#fl [data-l="B2"]'); pg.wait_for_timeout(500)
     pg.click('#lib a >> nth=0'); settle(pg)
     pg.go_back(); settle(pg)
-    check(dev, 'library keeps its filter after going back', pg.input_value('#fl') == 'B2', pg.input_value('#fl'))
+    kept = pg.evaluate("(document.querySelector('#fl [aria-checked=true]') || {}).textContent")
+    check(dev, 'library keeps its filter after going back', kept == 'B2', kept)
 
     check(dev, 'no script errors', not [e for e in errors if 'Failed to load resource' not in e], errors[:5])
     ctx.browser.close()
@@ -1872,8 +1899,24 @@ def learner_run(pw):
               (len(kept), count, note, fb[:24], after[:24]))
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
-        for q in pg.query_selector_all('#pane .q'):
-            q.query_selector('.ans').click(); pg.wait_for_timeout(250)
+        # 理解: one question a screen. After an answer only the pick and the right option stay, the block under them names
+        # the right one and has the one button, on screen above the tab bar; the last one says 看结果; the result page
+        # lists every question, and a tap on one shows it again as it was answered.
+        first = pg.evaluate("() => ({ qs: document.querySelectorAll('#pane .q').length, opts: document.querySelectorAll('#pane .q .ans').length, res: document.querySelector('#pane .fb').childElementCount, dots: document.querySelectorAll('#pane .chk-dots i').length })")
+        seen = answer_all(pg, 0)
+        pg.wait_for_selector('#toOut', timeout=6000)
+        n = len(seen)
+        ok_each = n >= 2 and all(s['qs'] == 1 and s['right'] == 1 and s['left'] == (1 if s['wrong'] == 0 else 2) and s['mine'] == s['wrong'] and s['dots'] == n and s['on'] == k + 1
+                                 and (s['head'] == '答对了' if s['wrong'] == 0 else s['head'].startswith('正确答案是 ')) and s['goBottom'] <= s['floor'] for k, s in enumerate(seen))
+        check(dev, '理解: one question a screen; after the answer the pick and the right option stay, with 下一题 on screen',
+              first['qs'] == 1 and first['opts'] >= 2 and first['res'] == 0 and first['dots'] == n and ok_each and [s['go'] for s in seen] == ['下一题'] * (n - 1) + ['看结果'], (first, seen))
+        end = pg.evaluate("() => ({ score: document.querySelector('.chk-score').textContent, rows: document.querySelectorAll('.chk-it').length, marks: [...document.querySelectorAll('.chk-it .k')].map(k => k.textContent).join(''), out: !!document.getElementById('toOut') })")
+        rights = sum(1 for s in seen if s['wrong'] == 0)
+        pg.click('.chk-it >> nth=0'); pg.wait_for_selector('#pane .q[data-q="0"] #chkGo', timeout=4000)
+        again = pg.evaluate("() => ({ right: document.querySelectorAll('#pane .ans.right').length, off: [...document.querySelectorAll('#pane .ans')].every(b => b.disabled), go: document.getElementById('chkGo').textContent })")
+        pg.click('#chkGo'); pg.wait_for_selector('#toOut', timeout=4000)
+        check(dev, '理解: the result page says how many were right, lists each question, and opens one again as it was answered',
+              end['score'].replace(' ', '') == f'{rights}/{n}题答对' and end['rows'] == n and end['marks'].count('✓') == rights and end['out'] and again == {'right': 1, 'off': True, 'go': '看结果'}, (end, again))
         pg.wait_for_selector('#shareX', timeout=6000); pg.click('#shareX')
         pg.wait_for_selector('#shareImg[src^="data:image/png"]', timeout=6000); pg.wait_for_timeout(300)
         size = pg.evaluate("[document.getElementById('shareImg').naturalWidth, document.getElementById('shareImg').naturalHeight]")
@@ -2939,8 +2982,7 @@ def a11y_run(pw):
                 pg.evaluate("document.querySelector('#sheet [data-close]').click()")
                 # right and wrong answers: a mark as well as a colour
                 go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
-                for q in pg.query_selector_all('#pane .q'):
-                    q.query_selector_all('.ans')[-1].click(); pg.wait_for_timeout(250)
+                pg.query_selector_all('#pane .q .ans')[-1].click(); pg.wait_for_selector('#chkGo', timeout=6000); pg.wait_for_timeout(250)
                 marks = pg.evaluate("""() => ['.ans.right', '.ans.wrong'].map(s => { const e = document.querySelector(s); return e ? getComputedStyle(e, '::after').content : null; })""")
                 live = pg.evaluate("[...document.querySelectorAll('#pane .fb')].every(f => f.getAttribute('aria-live') === 'polite')")
                 check(dev, 'right and wrong answers carry ✓ and ✗, not only green and red, and the result is announced', marks[0] == '"✓"' and marks[1] in ('"✗"', None) and live, (marks, live))
@@ -4426,9 +4468,10 @@ def backlog_run(pw):
         pg.unroute('**/api/next/vocab'); pg.route('**/api/next/vocab', lambda route: book(route, 'done'))
         fresh()
         done = pg.text_content('#bookDone') if pg.query_selector('#bookDone') else ''
-        check(dev, 'a finished book: 背完了, 换成 the next one as the main button, 先只复习 beside it',
-              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and 'primary' in (pg.get_attribute('#bookNext', 'class') or '')
-              and pg.is_visible('#bookRest'), done)
+        # (B9's 第一批: a page has one main button — today's 开始背单词 — so 换成 is a plain button beside 先只复习)
+        check(dev, 'a finished book: 背完了, 换成 the next one, 先只复习 beside it; still one main button on the page',
+              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and pg.is_visible('#bookRest')
+              and len(pg.query_selector_all('#view .btn.primary')) == 1, done)
         pg.click('#bookRest'); pg.wait_for_timeout(100)
         gone = not pg.query_selector('#bookDone')
         fresh()

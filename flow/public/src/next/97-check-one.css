@@ -1,0 +1,44 @@
+/* ---------- 学一篇 · 理解: one question a screen (23-study-check.js; B9, 2026-11-26) ----------
+   The options are white blocks without a frame; after the answer the others fold away. The theme colour marks the
+   right one (its letter, the tick) and the progress; a wrong pick is struck through in grey, no red. */
+.chk1 .q{display:grid;gap:8px}
+.chk1 .q>*,.chk-end>*,.chk-list{min-width:0}
+.chk-top{display:flex;justify-content:space-between;align-items:center;min-height:24px}
+.chk-dots{display:inline-flex;gap:5px}
+.chk-dots i{width:20px;height:4px;border-radius:2px;background:var(--line2)}
+.chk-dots i.on{background:var(--green)}
+.chk1 .q .prompt{font-size:20px;line-height:1.45;margin:4px 0 6px}
+.chk-o{display:grid;grid-template-rows:1fr;transition:grid-template-rows .24s var(--ease),opacity .2s var(--ease),margin .24s var(--ease)}
+.chk-o>.ans{overflow:hidden;min-height:0;transition:padding .24s var(--ease)}
+.chk-o.gone{grid-template-rows:0fr;opacity:0;margin-top:-8px;pointer-events:none}
+.chk-o.gone>.ans{padding-top:0;padding-bottom:0;min-height:0}
+.chk1 .ans{width:100%;align-items:center;gap:12px;min-height:56px;padding:9px 16px;border:0;border-radius:16px;font-size:15.5px;line-height:1.45;color:var(--ink);opacity:1}
+.chk1 .ans .k{width:26px;height:26px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;font-size:13.5px;font-weight:400;color:var(--muted)}
+.chk1 .ans .t{flex:1;min-width:0}
+.chk1 .ans .me{flex:none;font-family:var(--sans);font-size:12px;font-weight:400;color:var(--muted)}
+.chk1 .ans.right,.chk1 .ans.wrong{background:var(--paper);box-shadow:none;animation:none}
+.chk1 .ans.right{font-weight:600}
+.chk1 .ans.right .k{background:var(--fill);color:var(--on-fill)}
+.chk1 .ans.right::after{color:var(--green-ink)}
+.chk1 .ans.wrong{color:var(--muted)}
+.chk1 .ans.wrong .t{text-decoration:line-through;text-decoration-color:var(--line2)}
+.chk1 .ans.wrong::after{color:var(--muted);padding-left:0}
+.chk-res{position:sticky;bottom:calc(72px + var(--sab));z-index:2;display:grid;gap:8px;padding:14px 16px;border-radius:20px;margin-top:6px;box-shadow:0 8px 28px rgba(0,0,0,.09)}
+.chk-res:empty{display:none}
+.chk-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:0;font-size:17px}
+.chk-res .evidence{font-size:15.5px;line-height:1.55}
+.chk-go{min-height:56px;font-size:17px;border-radius:16px}
+.chk-res .chk-go{margin-top:2px}
+/* a short phone (iPhone SE): the question a size smaller, so the two options and the block under them fit */
+@media (max-height:700px){.chk1 .q .prompt{font-size:18px}.chk-res .chk-go{min-height:52px}}
+.chk-sum{padding:16px 18px 6px;overflow:hidden}
+.chk-sum>p{margin:0}
+.chk-score{margin:2px 0 6px;font-size:24px;font-weight:600}
+.chk-it{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;border:0;background:none;padding:0;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.chk-it .k{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13.5px;background:var(--sunk);color:var(--muted)}
+.chk-it .k.ok{background:var(--green-soft);color:var(--green-ink)}
+.chk-it .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--serif);font-size:15.5px}
+.chk-it .go{flex:none;color:var(--muted)}
+.chk-end #score{display:grid;gap:10px}
+@media (prefers-color-scheme:dark){.chk-res{box-shadow:none;background:var(--sunk)}}
+@media (prefers-reduced-motion:reduce){.chk-o,.chk-o>.ans{transition:none}}
