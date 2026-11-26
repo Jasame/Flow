@@ -3620,6 +3620,24 @@ def progress_run(pw):
         check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
               first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
         ctx.close()
+        # 小彩蛋: holding 今日's greeting plays one of four little shows over the page, never in the way of a tap and gone
+        # after 1.5 s; with 减少动态效果 nothing plays
+        for motion in ('no-preference', 'reduce'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion=motion)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []; pg.on('pageerror', lambda e: errors.append(str(e)))
+            pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+            box = pg.locator('.greet-row .greet').bounding_box()
+            pg.mouse.move(box['x'] + 20, box['y'] + box['height'] / 2); pg.mouse.down(); pg.wait_for_timeout(560); pg.mouse.up(); pg.wait_for_timeout(250)
+            shown = pg.evaluate("(c => c && [c.dataset.kind, getComputedStyle(c).pointerEvents])(document.querySelector('canvas.egg-layer'))")
+            pg.wait_for_timeout(1500)
+            after = pg.evaluate("[!!document.querySelector('canvas.egg-layer'), String(getSelection())]")
+            if motion == 'reduce':
+                check(dev, '小彩蛋: with 减少动态效果 holding the greeting plays nothing', shown is None and not errors, (shown, errors))
+            else:
+                check(dev, '小彩蛋: holding the greeting plays one of the four, over the page but taking no tap, gone after 1.5 s, nothing selected',
+                      shown and shown[0] in ('wave', 'rings', 'burst', 'hello') and shown[1] == 'none' and after == [False, ''] and not errors, (shown, after, errors))
+            ctx.close()
         # 听两句、答一句 (r29 第 2 项, the 5-minute 表达日): two sentences of the text to hear, a question the AI wrote (marked
         # AI 生成, one grey line for the voice), 说出来 the one big button; 给我一点提示 marks the answer as helped. Typed here:
         # met keeps the phrase in the word book with 撤销 and offers 再说一次 / 下一步; not yet gives 再说一次 and 先跳过 only.
