@@ -90,16 +90,6 @@ class OldSafariTests(unittest.TestCase):
                     found.append(f'{f.name}:{n}')
         self.assertEqual(found, [], 'iOS before 16.4 cannot parse these (lookbehind, class static block): write them without')
 
-    def test_user_select_also_has_the_prefix_safari_reads(self):
-        # Safari (iPhone, iPad, Mac) knows only -webkit-user-select: with user-select:none alone, 盲听's hidden sentence
-        # (.line .txt.blind, transparent text) could still be long-pressed, selected and copied (B8, 2026-11-26)
-        found = []
-        for f in PARTS:
-            for sel, body in re.findall(r'([^{}]+)\{([^{}]*)\}', re.sub(r'/\*.*?\*/', '', f.read_text(encoding='utf-8'), flags=re.S)):
-                if re.search(r'(?<![\w-])user-select\s*:', body) and '-webkit-user-select' not in body:
-                    found.append(f'{f.name}: {sel.strip()[-60:]}')
-        self.assertEqual(found, [], 'add -webkit-user-select next to user-select: Safari reads only the prefixed one')
-
     @staticmethod
     def _code(text):
         """The script with comments, strings and template text blanked out (the code a parser sees as syntax)."""

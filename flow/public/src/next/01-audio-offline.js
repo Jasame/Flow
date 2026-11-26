@@ -260,11 +260,27 @@
   }
   // Both lines failed (or there is only one): nothing more to try for this file.
   const mediaGaveUp = a => !a.dataset.alt || a.dataset.line === 'alt';
+  // Recordings and word sounds are AAC (.mp4, .m4a, .aac). A device that cannot decode it (a Linux desktop without its
+  // codec, 语流 C3, 2026-11-25) has them read sentence by sentence in AI 朗读 instead, and is told why once, rather than
+  // 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there.
+  // Only the question with the codec tells: a browser answers 「audio/mp4」 from the container alone (WebKitGTK says
+  // 'maybe' with just GStreamer's mp4 demuxer and no AAC decoder, C3), so that one says nothing.
+  let AAC = (() => {
+    try { return document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"') !== ''; }
+    catch (e) { return true; }
+  })();
+  let aacTold = false;
+  function noAac() {
+    if (aacTold) return; aacTold = true;
+    noteIssue('audio', '这台设备放不了 AAC 录音', '');
+    toast(SV.on() ? '这台设备放不了录音的格式，改用 AI 朗读一句一句读' : '这台设备放不了录音的格式，先用浏览器的声音读');
+  }
 
   /* ---------- narration: pre-generated Kokoro audio + timings (sentence exact, words estimated) ---------- */
   const NAR = {
-    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null,
+    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null, aac: AAC,
     async load(id, voice, version) {
+      if (!AAC) { noAac(); return false; }  // as a text without a recording: sentence by sentence
       const key = voice + '/' + id + '@' + version;
       if (this.key === key && this.meta) return true;
       this.stop(); this.meta = null; this.key = '';
@@ -277,6 +293,7 @@
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
+      if (!AAC) { this.onEnd = onEnd; this.noFormat(); return; }  // found out before (the file would not decode): no try
       LONG.other();
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd; this.paused = false;
       const a = this.audio, asked = a.src;
@@ -285,7 +302,14 @@
       try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
       // Refused (WeChat: not inside a tap): say how to hear it. A file that fails is tried on the other line first
       // (mediaSwap changes the source, and that play() is the one that counts); only when none is left, give up.
-      a.play().catch(e => { if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); } else if (a.src === asked && mediaGaveUp(a)) this.gaveUp(); });
+      // A source that cannot be played (NotSupportedError) is left to the 'error' listener: it tells a missing file from
+      // one this device cannot decode (noFormat) before saying anything.
+      a.play().catch(e => {
+        if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); return; }
+        if (a.src !== asked || !mediaGaveUp(a)) return;
+        if (e && e.name === 'NotSupportedError' && !a.error) return;  // the 'error' listener comes next and decides
+        this.failed();
+      });
       const loop = () => {
         const t = this.audio.currentTime;
         if (this.onTick) this.onTick(t);
@@ -314,6 +338,21 @@
       try { this.audio.currentTime = ss[j].s; } catch (e) { /* not seekable yet */ }
     },
     gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    // Both lines failed: a file this device cannot decode (「not supported」 with the file there: noFormat), or one that
+    // did not come (gaveUp). 「not supported」 is also what a missing file says, so the server is asked first.
+    failed() {
+      const e = this.audio.error, net = this.net;
+      if (e && e.code === 4 && net && AAC) { fetch(net, { method: 'HEAD', credentials: 'same-origin' }).then(r => (r.ok ? this.noFormat() : this.gaveUp()), () => this.gaveUp()); return; }
+      this.gaveUp();
+    },
+    // The file came (the server has it) and still would not play: this device cannot decode it, whatever canPlayType
+    // said. From now on as with no AAC (NAR.load says no recording), and a whole text playing goes on sentence by sentence.
+    noFormat() {
+      AAC = false; this.aac = false; noAac();
+      const r = LONG.r;
+      if (r && r.nm && this.onEnd) { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; r.nm = null; r.cont = false; r.at = null; LONG.go(); return; }
+      this.finish();
+    },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.paused = false; MS.release('nar'); this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -325,7 +364,7 @@
       return [si, wc];
     },
   };
-  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.gaveUp(); });
+  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.failed(); });
   // Paused by something other than the page (a call, the lock screen, another app's sound): the page says so (MINI:
   // 已暂停 and 继续) instead of showing it still playing; playing again (继续, the lock screen) takes it back.
   NAR.audio.addEventListener('pause', () => {
@@ -535,7 +574,7 @@
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
-      if (!ac) { TTS.say(c.text); return; }
+      if (!ac || !AAC) { if (ac) noAac(); TTS.say(c.text); return; }  // no recording, or none this device can play
       const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
       if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: '语流 · 单词' });
       else this.play(sprite, w[1], w[2], c.text);
@@ -549,7 +588,7 @@
     },
     // ex: {pack, i, text, audio: narration version or 0}; onend when it has been said (对比回放 plays the recording then)
     async sentence(ex, onend) {
-      if (!ex.audio) { TTS.say(ex.text, onend); return; }
+      if (!ex.audio || !AAC) { if (ex.audio) noAac(); TTS.say(ex.text, onend); return; }
       const key = S.voice + '/' + ex.pack;
       try {
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
@@ -678,12 +717,15 @@
     // player, its 暂停 / 继续 still #playAll for that text. dk: {key, ai, paint(), play(), rate()}. Other pages: only while playing.
     dock(dk) { this.dk = dk; if (!this.h) this.idle(); else this.box(); NATIVE.adopt(); },  // the app playing this text: taken back
     undock() { this.dk = null; document.body.classList.remove('docked'); if (this.el) this.el.classList.remove('docked'); if (!this.h) this.hide(); },
+    // 👁 (盲听) by the speed while nothing plays (B9's r36 audit F1: it had a row of its own above the sentences)
+    eye() { const on = !!(this.dk && this.dk.blind && this.dk.blind.on()); return `<button type="button" class="eye${on ? ' on' : ''}" id="blind" aria-pressed="${on}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>`; },
     idle() {
       const dk = this.dk, el = this.box();
       el.innerHTML = `<button type="button" class="toggle" id="playAll"></button>${aiVoiceNote('AI 合成', 'span')}<span class="sp"></span>`
-        + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>';
+        + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>' + (dk.blind ? this.eye() : '');
       el.querySelector('#playAll').onclick = () => dk.play();
       el.querySelector('.speed-set').onclick = () => dk.rate();
+      if (dk.blind) el.querySelector('#blind').onclick = () => dk.blind.toggle();
       el.classList.remove('paused'); el.classList.add('idle'); el.hidden = false; document.body.classList.add('playing');
       this.ai(typeof dk.ai === 'function' ? dk.ai() : !!dk.ai);
       dk.paint();
@@ -705,9 +747,11 @@
       if (mine) this.dk.paint();
     },
     paint() {
+      if (!this.onResize) { this.onResize = () => this.paint(); addEventListener('resize', this.onResize); }  // 「12/30」 follows the width
       if (!this.el || this.el.hidden || !this.h) return;
-      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle');
-      this.el.querySelector('.lbl').textContent = on ? '已暂停' : this.label;
+      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle'), lbl = this.el.querySelector('.lbl'), text = on ? '已暂停' : this.label;
+      // 精听's bar keeps 1× while playing (B9 F3): where 「第 12 / 30 句」 would not fit with it, 「12/30」
+      lbl.textContent = this.dk && innerWidth < 370 ? text.replace(/^第 (\d+) \/ (\d+) 句$/, '$1/$2') : text;
       if (t) { t.innerHTML = on ? `${playIcon(false, 15)}<span>继续</span>` : `${pauseIcon(15)}<span>暂停</span>`; t.classList.toggle('resume', on); t.setAttribute('aria-label', on ? '继续' : '暂停'); }
       let b = this.el.querySelector('.resume:not(.toggle)');
       if (!t && on && !b) { b = document.createElement('button'); b.type = 'button'; b.className = 'resume'; b.innerHTML = `${playIcon(false, 15)}<span>继续</span>`; this.el.insertBefore(b, this.el.querySelector('.stop')); }
