@@ -368,6 +368,10 @@
       if (name === 'join') { location.replace('#/'); if (!S.user) setTimeout(() => openLogin('', 'reg'), 0); return; }
       // 数据存放在香港 not agreed (an older account, or paused): that page first, every page but the guide (81-privacy.js)
       if (S.user && (S.user.storage !== 'ok' || S.user.terms !== 'ok') && name !== 'guide') { setNav(''); await storageView(); }
+      // 选方向和目标 is the first-time page: a guest lands on it (no goals yet), and when it signs in there (「已有账号？
+      // 登录」, or 认识语流's 「免费开始学」 → the sign-in sheet over it) to an account that has its goals, 今日 follows instead
+      // of the questions again (the owner, 2026-11-26: an older account was asked again after signing in from a link)
+      else if (name === 'welcome' && a !== 'edit' && S.user && S.home && S.home.profile) { location.replace('#/'); return; }
       else if (name === 'welcome') { setNav(''); await welcome(a === 'edit'); }
       // 老师模式 (82-class.js): #/teacher/<token> is a 老师注册链接; a teacher account's home is its classes
       else if (name === 'teacher') { setNav(''); await teacherSignup(decodeURIComponent(a || '')); }

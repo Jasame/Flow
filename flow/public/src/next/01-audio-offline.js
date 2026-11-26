@@ -22,11 +22,14 @@
     // by sentence rather than read by it. onword counts only where the browser voice reads. o: {pack, voice, title}.
     say(text, onend, onword, o) {
       if (SV.on() && text && text.length <= SV.MAX) { SV.say(text, onend, { ...(o || {}), onword }); return; }
-      this.browser(text, onend, onword);
+      this.browser(text, onend, onword, null, null, o && o.rate);
     },
+    // A word on its own (and a card's example) is said at 1x: 语速 is for the whole text and 伴读 only (the owner,
+    // 2026-11-26: at 1.5x a tapped word came out fast too). o.rate does the same for the server voice and CLIP below.
+    word(text, onend) { this.say(text, onend, null, { rate: 1 }); },
     // onfail: the sentence was not said (no voice, or iOS dropped it twice); without it, onend is called then, so whoever
     // waits on the sentence goes on (a whole text pauses instead: LONG). onstart: the voice has begun this sentence.
-    browser(text, onend, onword, onfail, onstart) {
+    browser(text, onend, onword, onfail, onstart, rate) {
       LONG.other();
       if (!this.ok) { noSound('不能用电脑朗读的声音'); if (onfail) onfail(); return; }
       const t = ++this.token, busy = speechSynthesis.speaking || speechSynthesis.pending;
@@ -39,7 +42,7 @@
       const say = () => {
         if (t !== this.token) return;
         const u = new SpeechSynthesisUtterance(text), uk = (S.voice || '').startsWith('uk');
-        u.lang = uk ? 'en-GB' : 'en-US'; u.rate = this.rate; const v = this.voice && this.accent === (uk ? 'uk' : 'us') ? this.voice : this.pick(); if (v) u.voice = v;
+        u.lang = uk ? 'en-GB' : 'en-US'; u.rate = rate || this.rate; const v = this.voice && this.accent === (uk ? 'uk' : 'us') ? this.voice : this.pick(); if (v) u.voice = v;
         let started = false, ended = false, poll = 0, heard = 0, reach = -1;
         const give = () => { ended = true; clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (onfail) onfail(); else if (onend) onend(); };  // final: an end the cancel brings later is not counted
         const again = () => { clearTimeout(watch); clearInterval(poll); if (t !== this.token) return; if (++tries < 2) setTimeout(say, 250); else give(); };
@@ -194,7 +197,7 @@
       if (t !== TTS.token) return;  // stopped, or something else spoke, while the sentence was being made
       this.note('');
       if (!u) { this.why(err); TTS.browser(text, onend, o.onword); return; }
-      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: o.title ? zhEn(o.title) : zhEn('语流', 'Flow') });  // the lock screen: in the page's language
+      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: o.title ? zhEn(o.title) : zhEn('语流', 'Flow'), rate: o.rate });  // the lock screen: in the page's language
       this.active = true; TTS.token = t;  // CLIP.play stops the browser voice (a new token); keep this one current
     },
   };
@@ -538,13 +541,14 @@
     // later, when the file has loaded. A new file plays muted until it has jumped to the clip.
     // text: said by the browser voice if neither line can play the clip.
     // to: Infinity plays a file to its end (a word clip). fallback: [src, from, to] played instead if src fails.
-    // wa: {url, from, to, title}: what AUDIO plays instead, where it is used.
+    // wa: {url, from, to, title}: what AUDIO plays instead, where it is used (no url: the <audio> only).
+    // wa.rate: 1 for a word or an example (TTS.word); left out, a sentence of the whole text follows 语速
     // wa.cut: called instead of onend when a call (or the page hidden) cuts the sound off: a whole text pauses there
     play(src, from, to, text, onend, fallback, wa) {
       LONG.other();
       NAR.stop(); TTS.stop(); this.stop();
-      const want = this.want = { from, to, text, onend, fallback, title: wa && wa.title, cut: wa && wa.cut };
-      if (wa && AUDIO.play(wa.url, wa.from, wa.to, TTS.rate, () => { if (this.want === want) { this.want = null; if (onend) onend(); } },
+      const want = this.want = { from, to, text, onend, fallback, title: wa && wa.title, cut: wa && wa.cut, rate: (wa && wa.rate) || TTS.rate };
+      if (wa && wa.url && AUDIO.play(wa.url, wa.from, wa.to, want.rate, () => { if (this.want === want) { this.want = null; if (onend) onend(); } },
         () => { if (this.want === want) this.element(src, from, to, text, onend, fallback, want); }, wa.title, false,
         wa.cut && (() => { if (this.want === want) { this.want = null; wa.cut(); } }))) { want.wa = true; return; }
       this.element(src, from, to, text, onend, fallback, want);
@@ -557,7 +561,7 @@
         this.raf = requestAnimationFrame(loop);
       };
       const refused = e => { if (this.want === want && e && e.name === 'NotAllowedError') noSound('没有放出声音'); };
-      claim(a); a.playbackRate = TTS.rate; a.dataset.want = '1'; a._from = from;
+      claim(a); a.playbackRate = want.rate || TTS.rate; a.dataset.want = '1'; a._from = from;
       // a word longer than 0.95 s still shows in the Dynamic Island: named, not an address (metadata changes nothing else)
       if (WORD_CLIPS && want.title) MS.claim('short', want.title, { pause: () => this.stop(), stop: () => this.stop() });
       if (a.dataset.src === src && a.readyState >= 1) {
@@ -575,10 +579,10 @@
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
-      if (!ac || !AAC) { if (ac) noAac(); TTS.say(c.text); return; }  // no recording, or none this device can play
+      if (!ac || !AAC) { if (ac) noAac(); TTS.word(c.text); return; }  // no recording, or none this device can play
       const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
-      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: zhEn('语流 · 单词', 'Flow · Words') });
-      else this.play(sprite, w[1], w[2], c.text);
+      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: zhEn('语流 · 单词', 'Flow · Words'), rate: 1 });
+      else this.play(sprite, w[1], w[2], c.text, null, null, { rate: 1 });
     },
     // the file word(c) plays: the word's own clip on an iPhone or iPad, its sprite elsewhere (prefetched by the review)
     wordSrc(c) {
@@ -589,16 +593,16 @@
     },
     // ex: {pack, i, text, audio: narration version or 0}; onend when it has been said (对比回放 plays the recording then)
     async sentence(ex, onend) {
-      if (!ex.audio || !AAC) { if (ex.audio) noAac(); TTS.say(ex.text, onend); return; }
+      if (!ex.audio || !AAC) { if (ex.audio) noAac(); TTS.word(ex.text, onend); return; }
       const key = S.voice + '/' + ex.pack;
       try {
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
         const s = this.metas[key].sentences[ex.i]; if (!s) throw new Error('no sentence');
         const base = `/audio/${S.voice}/${encodeURIComponent(ex.pack)}`, e = s.e + 0.05, cut = `${base}.aac?v=${ex.audio}&s=${s.s}&e=${e}&l=${clipLead()}`;
-        const wa = { url: cut, from: clipLead() - 0.02, to: clipLead() + e - s.s + 0.02, title: zhEn('语流 · 例句', 'Flow · Example') };
+        const wa = { url: cut, from: clipLead() - 0.02, to: clipLead() + e - s.s + 0.02, title: zhEn('语流 · 例句', 'Flow · Example'), rate: 1 };
         if (WORD_CLIPS) this.play(cut, 0, Infinity, ex.text, onend, [`${base}.mp4?v=${ex.audio}`, s.s, e], wa);
-        else this.play(`${base}.mp4?v=${ex.audio}`, s.s, e, ex.text, onend);
-      } catch (e) { TTS.say(ex.text, onend); }
+        else this.play(`${base}.mp4?v=${ex.audio}`, s.s, e, ex.text, onend, null, { rate: 1 });
+      } catch (e) { TTS.word(ex.text, onend); }
     },
     // the learner's own recording (a blob: URL), after or beside the original: it does not stop what plays
     mine(url, onend) {

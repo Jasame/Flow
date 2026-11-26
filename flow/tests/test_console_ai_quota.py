@@ -55,7 +55,7 @@ class ConsoleAiQuota(unittest.TestCase):
             self.assertAlmostEqual(o['until'], time.time() + 7 * 86400, delta=60)
         drawer = self.call(f'/learner?id={self.lin}')[1]['ai']['quota']
         self.assertEqual((drawer['override']['daily'], drawer['history'][0]['change']['reason'], drawer['usual']), (30, '期末前多练', 10))
-        self.assertEqual([k['label'] for k in drawer['by_kind']['d30']], ['写作批改'])
+        self.assertEqual([k['label'] for k in drawer['by_kind']['d30']], ['作文批改'])
         log = self.call('/log')[1]['items'][0]
         self.assertEqual((log['action'], log['target']), ('ai-quota', f'lin #{self.lin}'))
         self.assertIn('每天 30 次', log['detail']); self.assertIn('期末前多练', log['detail'])

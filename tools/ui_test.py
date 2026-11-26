@@ -589,8 +589,15 @@ def run_device(pw, dev, opts):
                 break
             if pg.query_selector('#fixIn'):
                 seen_fix = True
+                # the card before may still be sending its answer: wait for the box to take input (2026-11-26, tablet,
+                # MSI fully loaded: it was filled while still disabled and timed out), then for the answer's buttons
+                pg.wait_for_selector('#fixIn:not([disabled])', timeout=8000)
                 pg.fill('#fixIn', 'would have arrived')
-                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                pg.press('#fixIn', 'Enter')
+                try:
+                    pg.wait_for_selector('#go, #fixMiss', timeout=8000)
+                except Exception:
+                    pass  # the check below says what is missing
                 # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
                 nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
                 check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
@@ -599,6 +606,7 @@ def run_device(pw, dev, opts):
                 seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
                 pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('#spellIn'):
+                pg.wait_for_selector('#spellIn:not([disabled])', timeout=8000)  # as the fix card: the card before may still be sending
                 pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('[data-claim]'):
                 if touch:
@@ -1325,6 +1333,32 @@ def ios_audio_run(pw):
         check(dev, "where 'playback' is refused, words play their <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
               not wa['starts'] and 'playback' in wa['types'] and any(clip_url in u for u in asked), (wa, asked[-3:]))
         ctx.close()
+        # 语速 1.5× (the owner, 2026-11-26: at 1.5× a tapped word came out fast too): a word plays at 1×, on Web Audio and
+        # on its <audio> clip, in 读 and in 精听; 播放全文 before and after it reads at 1.5×
+        sped = "[...document.querySelectorAll('audio')].find(a => !a.paused && a.currentTime > 0)"
+        rates = "(() => { window.__rates = []; const p = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__rates.push([this.getAttribute('src') || '', this.playbackRate]); return p.apply(this, arguments); }; })()"
+        word_rates = "(window.__rates || []).filter(x => x[0].includes('/audio/words/')).map(x => x[1])"
+        for query in ('', '?audio=element'):
+            ctx, pg, errs, asked = page(query, narration=True)
+            pg.evaluate("localStorage.setItem('flow-next-rate', '1.5')"); pg.reload(wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+            pg.evaluate(rates); n = len(pg.evaluate('window.__wa.starts'))
+            tap_word(pg)
+            read = [x['rate'] for x in pg.evaluate('window.__wa.starts')[n:]] + pg.evaluate(word_rates)
+            pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
+            pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
+            bar = pg.text_content('.mini-player .speed-set') or ''
+            pg.click('#playAll'); pg.wait_for_function(f"!!{sped}", timeout=8000); before = pg.evaluate(f"{sped}.playbackRate")
+            pg.evaluate(rates); n = len(pg.evaluate('window.__wa.starts'))
+            pg.click('#view .line .txt [data-w="drains"]'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
+            heard = [x['rate'] for x in pg.evaluate('window.__wa.starts')[n:]] + pg.evaluate(word_rates)
+            pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
+            pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)
+            pg.click('#playAll'); pg.wait_for_function(f"!!{sped}", timeout=8000); after = pg.evaluate(f"{sped}.playbackRate")
+            check(dev, f"语速 1.5×{' (标准)' if query else ''}: a tapped word plays at 1× in 读 and in 精听; 播放全文 reads at 1.5× before and after it",
+                  bar == '1.5×' and read and heard and set(read + heard) == {1} and before == after == 1.5, (bar, read, heard, before, after))
+            check(dev, f"no script errors (语速 1.5×{', 标准' if query else ''})", not errs, errs[:3])
+            pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))")
+            ctx.close()
         # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
         ctx, pg, errs, asked = page(narration=True)
         pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
@@ -1790,7 +1824,12 @@ def ux_run(pw):
         p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
         p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
         p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
-        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        p8.click('#playAll')
+        for _ in range(50):  # up to 10 s for the switch to AI 朗读 (2026-11-26: a fixed 2.5 s was too short on a busy MSI)
+            p8.wait_for_timeout(200)
+            if tts8 and p8.evaluate("() => ((document.getElementById('playAll') || {}).textContent || '').trim() === '暂停'"):
+                break
+        p8.wait_for_timeout(300)
         eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
         check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
               eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
@@ -2457,6 +2496,34 @@ def listen_speak_run(pw):
                 end = p3.text_content('#dlgOut') or ''
                 check(dev, '口语情景: the feedback says the requirement was met and how the AI adjusted', '这一轮的要求' in end and '做到了' in end and '放慢了 1 次' in end and '加深了 1 次' in end, end[:160])
                 check(dev, '口语情景: 「放进错题本」 said once, not twice', end.count('放进错题本') <= 1, end.count('放进错题本'))
+            # a full round (the owner, 2026-11-26: after 8 lines 「对话太长了，先结束这一轮吧」, then 结束并看反馈 went nowhere,
+            # refused by the same limit): at 8 lines the box, 发送 and the mic stop, the line says so, and 结束并看反馈 gives the
+            # feedback; 读后对话's 结束并总结 the same
+            FULL_JS = """() => { const q = id => document.getElementById(id); return { count: (q('dlgCount') || {}).textContent || '', hint: (q('dlgHint') || {}).textContent || '',
+                send: q('dlgSend').disabled, box: q('dlgText').disabled, mic: q('dlgMic').disabled, end: q('dlgEnd').disabled,
+                toasts: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' ') }; }"""
+            for where, start, label in ((f'#/speak/{"ask-way" if size == "phone" else "hotel-check-in"}', '口语情景', '结束并看反馈'), (f'#/m/{PID}/output/dialog', '读后对话', '结束并总结')):
+                if start == '读后对话' and size != 'desktop':
+                    continue
+                p5 = c3.new_page(); p5.on('pageerror', lambda e: errors.append(str(e)))
+                p5.goto(BASE + '/' + where, wait_until='networkidle'); settle(p5)
+                p5.click('#dlgStart'); p5.wait_for_selector('#chat .msg.ai', timeout=8000)
+                for k in range(8):
+                    p5.fill('#dlgText', f'This is my answer number {k + 1}, and I would like to say a little more.'); p5.click('#dlgSend')
+                    p5.wait_for_function(f"document.querySelectorAll('#chat .msg.me').length >= {k + 1} && !document.getElementById('dlgEnd').disabled", timeout=12000)
+                full = p5.evaluate(FULL_JS)
+                check(dev, f'{start}: 8 lines fill the round: the box, 发送 and the mic stop, 「{label}」 stays, a line says so',
+                      full['send'] and full['box'] and full['mic'] and not full['end'] and '说满 8 句' in (full['count'] + full['hint']), full)
+                p5.click('#dlgEnd')
+                try:
+                    p5.wait_for_selector('#dlgOut .result', timeout=12000)
+                except Exception:  # no feedback: said as a failed check, the rest of the group goes on
+                    pass
+                p5.wait_for_timeout(200)
+                res = p5.evaluate("() => ({ out: document.getElementById('dlgOut').textContent.slice(0, 120), toasts: [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' ') })")
+                check(dev, f'{start}: after 8 lines 「{label}」 gives the feedback, no 「对话太长了」',
+                      '由 AI 生成' in res['out'] and '对话太长' not in res['toasts'] + full['toasts'], res)
+                p5.close()
             c3.close()
             if size == 'desktop':  # 能力测评的口语题 (2026-11-25): every real recording got 「请求大小不正确」 (the route had the 20 KB limit)
                 pr = ctx.new_page(); pr.on('pageerror', lambda e: errors.append(str(e)))
@@ -2662,6 +2729,17 @@ def privacy_run(pw):
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
+        # feedback #1 (2026-11-25): the page open while the consent goes (another device withdrew it): the next page that
+        # asks the server (我的进步; 单词 was preloaded and shows from the copy until its next request) is the consent page,
+        # not 「重试」 alone; one line, the tick and one button, the rest in small type
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session', {credentials: 'same-origin'})).json();
+            await fetch('/api/account/storage', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json',
+              'X-CSRF-Token': s.user.csrf}, body: JSON.stringify({agree: false})}); location.hash = '#/growth'; }""")
+        pg.wait_for_selector('#stoF', timeout=8000); settle(pg)
+        calm = ('这个账号已暂停' in (pg.text_content('h1') or '') and pg.is_visible('#stoF [type=submit]') and not pg.is_visible('text=重试')
+                and pg.is_visible('#stoDel') and pg.locator('.sto-why').count() == 1 and not pg.is_visible('.sto-why .hint >> nth=1'))
+        pg.screenshot(path=str(OUT / 'privacy-storage-withdrawn-open.png'))
+        check(dev, '数据存放: withdrawn while a page is open, the next page is the short consent page, never 「重试」 alone', calm)
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -3276,6 +3354,20 @@ def about_run(pw):
 
 # ---- 这周进步 (r27): the card at the top of 今日 on phones (390 and 360 px), a phone held sideways, a tablet and a
 # computer, in light and dark; its details; the three lines after a text; 每周进度邮件 in 我的; the mail's link
+# 调整顺序: hold a tile by its middle and drag it a little; the lifted tile's middle against the pointer (it must stay
+# under the finger: a page's entry animation left on the grid once moved it off by the grid's distance from the corner)
+def drag_tile(pg, k, to):
+    b = pg.locator(f'#tvGrid .tv-tile[data-k="{k}"]').bounding_box()
+    x0, y0 = b['x'] + b['width'] / 2, b['y'] + b['height'] / 2
+    x1, y1 = to if isinstance(to, tuple) else (to['x'] + to['width'] / 2, to['y'] + to['height'] / 2)
+    pg.mouse.move(x0, y0); pg.mouse.down()
+    for i in range(1, 11):
+        pg.mouse.move(x0 + (x1 - x0) * i / 10, y0 + (y1 - y0) * i / 10); pg.wait_for_timeout(16)
+    c = pg.evaluate("() => { const t = document.querySelector('#tvGrid .tv-tile.lift'); if (!t) return null; const r = t.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
+    lifted = pg.evaluate("[!!document.querySelector('#tvGrid .tv-tile.lift'), !!document.querySelector('#tvGrid .tv-slot')]")
+    return lifted, (None if c is None else round(max(abs(c[0] - x1), abs(c[1] - y1)), 1))
+
+
 PROGRESS_SIZES = {'phone-390': (390, 844), 'phone-360': (360, 780), 'phone-land': (844, 390), 'tablet': (820, 1180), 'desktop': (1440, 900)}
 # 今日 (r39, the user's picks 2026-11-26, B9's v3): 这周, 今天的计划, then the rest under 还有时间的话 (列表), or the same
 # order as cards side by side, 今天的计划 in the middle (卡片). The greeting has the 列表 | 卡片 switch.
@@ -3451,9 +3543,10 @@ def progress_run(pw):
                   href: r.getAttribute('href'), ai: !!r.querySelector('.ai-mark') }))""")
                 names = [x['t'] for x in more]
                 mine = next((x for x in more if x['t'] == '我的材料'), None); news = next((x for x in more if x['t'] == '今日一读'), None)
-                check(dev, f'{tag}: 还有时间的话 starts with 今日好句, 我的材料 and 今日一读; 我的材料 asks for a text to paste in; 今日一读 marked AI 生成',
+                check(dev, f'{tag}: 还有时间的话 starts with 今日好句, 我的材料 and 今日一读; 我的材料 asks for a text to paste in; 今日一读 marked AI 生成, the one the server picked, never an old 今日热点',
                       names == [n for n in ('今日好句', '我的材料', '今日一读') if n in names] and names[:2] == ['今日好句', '我的材料'] and mine and mine['href'] == '#/import'
-                      and mine['m'] == '贴课本或讲义进来练' and (not home.get('news') or (news and news['ai'] and 'AI 生成' in news['m'])), more)
+                      and mine['m'] == '贴课本或讲义进来练' and (not home.get('news') or (news and news['ai'] and 'AI 生成' in news['m'] and home['news']['id'] != 'daily-ui-old-news'
+                      and news['href'] == '#/m/' + __import__('urllib.parse').parse.quote(home['news']['id'], safe=''))) and not pg.query_selector('#view a[href="#/m/daily-ui-old-news"]'), more)
                 pg.click('#view .tv-fold > summary'); pg.wait_for_timeout(100)
                 # the plan's rows, 本周任务 included (an exam learner has one): one line each, nothing squashed, filled or out of its row
                 ec = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2 if touch else 1,
@@ -3520,11 +3613,7 @@ def progress_run(pw):
                     pg.click('.tv-under .tv-edit'); pg.wait_for_selector('#tvGrid .tv-tile', timeout=6000)
                     tiles = lambda: pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.dataset.k)")
                     first = tiles(); labels = pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.getAttribute('aria-label'))")
-                    src, dst = pg.locator('#tvGrid .tv-tile[data-k="line"]').bounding_box(), pg.locator('#tvGrid .tv-tile[data-k="plan"]').bounding_box()
-                    pg.mouse.move(src['x'] + 40, src['y'] + 40); pg.mouse.down()
-                    for k in range(1, 11):
-                        pg.mouse.move(src['x'] + 40 + (dst['x'] - src['x']) * k / 10, src['y'] + 40 + (dst['y'] - src['y']) * k / 10); pg.wait_for_timeout(16)
-                    lifted = pg.evaluate("[!!document.querySelector('#tvGrid .tv-tile.lift'), !!document.querySelector('#tvGrid .tv-slot')]")
+                    lifted, off = drag_tile(pg, 'line', pg.locator('#tvGrid .tv-tile[data-k="plan"]').bounding_box())
                     pg.mouse.up(); pg.wait_for_timeout(150)
                     dragged = tiles()
                     pg.focus('#tvGrid .tv-tile[data-k="mine"]'); pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
@@ -3535,11 +3624,19 @@ def progress_run(pw):
                     want = ['line', 'plan', 'week', 'mine', 'news', 'extra']; want_keyed = ['line', 'plan', 'mine', 'week', 'news', 'extra']
                     check(dev, '调整顺序: 编辑 shows the six blocks in order, each named with its place; a dragged tile lifts with a space left behind',
                           first == ['plan', 'week', 'line', 'mine', 'news', 'extra'] and labels[0] == '今天的计划，第 1 个，共 6 个' and lifted == [True, True], (first, labels[:1], lifted))
+                    check(dev, f'{tag}: 调整顺序: the tile held stays under the finger while it is dragged', off is not None and off <= 3, off)
                     check(dev, '调整顺序: dropped where it was dragged, moved up with the arrow key; 完成 keeps it and 今日 opens on the new first card',
                           dragged == want and keyed == want_keyed and saved == want_keyed and after['keys'][0] == 'line' and after['at'] == 0, (dragged, keyed, saved, after['keys']))
                     pg.evaluate("([o, c]) => fetch('/api/next/today-view', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': c}, body: JSON.stringify({order: o})})",
                                 [['plan', 'week', 'line', 'mine', 'news', 'extra'], me['csrf']])
                     pg.evaluate("() => { try { localStorage.removeItem('flow-snap'); } catch (e) {} }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#tvDeck', timeout=8000)
+                elif size == 'desktop' and theme == 'light':  # a wide grid far from the screen's corner: the tile under the mouse all the same
+                    pg.click('.tv-under .tv-edit'); pg.wait_for_selector('#tvGrid .tv-tile', timeout=6000)
+                    g = pg.locator('#tvGrid').bounding_box()
+                    lifted, off = drag_tile(pg, 'week', (g['x'] + g['width'] * 0.3, g['y'] + g['height'] * 0.7))
+                    pg.mouse.up(); pg.wait_for_timeout(150)
+                    check(dev, f'{tag}: 调整顺序: the tile held stays under the mouse while it is dragged', lifted == [True, True] and off is not None and off <= 3, (lifted, off))
+                    go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)  # left without 完成: nothing kept
                 pg.screenshot(path=str(OUT / f'progress-cards-{size}-{theme}.png'))
                 go(pg, '#/me'); go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 back = pg.evaluate(DECK_JS)
@@ -4667,6 +4764,29 @@ def start_run(pw):
                       (again, pg.evaluate('location.hash')))
                 check(dev, f'{tag}: no script errors', not errs, errs[:3])
                 ctx.close()
+        # an older account (goal only), signed out, opens the site (/, or 认识语流's 「免费开始学」 → /#/join), lands on the
+        # start page and signs in there: 今日 follows, not the questions again (the owner, 2026-11-26)
+        back = []
+        for start in ('/', '/#/join'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            if 'NO_INTRO' in globals():  # (新手引导 v2 over the start page: this check is about signing in under it)
+                ctx.add_init_script(NO_INTRO)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + start, wait_until='networkidle'); settle(pg); pg.wait_for_timeout(400)
+            landed = pg.evaluate('location.hash')
+            if pg.evaluate("document.getElementById('sheet').hidden"):
+                pg.click('#wgLogin'); pg.wait_for_selector('#authForm', timeout=4000)
+            tab = pg.query_selector('#sheetCard [role=tab]:has-text("登录")')
+            if tab and tab.get_attribute('aria-selected') != 'true':
+                tab.click(); pg.wait_for_timeout(250)
+            pg.fill('#authForm [name=username]', 'ui-returning'); pg.fill('#authForm [name=password]', CFG['learners']['returning']['password'])
+            pg.click('#authForm [type=submit]')
+            pg.wait_for_function("() => document.getElementById('sheet').hidden", timeout=8000); settle(pg); pg.wait_for_timeout(500)
+            back.append((start, landed, pg.evaluate('location.hash'), pg.query_selector('#view .hello, #view .today-plan') is not None,
+                         pg.query_selector('[data-goal]') is None, errs[:2]))
+            ctx.close()
+        check(dev, 'an older account signed out opens / or /#/join, lands on the start page, signs in there: 今日, not the questions again',
+              all(l == '#/welcome' and h in ('#/', '') and today and gone and not e for (_, l, h, today, gone, e) in back), back)
         # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])

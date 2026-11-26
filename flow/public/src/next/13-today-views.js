@@ -269,10 +269,18 @@
       const t = drag.t;
       if (!drag.on) {
         if (Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) < 6) return;
+        // the page's entry animation (.enter>*, 20-motion-graph.css) stays on the grid at its last frame, and an element
+        // with a transform animation is what a fixed child is placed against: the lifted tile went off by the grid's
+        // distance from the screen's corner. Taken off the grid for good (back on, it would play again).
+        grid.style.animation = 'none';
         const r = t.getBoundingClientRect();
         drag.on = true; drag.slot = document.createElement('li'); drag.slot.className = 'tv-slot'; drag.slot.setAttribute('aria-hidden', 'true');
         grid.insertBefore(drag.slot, t);
         t.classList.add('lift'); t.style.left = r.left + 'px'; t.style.top = r.top + 'px'; t.style.width = r.width + 'px'; t.style.height = r.height + 'px';
+        // and whatever else may still place it against something other than the screen: measured once, the difference taken back
+        const r2 = t.getBoundingClientRect();
+        if (Math.abs(r2.left - r.left) + Math.abs(r2.top - r.top) > 0.5) { t.style.left = (2 * r.left - r2.left) + 'px'; t.style.top = (2 * r.top - r2.top) + 'px'; }
+        t.style.transformOrigin = `${drag.x0 - r.left}px ${drag.y0 - r.top}px`;  // it grows around the finger, which keeps its place on it
         try { t.setPointerCapture(e.pointerId); } catch (err) { /* the pointer is gone */ }
       }
       e.preventDefault();
