@@ -9,10 +9,13 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | part | what it holds |
 | --- | --- |
 | `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
+| `00-i18n.js` | 全英文界面 (docs/english-ui.md): `uiLang()` read once before the first page, `zhEn(zh, en)`, the English tables (`enTable()`) and the page put into English as it is drawn (`data-zh` stays Chinese), `qty()` `numText()` `dayMonth()` `weekday()` `listJoin()` |
+| `01-en-*.js` | the English tables, one per area: `enTable({ '中文': 'English' })`, numbers `{n}`, other parts `{x}` |
 | `00-icons.js` | 语流's own icons: one line set for every page, `fi('name')` and `fiTile('name')` (`99-icons.css`); a new icon goes here, not into a page's file |
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
 | `07-accent.js` | 主题色 (我的 → 外观): 松绿 (default) or 靛蓝 on `<html data-accent>`; kept with the account (`/api/next/accent`, `profile.accent`), before signing in on the device; `99-accent.css` changes only the `--green*` / `--fill` accent, while `--ok*` (right answers, rises, ✓) and `--brand` (the logo) stay green |
+| `07-lang.js` | 界面语言 中文 \| English: `langSwitchHTML()` / `langSwitchWire(root)` for 我的 → 使用习惯, kept with the account (`/api/next/lang`, `profile.lang`), before signing in on the device; switching reloads the page once, with 10 s to undo |
 | `08-drafts.js` | drafts: a writing box with `data-draft="<key>"` keeps its text on this device and gets it back when drawn again, with 「已恢复上次没写完的内容 · 清空」 under it (`08-drafts.css`); `draftDone(key)` after sending; only the account that wrote it gets it back, signing out clears all drafts (`snapClear`). Used by retell, translation, IELTS Part 2 typed, the radar's writing check, 我的文章, word-list import, feedback |
 | `08-tour.js` | 新手引导 (指一指): the first time a new account opens 今日 (or 我的班级 for a 老师账号), its real buttons one after another; once per account (tour_service.py), 我的 → 帮助 plays it again |
 | `09-start.js` | 启动动画 (the mark in next.html, timed against the first page drawn) and 选方向和目标: one page for a new learner (goal, exam and date, the level to reach), the same page edits it from 我的; the 今日 notice for a guessed level |
@@ -51,6 +54,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |
 | `83-updates.js` | 更新记录 (#/updates, 我的 → 帮助) and 今日's 「语流更新了」 card, first in the one notice slot (updates_service.py) |
 | `99-boot.js` | start-up |
+| `00-lang.css` | English mode (`html[lang=en]`): Latin fonts first, English for words in CSS `content:`, the language switch and its undo line |
 | `05-start.css` | 启动动画 and 选方向和目标 |
 | `08-tour.css` | 新手引导: the page dimmed around the button meant, the card beside it; 今日's notices wait that first day |
 | `00-base.css` … `70-input-devices.css` | tokens and base; pages; motion and graph; words; listening; phone pass; learner pages; input methods and devices |

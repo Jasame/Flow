@@ -33,6 +33,8 @@ MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 # 主题色 (我的 → 外观): the accent the pages are drawn in; green is 配色 A, indigo the optional blue (99-accent.css)
 ACCENTS = ('green', 'indigo')
+# 界面语言 (全英文界面, 语流 E1): 'zh', the default, or 'en'; kept with the account like 主题色 (07-lang.js, ui_lang.py)
+LANGS = ('zh', 'en')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -94,6 +96,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
+    if 'lang' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 界面语言, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN lang TEXT NOT NULL DEFAULT 'zh'")
     if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         # 按我的学习记录推荐 (我的 → 设置; 个保法第二十四条, 算法推荐规定第十七条): 1 = on (the default), 0 = off
         c.execute('ALTER TABLE next_profiles ADD COLUMN personalize INTEGER NOT NULL DEFAULT 1')
@@ -381,6 +385,7 @@ def profile(c, uid):
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
             'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
             'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green',
+            'lang': r['lang'] if 'lang' in r.keys() and r['lang'] in LANGS else 'zh',
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
 
 
@@ -472,6 +477,18 @@ def set_voice(c, uid, data):
     if c.execute('UPDATE next_profiles SET voice=?, updated=? WHERE user_id=?', (voice, time.time(), uid)).rowcount:
         c.commit()
     return {'voice': voice}, 200
+
+
+def set_lang(c, uid, data):
+    """界面语言: kept with the account, so another phone or computer opens in it too. Before there is a 学习目标 there is
+    no profile to keep it in: kept is False and the page hands it over later (07-lang.js)."""
+    lang = data.get('lang')
+    if lang not in LANGS:
+        return {'error': '没有这个语言'}, 400
+    kept = c.execute('UPDATE next_profiles SET lang=?, updated=? WHERE user_id=?', (lang, time.time(), uid)).rowcount > 0
+    if kept:
+        c.commit()
+    return {'lang': lang, 'kept': kept}, 200
 
 
 def set_accent(c, uid, data):
@@ -1930,6 +1947,8 @@ def post(c, uid, path, data):
         return set_voice(c, uid, data)
     if path == '/api/next/accent':
         return set_accent(c, uid, data)
+    if path == '/api/next/lang':  # 界面语言 (LANGS)
+        return set_lang(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404
