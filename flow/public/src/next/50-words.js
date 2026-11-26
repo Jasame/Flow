@@ -28,7 +28,7 @@
   function fromLine(c) {
     const f = c && c.from; if (!f || !f.id) return '';
     const d = new Date(f.at * 1000);
-    return `<a class="from-line" href="#/history/${encodeURIComponent(f.id)}"><span>来自</span> <span>${d.getMonth() + 1}月${d.getDate()}日</span> · <span>${esc(f.label || '')}</span>${f.title ? `：<span data-zh>${esc(f.title)}</span>` : ''}<span aria-hidden="true"> ›</span></a>`;
+    return `<a class="from-line" href="#/history/${encodeURIComponent(f.id)}"><span class="fl-t"><span>来自</span> <span>${d.getMonth() + 1}月${d.getDate()}日</span> · <span>${esc(f.label || '')}</span>${f.title ? `：<span data-zh>${esc(f.title)}</span>` : ''}<span aria-hidden="true"> ›</span></span></a>`;
   }
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [['#/vocab/plan', '背词计划', 'cal'], ['#/words/confuse', '词汇辨析', 'venn'], ['#/vocab/test', '测词汇量', 'gauge'], ['imp', '导入', 'inbox']];  // B9's icons (00-icons.js)

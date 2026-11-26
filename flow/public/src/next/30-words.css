@@ -233,4 +233,4 @@ details.fold.wp-stats>summary .wp-r{flex:1;min-width:0;text-align:right;font-siz
 .xlist.wp-mlist .xrow .m{text-align:left;font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xlist.wp-mlist .xrow .st{font-size:13.5px;color:var(--muted);white-space:nowrap}
 /* 练习记录 (B9, practice-history): 「来自 … ›」, one grey line at the bottom of a mistake's back and its sheet */
-.from-line{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0 .25em;min-height:44px;font-size:13.5px;color:var(--muted);text-decoration:none}
+.from-line{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:13.5px;color:var(--muted);text-align:center;text-decoration:none}

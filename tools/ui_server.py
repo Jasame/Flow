@@ -29,6 +29,20 @@ os.environ.update({'FLOW_TOUR_FROM': '4102444800',  # 新手引导 for no accoun
 os.environ['FLOW_WORDBOOKS'] = os.pathsep.join(str(ROOT.parent / 'tools' / 'ui-fixtures' / n) for n in ('wordbooks.json', 'wordbooks-open.json'))
 sys.path.insert(0, str(ROOT))
 import app, chat_service, next_service as nx, vocab_service as vs, skills_service as sk  # noqa: E402
+# 练习记录 (B7's practice_history, practice-history/api.md 第 4 节): until it is merged, a stand-in that finds a mistake's
+# practice by its rid in lab_jobs, so 「来自 … ›」 can be checked (review_side_run); the real module replaces it once here
+try:
+    import practice_history  # noqa: E402,F401
+except ImportError:
+    import types
+    _ph = types.ModuleType('practice_history')
+
+    def _source_of(c, uid, r):
+        rid = json.loads(r['extra'] or '{}').get('rid')
+        j = c.execute("SELECT id, created FROM lab_jobs WHERE user_id=? AND request_id=? AND kind LIKE 'next-%' AND status='complete'", (uid, rid)).fetchone() if rid else None
+        return {'id': f"j{j['id']}", 'label': '作文批改', 'title': 'A weekend I remember', 'at': j['created']} if j else None
+    _ph.source_of = _source_of
+    sys.modules['practice_history'] = _ph
 
 app.DB = Path(tmp) / 'flow.sqlite3'
 # Audio in R2 (flow/media.py): one serial episode is listed as having narration while neither this server nor the
@@ -304,7 +318,11 @@ with app.db() as c:
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, w, w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600, d[w]['rank'], now - 3 * 86400))
             c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last,reps) "
                       "VALUES(?,?,?,?,'','phrase',?,?,'review','saved',1,5,?,2)", (uid, 'as soon as', 'as soon as', '句型｜例：Call me as soon as you land.', now - 20 * 86400, now - 3600, now - 3 * 86400))
-            __import__('skills_service').add_mistake(c, uid, 'fix', 'went', 'fix:' + nx._norm('they go > they went'), '过去发生的事用过去式', 'Yesterday they go to the park.', 'writing')
+            # from an essay two days ago (练习记录: its lab_jobs row and the rid on the card, 「来自 … ›」)
+            c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,result,created,updated) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                      (uid, 'ui-split-essay', 'next-essay', PID, 'writing', '', 'complete', json.dumps({'level': 'B1', 'fixes': [{'from': 'they go', 'to': 'they went'}]}), now - 2 * 86400, now - 2 * 86400))
+            __import__('skills_service').add_mistake(c, uid, 'fix', 'went', 'fix:' + nx._norm('they go > they went'), '过去发生的事用过去式', 'Yesterday they go to the park.', 'writing',
+                                                     pack=PID, extra={'from': 'they go', 'kind': 'essay', 'rid': 'ui-split-essay'})
         if name == 'xtra':  # only words whose back has the AI block (seeded below), so the first card has it; no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
             now, d = time.time(), nx.dictionary()

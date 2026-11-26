@@ -4332,6 +4332,31 @@ def review_side_run(pw):
         # the mistake that is due says so, not the card state 待学 (B9's audit 第 9 条); › apart for the English table
         mst = pg.evaluate("[...document.querySelectorAll('#clist .xrow .st')].map(x => [x.textContent.trim(), x.firstChild && x.firstChild.nodeType === 3 ? x.firstChild.textContent : ''])")
         check(dev, '错题本: the mistake due says 该复习了 (not 待学), its words in a text of their own', mst == [['该复习了 ›', '该复习了']], mst)
+        # 练习记录 (B9's sheet A): the mistake came from an essay two days ago; its sheet ends with one grey line
+        # 「来自 … · 作文批改：… ›」 (44 px to tap, 13.5 px, muted) that closes the sheet and opens #/history/<id>
+        FROM_JS = """() => { const a = document.querySelector('#sheetCard .from-line, #view .from-line'); if (!a) return null; const r = a.getBoundingClientRect(), st = getComputedStyle(a);
+          return { text: a.textContent.replace(/\\s+/g, ' ').trim(), href: a.getAttribute('href'), h: Math.round(r.height), size: st.fontSize, last: a === a.parentElement.lastElementChild }; }"""
+        pg.click('#clist .xrow'); pg.wait_for_selector('#sheetCard .from-line', timeout=5000)
+        fl = pg.evaluate(FROM_JS)
+        pg.screenshot(path=str(OUT / 'mistake-sheet-from.png'))
+        d2 = __import__('datetime').date.fromtimestamp(time.time() - 2 * 86400)
+        check(dev, '错题本 → a mistake: the last line says where it came from (来自 <day> · 作文批改：<title> ›), 44 px high, 13.5 px',
+              fl and fl['text'] == f'来自 {d2.month}月{d2.day}日 · 作文批改：A weekend I remember ›' and fl['href'].startswith('#/history/j') and fl['h'] >= 44 and fl['size'] == '13.5px' and fl['last'], fl)
+        pg.click('#sheetCard .from-line'); pg.wait_for_timeout(400)
+        gone = pg.evaluate("[location.hash, document.getElementById('sheet').hidden]")
+        check(dev, '「来自 … ›」 closes the sheet and opens that record', gone[0] == fl['href'] and gone[1], gone)
+        # and on the back of the card in 复习错题和句型: under 下一个, never on its own (no pop-up)
+        go(pg, '#/review/other'); pg.wait_for_timeout(500); pre = None
+        for k in range(3):
+            if pg.query_selector('#fixNo'):
+                pre = pg.evaluate("!!document.querySelector('#view .from-line')")
+                pg.click('#fixNo'); pg.wait_for_selector('#view .from-line', timeout=4000); break
+            if not pg.query_selector('[data-claim]'): break
+            pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="good"]', timeout=4000); pg.click('[data-rate="good"]'); pg.wait_for_timeout(500)
+        fb = pg.evaluate(FROM_JS)
+        pg.screenshot(path=str(OUT / 'review-mistake-from.png'))
+        check(dev, "复习 → the mistake's back ends with the same 「来自 … ›」 line, under 下一个 (not on the question side)",
+              fb and not pre and fb['text'] == fl['text'] and fb['last'] and fb['h'] >= 44, fb)
         check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
         ctx.close()
         # 复习时的轻触震动 (语流 C1): in the app (has('haptic')), turning a card is 'select' and the rating says how it went;
