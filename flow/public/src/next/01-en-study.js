@@ -141,6 +141,8 @@
     '结束并总结': 'End and sum up', '开始对话': 'Start dialogue', '用英文回答…': 'Answer in English…',
     '登录后可以和 AI 做情景对话。': 'Sign in to role-play with the AI.', '{x}（AI 扮演：{x}）': '{1} (AI plays: {2})', '（AI 扮演：{x}）': '(AI plays: {1})',
     '提示：{x}': 'Hint: {1}', '聊得差不多了，可以结束并看总结': 'Good chat. You can end it and see the summary',
+    '这一轮说满 {n} 句了，点「结束并总结」': 'That is {1} lines this round. Tap “End and sum up”',
+    '这一轮说满 {n} 句了，点「结束并看反馈」': 'That is {1} lines this round. Tap “End and see feedback”',
     '先说一两句再总结': 'Say a line or two first', '总结和建议由 AI 生成，仅供参考': 'Summary and tips are AI-generated, a guide only',
     '说得好的句子': 'Lines you said well', '可以学的表达': 'Expressions to learn', '再练一轮': 'Another round', '换个练法：翻译': 'Try another way: Translate',
     '汉译英': 'Chinese → English', '英译汉': 'English → Chinese', '换一句': 'Another sentence', '你的译文': 'Your translation',
