@@ -370,6 +370,8 @@ def ensure(c, who, text, voice, cap_left=None, own=False):
     n = len(text)
     if who != -1 and __import__('ai_routes').day_full(c):
         raise PermissionError('day_full')  # the ¥10 stop counts AI voice too; stored audio still plays
+    if who and who > 0 and __import__('ai_quota').paused(c, who):
+        raise PermissionError('paused')  # an account paused in a console: no AI voice either; stored audio still plays
     if who != -1 and (_used(c, who) + n > cap('FLOW_TTS_USER_CHARS') or _used(c, 0) + n > cap('FLOW_TTS_DAILY_CHARS')):
         raise PermissionError('cap')
     if own and _used_import(c, who) + n > cap('FLOW_TTS_IMPORT_CHARS'):
@@ -423,6 +425,8 @@ def post(c, uid, data):
             return {'error': '今天导入文章的 AI 朗读用完了，明天再试；先用浏览器的声音', 'code': 'import_cap'}, 429
         if e.args and e.args[0] == 'day_full':
             return {'error': '今天的 AI 用量已满，北京时间早上 8 点恢复；先用浏览器的声音', 'code': 'ai_day_full'}, 429
+        if e.args and e.args[0] == 'paused':
+            return {'error': '你的 AI 功能暂停中，先用浏览器的声音', 'code': 'ai_paused'}, 429
         if e.args and e.args[0] == 'busy':
             return {'error': '今天用 AI 朗读的人多，导入的文章先用浏览器的声音', 'code': 'busy'}, 429
         return {'error': '今天的 AI 朗读用完了，先用浏览器的声音', 'code': 'cap'}, 429

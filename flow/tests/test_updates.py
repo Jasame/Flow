@@ -21,6 +21,12 @@ def texts(e):
     return [i['text'] for g in us.GROUPS for i in us.items(e, g)] + ([e['note']] if e.get('note') else []) + list(e.get('highlights') or [])
 
 
+def lines(e):
+    """(text, link) for every line a learner reads; the note and the highlights have no link."""
+    return [(i['text'], i.get('link', '')) for g in us.GROUPS for i in us.items(e, g)] + \
+        [(s, '') for s in ([e['note']] if e.get('note') else []) + list(e.get('highlights') or [])]
+
+
 class DataTests(unittest.TestCase):
     def test_each_release_is_a_few_plain_sentences_newest_first(self):
         rel = DATA['released']
@@ -45,15 +51,20 @@ class DataTests(unittest.TestCase):
             self.assertTrue(re.fullmatch(r'\d{4}-\d{2}-\d{2}', e['date']), e['id'])
             self.assertTrue(e['label'] and not re.search(r'\br\d+\b', e['label']), e['id'])  # the tag is never shown
             self.assertTrue(1 <= len(e.get('highlights') or []) <= 3, e['id'])  # a one-fix hotfix has one
-            for s in texts(e):
-                self.assertIsNone(us.TECH.search(s), f'{e["id"]}: no PR numbers, tags or model names for learners: {s}')
+            for s, link in lines(e):
+                self.assertIsNone(us.too_technical(s, link), f'{e["id"]}: no PR numbers, tags or model names for learners: {s}')
                 self.assertLessEqual(len(s), 90, f'{e["id"]}: one sentence, not a paragraph: {s}')
             for s in e['highlights']:
                 self.assertLessEqual(len(s), 30, f'{e["id"]}: a highlight fits one line on a phone: {s}')
 
     def test_the_beta_block_is_plain_words_too(self):
-        for s in texts(DATA.get('beta') or {}):
-            self.assertIsNone(us.TECH.search(s), s)
+        for s, link in lines(DATA.get('beta') or {}):
+            self.assertIsNone(us.too_technical(s, link), s)
+
+    def test_only_a_privacy_line_may_name_the_ai_vendors(self):
+        self.assertIsNone(us.too_technical('隐私说明补上了以前用过、已经停用的谷歌 Gemini。', '#/guide/privacy'))
+        self.assertIsNotNone(us.too_technical('朗读换成了 CosyVoice 的声音。', '#/library'))
+        self.assertIsNotNone(us.too_technical('隐私说明改了，见 #411。', '#/guide/privacy'))  # never a PR number
 
 
 class ServiceTests(unittest.TestCase):

@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('ai_routes').schema(c)
   __import__('word_extras').schema(c)  # AI 常用搭配和近义词 (单词详细模式)
   __import__('two_lines').schema(c)  # 听两句、答一句: the day's shared questions
+  __import__('ai_quota').schema(c)  # each account's AI quota, set in a console; calls by task
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
