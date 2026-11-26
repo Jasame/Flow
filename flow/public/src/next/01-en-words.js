@@ -225,7 +225,7 @@
     '想不起来': "Can't recall",
     '划线部分应该怎么写？': 'How should the underlined part read?',
     '读一遍': 'Say it',
-    '点 ● 读一遍，AI 听你读得准不准': 'Tap ● and say it. The AI checks how you sound',
+    '点录音键读一遍，AI 听你读得准不准': 'Tap the record button and say it. The AI checks how you sound',
     '读准了': 'Said it right', '还不稳': 'Not quite', '不会读': "Can't say it",
     '✓ 换了一道题也答对了': '✓ Right on a new question too', '这题没答对': 'Not right this time',
     '回到「{x}」看一遍讲解 →': 'See the explanation in “{1}” →',

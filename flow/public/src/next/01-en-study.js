@@ -63,8 +63,8 @@
     '发音分': 'Pronunciation score', '准确': 'Accuracy', '流利': 'Fluency', '完整': 'Completeness',
     '要练的音': 'Sounds to practice', '去练 {x} →': 'Practice {1} →',
     '朗读由 AI 合成。': '朗读由 AI 合成 · AI voice',
-    '点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；{x}':
-      'Tap a sentence to practice: tap ▶ to hear it, then ● to read it after (tap again to stop). “Compare” plays the original, then your recording. {1}',
+    '点一句开始练：先点 ▶ 听原声，再点录音键跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；{x}':
+      'Tap a sentence to practice: tap ▶ to hear it, then the record button to read it after (tap again to stop). “Compare” plays the original, then your recording. {1}',
     '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。': '“AI feedback” gives a pronunciation score (AI estimate), what it heard and sounds to practice.',
     '登录后可以让 AI 点评、给发音分。': 'Sign in for AI feedback and a pronunciation score.',
     '听原声': 'Hear the original', '对比': 'Compare', '✦ AI 点评': '✦ AI feedback',
@@ -127,7 +127,7 @@
     '仿写': 'Rewrite', '复述': 'Retell', '对话': 'Dialogue', '写作': 'Writing', '输出练习': 'Output practice',
     '说出来': 'Say it',
     '不看原文，用自己的话把这篇讲一遍': 'Without looking, tell this text in your own words',
-    '可以打字，也可以点 ● 直接说（最长 2 分钟）。AI 会提炼原文要点，看你讲到了哪些，并改出最影响理解的错误。': 'Type, or tap ● and speak (up to 2 min). The AI finds the key points of the text, checks which you covered and fixes the mistakes that hurt understanding most.',
+    '可以打字，也可以点录音键直接说（最长 2 分钟）。AI 会提炼原文要点，看你讲到了哪些，并改出最影响理解的错误。': 'Type, or tap the record button and speak (up to 2 min). The AI finds the key points of the text, checks which you covered and fixes the mistakes that hurt understanding most.',
     '用英文复述这篇': 'Retell this text in English', '打字或录音都行': 'Type or record', 'AI 看看我的复述': 'Check my retelling',
     '已录好一段，可以提交了（会先转写）': 'Recorded. You can send it now (it is transcribed first)',
     '登录后 AI 会看你的复述讲到了哪些要点。': 'Sign in and the AI checks which key points your retelling covers.',
@@ -223,4 +223,7 @@
     '{x}，点一下再看这一题': '{1}. Tap to see this question again',
     // 80-library.js after its new look
     '低一级': 'A level down', '读到第 {n} 集 · 继续第 {n} 集': 'Read {1} · next: part {2}',
+    // the record button (B9 #458: 「点录音键」 instead of 「点 ●」)
+    '用英文回答，或者点录音键说出来': 'Answer in English, or tap the record button and speak',
+    '点录音键开始说，说完再点一下结束': 'Tap the record button to start, and again when you finish',
   });

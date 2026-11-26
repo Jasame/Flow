@@ -115,6 +115,7 @@ Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines ca
 | 中文导读 | In Chinese (the button) · Chinese summary (in a sentence) | |
 | 改写成 B1 难度 | B1 version | |
 | 跟读 | Shadow (button) · Shadowing (noun) | |
+| 录音键 | the record button | never ● |
 | 听写 | Dictation | |
 | 精听 | Close listening | |
 | 听一遍 | Play | |
