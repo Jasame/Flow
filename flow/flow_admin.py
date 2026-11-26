@@ -45,7 +45,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
@@ -81,6 +81,64 @@ def schema(c):
     __import__('beta_tools').schema(c)  # 内测版的测试账号 (2026-11-26)
 
 
+def harmony_link(c, admin):
+    """The 内测版's 鸿蒙内测链接 for the console: the link, its domain, and when it was last saved (the operator log: the
+    settings file's own time is for all its keys)."""
+    co = __import__('console_ops')
+    last = c.execute("SELECT created, email FROM flow_admin_log WHERE action='harmony-link' ORDER BY id DESC LIMIT 1").fetchone()
+    return {'url': co.harmony_test_url(), 'host': co.harmony_test_host(),
+            'saved': ({'at': last[0], **({'by': last[1]} if admin else {})} if last else None)}
+
+
+QUOTA_DAYS = (0, 1, 7, 30, 90)  # how long a quota of its own lasts; 0: until changed
+
+
+def quota_text(o):
+    """An override in a few words, for the operator log."""
+    what = '暂停 AI' if o['paused'] else f"每天 {o['daily']} 次" if o['daily'] else f"普通上限的 {o['factor']:g} 倍"
+    until = datetime.datetime.fromtimestamp(o['until'], __import__('next_service').TZ).strftime('%Y-%m-%d %H:%M') if o['until'] else '一直有效'
+    return f"{what}，{until}；原因：{o['reason']}"
+
+
+def ai_quota_post(c, path, data, op, who):
+    """POST /learner/ai-quota {id, mode: daily | factor | pause, value, days, reason} and /learner/ai-quota/clear {id}:
+    an account's AI quota of its own (ai_quota, B7 #405), in the operator log. The reason is facts only: the learner's
+    export shows it (the page does not)."""
+    import ai_quota, console_data as cd, console_ops as co
+    try:
+        u = c.execute('SELECT * FROM users WHERE id=?', (int(data.get('id')),)).fetchone()
+    except (TypeError, ValueError):
+        u = None
+    if not u:
+        return {'error': '没有找到这个学员'}, 404
+    if path.endswith('/clear'):
+        if ai_quota.clear(c, u['id'], who):
+            c.commit()
+            log_action(c, op, 'ai-quota-clear', co.target(u))
+        return {'ok': True, 'quota': cd.ai_quota_view(c, u['id'])}, 200
+    mode, raw = data.get('mode'), data.get('value')
+    try:
+        days = int(data.get('days') or 0)
+    except (TypeError, ValueError):
+        days = -1
+    if days not in QUOTA_DAYS:
+        return {'error': '到期时间请从选项里选', 'field': 'days'}, 400
+    try:
+        kw = ({'limit': int(raw)} if mode == 'daily' else {'factor': float(raw)} if mode == 'factor' else {'paused': True} if mode == 'pause' else None)
+    except (TypeError, ValueError):
+        return {'error': '每天次数或倍数要填数字', 'field': 'value'}, 400
+    if kw is None:
+        return {'error': '选一种：每天次数、倍数或暂停 AI', 'field': 'mode'}, 400
+    try:
+        o = ai_quota.set(c, u['id'], who, data.get('reason'), until=time.time() + days * 86400 if days else None, **kw)
+    except ValueError as e:
+        c.rollback()
+        return {'error': str(e), 'field': 'reason' if '原因' in str(e) else 'value'}, 400
+    c.commit()
+    log_action(c, op, 'ai-quota', co.target(u), quota_text(o))
+    return {'ok': True, 'quota': cd.ai_quota_view(c, u['id'])}, 200
+
+
 def log_action(c, op, action, target='', detail=''):
     c.execute('INSERT INTO flow_admin_log(created, email, role, action, target, detail) VALUES(?,?,?,?,?,?)',
               (time.time(), op['email'] or '（未知）', op['role'], action, str(target)[:200], str(detail)[:300]))
@@ -101,7 +159,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'invite-create': '生成内测版邀请码', 'invite-revoke': '作废内测版邀请码',
+                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'ai-quota': '调整 AI 额度', 'ai-quota-clear': '恢复普通 AI 额度', 'invite-revoke': '作废内测版邀请码',
                 'test-account': '造测试账号', 'test-reset': '重置测试数据（删掉全部测试账号）',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
@@ -369,6 +427,8 @@ def console_get(c, path, one, op):
         if not admin:
             for x in out['items']:
                 x.pop('by', None)
+        if __import__('app').CHANNEL == 'beta':
+            out['harmony'] = harmony_link(c, admin)
         return out
     if path == '/learners':
         return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
@@ -380,6 +440,8 @@ def console_get(c, path, one, op):
         return __import__('beta_invites').listing(c)
     if path == '/beta-tests':
         return __import__('beta_tools').listing(c)
+    if path == '/ai-people':
+        return cd.ai_people(c)
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
@@ -389,6 +451,8 @@ def console_post(c, path, data, op):
     """The r26 changes (console_ops.py), each written to the operator log. Returns (body, status) or None."""
     import console_ops as co
     who = op['email'] or op['label']
+    if path in ('/learner/ai-quota', '/learner/ai-quota/clear'):
+        return ai_quota_post(c, path, data, op, who)
     if path in ACCOUNT_POSTS:
         uid = data.get('id')
         if path == '/learner/disable':
@@ -492,6 +556,18 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'test-reset', tgt)
         return body, status
+    # 鸿蒙内测链接 (console_ops, D3 #415): the 内测版's download page shows 「加入内测」 with it, 「即将开放」 without
+    if path == '/settings/harmony-link':
+        import app
+        if app.CHANNEL != 'beta':
+            return {'error': '鸿蒙内测链接只在内测版的后台里填'}, 409
+        try:
+            co.set_harmony_test_url(str(data.get('url') or '')[:2000], who)
+        except ValueError as e:
+            return {'error': str(e), 'field': 'url'}, 400
+        host = co.harmony_test_host()
+        log_action(c, op, 'harmony-link', '鸿蒙内测链接', host or '清空')
+        return {'ok': True, **harmony_link(c, True)}, 200
     # 内测版邀请码 (beta_invites): made and revoked only on the 内测版's console (FLOW_CHANNEL=beta)
     if path in ('/beta-invite/create', '/beta-invite/revoke'):
         import app
@@ -598,7 +674,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd

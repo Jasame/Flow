@@ -32,7 +32,8 @@ MAP = VHOSTS / '0-flow-channel.conf'
 PORT, PROD_PORT = 8092, 8090
 REPO = 'Jasame/Flow'
 HOSTS = ['cdn.jsdelivr.net', 'fastly.jsdelivr.net', 'gcore.jsdelivr.net', 'testingcf.jsdelivr.net']
-BETA_SITE = {'FLOW_DIR': str(BETA), 'FLOW_SERVICE': 'flow-beta', 'FLOW_URL': f'http://127.0.0.1:{PORT}', 'FLOW_XMC': '', 'FLOW_ADMIN_URL': ''}
+BETA_SITE = {'FLOW_DIR': str(BETA), 'FLOW_SERVICE': 'flow-beta', 'FLOW_URL': f'http://127.0.0.1:{PORT}',
+             'FLOW_XMC': '/www/wwwroot/xmc.hk/flow-beta', 'FLOW_ADMIN_URL': 'http://127.0.0.1:8093'}  # its console (2026-11-26)
 PROXY = f'proxy_pass http://127.0.0.1:{PROD_PORT};'
 MAP_TEXT = f"""# Written by tools/beta_setup.py (2026-11-24): flow.jasa.hk is the 内测版 (port {PORT}); every other name is 语流 ({PROD_PORT}).
 map $host $flow_site {{
