@@ -1,4 +1,4 @@
-  /* ---------- 主题色 (我的 → 外观): 松绿 (配色 A, the default) or 靛蓝; only the accent changes (99-accent.css) ---------- */
+  /* ---------- 主题色 (我的 → 使用习惯): 松绿 (配色 A, the default) or 靛蓝; only the accent changes (99-accent.css) ---------- */
   // Signed in, it is kept with the account (/api/next/accent → profile.accent) and follows to another device; before
   // signing in, on this device. The device also keeps the last one, so the first screen is already drawn in it.
   // Right / wrong, the logo and the AI marks do not change with it (--ok, --red, --brand in 00-base.css).
