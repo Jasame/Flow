@@ -115,6 +115,21 @@ details.basis[open]>summary{margin-bottom:0}
 .review .conf-line .how{color:var(--green-ink);font-weight:600;white-space:nowrap}
 .review .conf-wrap[open] .how{visibility:hidden}
 .review .conf-wrap p{margin:8px 12px 0;color:var(--ink2)}
+.xtra-wrap{max-width:440px;width:100%;margin:0 auto;text-align:left}
+.xtra-wrap>.conf-line{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--ink2);background:var(--sunk);border-radius:12px;padding:10px 12px;min-height:44px;cursor:pointer;list-style:none}
+.xtra-wrap>.conf-line::-webkit-details-marker{display:none}
+.xtra-wrap .how{color:var(--green-ink);font-weight:600;white-space:nowrap}
+.xtra-ai{display:inline-flex;align-items:center;gap:8px}
+.xtra-wrap[open] .xtra-ai .how{visibility:hidden}
+.xtra-body{padding:8px 12px 0}
+.xtra-note{margin:0 0 2px;font-size:12.5px;color:var(--muted)}
+.xtra-h{font-size:13px;color:var(--muted);margin:10px 0 2px}
+.xtra{list-style:none;margin:0;padding:0}
+.xtra li{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;color:var(--ink2);padding:2px 0}
+.xtra li .xt{min-width:0}.xtra li b{color:var(--ink);font-weight:600}
+.xtra .xbad{flex:none;color:var(--muted);font-weight:400;font-size:13px}
+.xtra-note .xtra-svc{color:var(--muted);font-size:12.5px;font-weight:400}
+.xtra-marked{margin-top:4px}.xtra-marked span{white-space:nowrap}
 .review .mem-line{font-size:12.5px;color:var(--muted);text-align:center}
 .sheet-card .view-row{align-items:center;gap:10px;margin-top:4px}
 .sheet-card .seg{display:flex;gap:6px}

@@ -308,6 +308,54 @@
     const list = []; if (c.context) list.push({ text: c.context, audio: 0 }); (c.examples || []).forEach(e => list.push(e));
     root.querySelectorAll('[data-exp]').forEach(b => b.onclick = () => CLIP.sentence(list[Number(b.dataset.exp)]));
   }
+  // 常用搭配和近义词 (words-modes-plan.md 第 4 步; B7's word_extras: AI 生成, checked, nothing taken down): a fold like 易混
+  // on the 详细 back and in a word's sheet, marked 「AI 生成」 where it shows; each item has 「这条不对」 (hidden for this
+  // learner from then on, a note to 语流's admins with no name, an undo; 放回 in the word's sheet)
+  function extrasHTML(c) {
+    const xs = (c && c.extras) || []; if (!xs.length) return '';
+    const li = x => `<li data-xid="${x.id}"><span class="xt"><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}${x.diff ? `<span class="muted">（${esc(x.diff)}）</span>` : ''}</span><button class="link small xbad" type="button" data-xbad="${x.id}" aria-label="这条不对：${esc(x.en)}">这条不对</button></li>`;
+    const part = (kind, title) => { const g = xs.filter(x => x.kind === kind); return g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : ''; };
+    return `<details class="conf-wrap xtra-wrap"><summary class="conf-line"><span>搭配和近义词</span><span class="xtra-ai">${aiTag()}<span class="how">看看 ›</span></span></summary>
+      <div class="xtra-body"><p class="xtra-note">由 AI 生成，仅供参考 · <a class="link small xtra-svc" href="#/guide/ai-service">AI 服务说明 ›</a></p>${part('colloc', '常用搭配')}${part('near', '近义词')}</div></details>`;
+  }
+  function bindExtras(root, c) {
+    root.querySelectorAll('[data-xbad]').forEach(b => { b.onclick = e => { e.stopPropagation(); extraBad(c, +b.dataset.xbad, root); }; });
+  }
+  function extraBad(c, id, root) {
+    const x = (c.extras || []).find(y => y.id === id); if (!x) return;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这条不对</h2>
+      <p><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</p>
+      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="3" maxlength="100" placeholder="比如：意思不对、不常这样说"></textarea></label>
+      <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
+      <div class="row"><button class="btn primary" id="xGo" type="button">提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
+      card.querySelector('#xGo').onclick = async e => {
+        e.currentTarget.disabled = true;
+        try {
+          await api('/api/next/vocab/extra-flag', { id, note: card.querySelector('#xNote').value });
+          closeSheet(); extraGone(c, id, root);
+          undoBar(`已标为不对：「${x.en}」不再给你看`, async () => {
+            try { await api('/api/next/vocab/extra-unflag', { id }); c.extras = [...(c.extras || []), x]; toast('已放回'); } catch (y) { toast(y.message); }
+          });
+        } catch (y) { toast(y.message); e.currentTarget.disabled = false; }
+      };
+    });
+  }
+  function extraGone(c, id, root) {  // the item leaves the card at once; an empty group, then the whole fold, go too
+    c.extras = (c.extras || []).filter(y => y.id !== id);
+    const li = root.querySelector(`li[data-xid="${id}"]`); if (!li) return;
+    const ul = li.parentNode; li.remove();
+    if (!ul.children.length) { const h = root.querySelector(`.xtra-h[data-xk="${ul.dataset.xk}"]`); if (h) h.remove(); ul.remove(); }
+    if (!(c.extras || []).length) { const w = root.querySelector('.xtra-wrap'); if (w) w.remove(); }
+  }
+  // a line at the bottom for six seconds with 撤销 (like 「已标为太简单」 on the review page)
+  function undoBar(text, onUndo) {
+    document.querySelectorAll('.easy-bar').forEach(b => b.remove());
+    const b = document.createElement('div'); b.className = 'easy-bar'; b.setAttribute('role', 'status');
+    b.innerHTML = `<span>${esc(text)}</span><button class="link small" type="button">撤销</button>`;
+    document.body.appendChild(b);
+    const gone = setTimeout(() => b.remove(), 6000);
+    b.querySelector('button').onclick = () => { clearTimeout(gone); b.remove(); onUndo(); };
+  }
   async function cardSheet(id, after) {
     openSheet(`<p class="loading"><span class="spin"></span></p>`);
     let d; try { d = await api('/api/next/vocab/card?id=' + id); } catch (e) { openSheet(`<p class="err">${esc(e.message)}</p>`); return; }
@@ -321,10 +369,17 @@
         c.stability ? `记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}` : '', c.state !== 'new' && !c.known ? dueText(c.due) : ''].filter(Boolean).join(' · ')}</div>
       ${curveSVG(c, d.retention)}
       <div id="exSlot">${examplesHTML(c) || (c.kind === 'word' && S.user ? '<p class="muted tiny"><span class="spin"></span> 正在找例句…</p>' : '')}</div>
+      <div id="xtraSlot">${extrasHTML(c)}</div>
+      ${(d.marked || []).length ? `<div class="xtra-marked tiny muted">你标为不对的：${d.marked.map(m => `<span><b>${esc(m.en)}</b> <button class="link small" type="button" data-xback="${m.id}" aria-label="放回 ${esc(m.en)}">放回</button></span>`).join('　')}</div>` : ''}
       ${d.history.length ? `<div class="tiny muted">复习记录：${d.history.slice(-8).map(h => `${new Date(h.created * 1000).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} ${tl[h.rating] || h.rating}`).join(' · ')}</div>` : ''}
       <div class="row"><button class="btn" id="known">${c.known ? '取消熟知，继续复习' : '标为熟知，不再复习'}</button><button class="btn ghost" id="del">删除</button><button class="btn ghost" data-close>关闭</button></div></div>`, card => {
       card.querySelectorAll('#sayW, .tapsay').forEach(b => { b.onclick = () => CLIP.word(c); });
       bindExamples(card, c);
+      bindExtras(card, c);
+      card.querySelectorAll('[data-xback]').forEach(b => { b.onclick = async () => {  // 放回: shown again, the sheet drawn again
+        b.disabled = true;
+        try { await api('/api/next/vocab/extra-unflag', { id: +b.dataset.xback }); toast('已放回'); cardSheet(id, after); } catch (e) { toast(e.message); b.disabled = false; }
+      }; });
       if (c.kind === 'word' && S.user && !(c.examples || []).length) {
         api('/api/next/vocab/examples', { words: [c.text.toLowerCase()], request_id: rid('ve') }).then(r => {
           const ex = (r.examples || {})[c.text.toLowerCase()], slot = card.querySelector('#exSlot');

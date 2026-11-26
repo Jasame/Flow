@@ -32,6 +32,7 @@ GUIDE = {
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
     'beta_invite_uses': '内测版注册时用的邀请码和使用时间（只在内测版）',
+    'vocab_extras_flags': '你在单词卡上标为「这条不对」的 AI 常用搭配和近义词，和你写的留言',
 }
 
 
@@ -87,6 +88,7 @@ def word_book(c, uid):
     import vocab_service, next_service as nx
     rows = c.execute('SELECT * FROM next_cards WHERE user_id=? ORDER BY created, id', (uid,)).fetchall()
     titles, now, words = _titles(c, uid, [r['pack'] for r in rows]), time.time(), nx.dictionary()
+    extras = _extras(c, uid, [r['norm'] for r in rows if r['kind'] == 'word'])
     out = []
     for r in rows:
         card = vocab_service.card_out(r, now)
@@ -96,7 +98,24 @@ def word_book(c, uid):
                     'context': r['context'] or '', 'kind': _kind(r),
                     'source': f'《{title}》' if title else {'book': '词书', 'import': '导入的词表', 'mistake': '错题'}.get(r['source'] or '', ''),
                     'added': _day(r['created']), 'due': '' if r['state'] == 'new' or card['mastered'] else _day(r['due']),
-                    'reps': r['reps'] or 0, 'lapses': r['lapses'] or 0, 'state': _state(card)})
+                    'reps': r['reps'] or 0, 'lapses': r['lapses'] or 0, 'state': _state(card),
+                    'colloc': '；'.join(extras.get((r['norm'], 'colloc'), [])), 'near': '；'.join(extras.get((r['norm'], 'near'), []))})
+    return out
+
+
+def _extras(c, uid, norms):
+    """The words' AI 常用搭配和近义词 as the cards show them (vocab_service.extras: checked, not taken down, not marked
+    「这条不对」 by this learner): {(norm, 'colloc' | 'near'): ['make a decision 做决定', 'choice 选择（更口语）', ...]}."""
+    import vocab_service
+    out = {}
+    if not vocab_service._has_extras(c):
+        return out
+    mine = {r[0] for r in c.execute('SELECT extra_id FROM vocab_extras_flags WHERE user_id=?', (uid,))}
+    for chunk in _ids(norms):
+        for i, norm, kind, en, zh, diff in c.execute(f"SELECT id, norm, kind, en, zh, diff FROM vocab_extras WHERE hidden=0 AND norm IN "
+                                                     f"({','.join('?' * len(chunk))}) ORDER BY kind, pos", chunk):
+            if i not in mine:
+                out.setdefault((norm, kind), []).append(' '.join(x for x in (en, zh, f'（{diff}）' if diff else '') if x).replace(' （', '（'))
     return out
 
 
@@ -109,9 +128,11 @@ def _cell(v):
 def cards_csv(c, uid):
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator='\r\n')
-    w.writerow(['英文', '中文意思', '音标', '原文例句', '类型', '来源', '加入日期', '下次复习', '复习次数', '忘记次数', '状态'])
+    w.writerow(['英文', '中文意思', '音标', '原文例句', '类型', '来源', '加入日期', '下次复习', '复习次数', '忘记次数', '状态',
+                '常用搭配（AI 生成，仅供参考）', '近义词（AI 生成，仅供参考）'])
     for x in word_book(c, uid):
-        w.writerow([_cell(x[k]) for k in ('text', 'meaning', 'phonetic', 'context', 'kind', 'source', 'added', 'due', 'reps', 'lapses', 'state')])
+        w.writerow([_cell(x[k]) for k in ('text', 'meaning', 'phonetic', 'context', 'kind', 'source', 'added', 'due', 'reps', 'lapses', 'state',
+                                          'colloc', 'near')])
     return buf.getvalue().encode('utf-8-sig')
 
 
@@ -122,7 +143,9 @@ def cards_anki(c, uid):
     lines = ['#separator:tab', '#html:true', '#columns:正面\t背面\t标签', '#tags column:3']
     for x in word_book(c, uid):
         back = [f'<b>{clean(x["meaning"])}</b>' if x['meaning'] else '', f'<span style="color:#888">{clean(x["phonetic"])}</span>' if x['phonetic'] else '',
-                f'<i>{clean(x["context"])}</i>' if x['context'] else '', f'<small>{clean(x["source"])}</small>' if x['source'] else '']
+                f'<i>{clean(x["context"])}</i>' if x['context'] else '', f'<small>{clean(x["source"])}</small>' if x['source'] else '',
+                f'<small>常用搭配（AI 生成）：{clean(x["colloc"])}</small>' if x['colloc'] else '',
+                f'<small>近义词（AI 生成）：{clean(x["near"])}</small>' if x['near'] else '']
         tag = '语流 ' + x['kind'].replace('·', '_')
         lines.append('\t'.join([clean(x['text']), '<br>'.join(b for b in back if b), tag]))
     return ('\n'.join(lines) + '\n').encode('utf-8')

@@ -116,7 +116,9 @@ CREATE INDEX IF NOT EXISTS next_cards_source ON next_cards(user_id, source, crea
 CREATE INDEX IF NOT EXISTS next_reviews_card ON next_reviews(card, created);
 CREATE TABLE IF NOT EXISTS next_word_examples(norm TEXT PRIMARY KEY, sentence TEXT NOT NULL, translation TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES users(id), enabled INTEGER NOT NULL DEFAULT 0,
- hour INTEGER NOT NULL DEFAULT 20, last_sent TEXT, updated REAL NOT NULL);''')
+ hour INTEGER NOT NULL DEFAULT 20, last_sent TEXT, updated REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS vocab_extras_flags(user_id INTEGER NOT NULL REFERENCES users(id), extra_id INTEGER NOT NULL,
+ created REAL NOT NULL, note TEXT NOT NULL DEFAULT '', PRIMARY KEY(user_id, extra_id));''')
     if 'sense' not in {r[1] for r in c.execute('PRAGMA table_info(next_word_examples)')}:  # the meaning an AI example uses
         c.execute("ALTER TABLE next_word_examples ADD COLUMN sense TEXT NOT NULL DEFAULT ''")
     pcols = {r[1] for r in c.execute('PRAGMA table_info(next_vocab_plans)')}
@@ -460,6 +462,8 @@ def card_out(r, now=None, level=None, rich=False, c=None):
             out['collins'] = entry['collins'] if entry else 0
             out['rank'] = entry['rank'] if entry else 0
             out['confuse'] = __import__('word_links').group_of(r['norm'])[:1]
+            # 常用搭配和近义词 (第 4 步, AI 生成): B7's checked rows, less those this learner marked 「这条不对」
+            out['extras'] = extras(c, r['user_id'], r['norm'])
         if r['source'] == 'mistake':
             out['extra'] = json.loads(r['extra'] or '{}') if 'extra' in r.keys() else {}
             norm = r['norm'] or ''
@@ -1133,12 +1137,69 @@ def import_words(c, uid, data):
     return {'added': added, 'skipped': skipped}, 200
 
 
+def _has_extras(c):
+    return c is not None and bool(c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras'").fetchone())
+
+
+def extras(c, uid, norm):
+    """A word's AI 常用搭配和近义词 (word_extras.shown: checked, not taken down), less the ones this learner marked
+    「这条不对」: [{id, kind ('colloc' | 'near'), en, zh, diff}]."""
+    if not _has_extras(c):
+        return []
+    mine = {r[0] for r in c.execute('SELECT extra_id FROM vocab_extras_flags WHERE user_id=?', (uid,))}
+    return [x for x in __import__('word_extras').shown(c, norm) if x['id'] not in mine]
+
+
+def marked_extras(c, uid, norm):
+    """The items of this word the learner marked 「这条不对」 (the word's detail lists them, each with 放回)."""
+    if not _has_extras(c):
+        return []
+    return [dict(zip(('id', 'kind', 'en', 'zh', 'note'), r)) for r in c.execute(
+        'SELECT e.id, e.kind, e.en, e.zh, f.note FROM vocab_extras_flags f JOIN vocab_extras e ON e.id=f.extra_id '
+        'WHERE f.user_id=? AND e.norm=? ORDER BY f.created', (uid, norm))]
+
+
+def _flag_note(v):
+    """A learner's note on 「这条不对」: text only, no control characters, trimmed, 100 at most (B6, 2026-11-26)."""
+    if not isinstance(v, str):
+        return ''
+    return re.sub(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e\u2066-\u2069\ufeff]', '', v).strip()[:100]
+
+
+def flag_extra(c, uid, data):
+    """「这条不对」: hidden for this learner from now on; B6's console counts it (word_extras.reported) for B7's weekly look.
+    Marking it again keeps one row with the latest time and note."""
+    try:
+        xid = int(data.get('id'))
+    except (TypeError, ValueError):
+        return {'error': '参数不正确'}, 400
+    if not _has_extras(c) or not c.execute('SELECT 1 FROM vocab_extras WHERE id=?', (xid,)).fetchone():
+        return {'error': '这一条已经没有了'}, 404
+    c.execute('INSERT INTO vocab_extras_flags(user_id, extra_id, created, note) VALUES(?,?,?,?) '
+              'ON CONFLICT(user_id, extra_id) DO UPDATE SET created=excluded.created, note=excluded.note',
+              (uid, xid, time.time(), _flag_note(data.get('note'))))
+    c.commit()
+    return {'ok': True}, 200
+
+
+def unflag_extra(c, uid, data):
+    """放回: the learner's mark taken back (the row goes, note and all)."""
+    try:
+        xid = int(data.get('id'))
+    except (TypeError, ValueError):
+        return {'error': '参数不正确'}, 400
+    c.execute('DELETE FROM vocab_extras_flags WHERE user_id=? AND extra_id=?', (uid, xid))
+    c.commit()
+    return {'ok': True}, 200
+
+
 def detail(c, uid, cid):
     r = c.execute('SELECT * FROM next_cards WHERE id=? AND user_id=?', (cid, uid)).fetchone()
     if not r:
         return {'error': '记录不存在'}, 404
     hist = [dict(h) for h in c.execute('SELECT rating, created, mode FROM next_reviews WHERE card=? AND user_id=? ORDER BY created', (cid, uid))]
-    return {'card': card_out(r, level=_level(c, uid), rich=True, c=c), 'history': hist, 'retention': _retention(c, uid)}, 200
+    return {'card': card_out(r, level=_level(c, uid), rich=True, c=c), 'history': hist, 'retention': _retention(c, uid),
+            'marked': marked_extras(c, uid, r['norm']) if r['kind'] == 'word' else []}, 200
 
 
 # ---------- reading: words before and after ----------
@@ -1478,6 +1539,10 @@ def post(c, uid, path, data):
         return import_words(c, uid, data)
     if path == '/api/next/vocab/known':
         return set_known(c, uid, data)
+    if path == '/api/next/vocab/extra-flag':
+        return flag_extra(c, uid, data)
+    if path == '/api/next/vocab/extra-unflag':
+        return unflag_extra(c, uid, data)
     if path == '/api/next/vocab/more':
         return more_new(c, uid, data)
     if path == '/api/next/review':

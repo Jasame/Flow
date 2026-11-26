@@ -361,6 +361,21 @@ class ConsolePage(flow_admin.AdminHandler):
         return super().do_GET()
 
 
+# AI 常用搭配和近义词 (word_extras, 单词详细模式) for a few words the learners meet: the 详细 back and a word's sheet show them
+with app.db() as c:
+    import word_extras
+    word_extras.schema(c)
+    for norm, items in {
+        'lucky': [('colloc', 'lucky break', '好运；转机', ''), ('colloc', 'a lucky guess', '蒙对', ''), ('colloc', 'lucky enough to', '有幸能……', ''),
+                  ('near', 'fortunate', '幸运的', '更正式，多用于书面')],
+        'commute': [('colloc', 'commute to work', '通勤上班', ''), ('colloc', 'a long commute', '很长的通勤路程', ''), ('near', 'travel to work', '去上班', '更口语')],
+        'deadline': [('colloc', 'meet a deadline', '按期完成', ''), ('colloc', 'miss a deadline', '错过截止时间', ''), ('colloc', 'a tight deadline', '紧迫的期限', ''),
+                     ('near', 'due date', '到期日', '多指作业、账单')],
+        'decision': [('colloc', 'make a decision', '做决定', ''), ('colloc', 'a tough decision', '艰难的决定', ''), ('near', 'choice', '选择', '更口语，指选中的那一个')],
+    }.items():
+        word_extras.store(c, norm, items, 'ui-test')
+    c.commit()
+
 console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
 threading.Thread(target=console.serve_forever, daemon=True).start()
 (STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '大学英语（2）班'},
