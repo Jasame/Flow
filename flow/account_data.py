@@ -61,6 +61,8 @@ GUIDE = {
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
     'beta_invite_uses': '内测版注册时用的邀请码和使用时间（只在内测版）',
     'lexicon_versions': '你生成的参考词条以前的版本', 'lexicon_audit': '你生成的参考词条的修改记录',
+    'lab_jobs': '每次用 AI 的结果：AI 的批改和反馈；口语练习时，还有 AI 听写出来的你说的话（录音本身不保存）',
+    'feedback_disputes': '你对某次 AI 批改说「不对」时写下的更正',
     'vocab_extras_flags': '你在单词卡上标为「这条不对」的 AI 常用搭配和近义、易混词，和你写的留言',
 }
 

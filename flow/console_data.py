@@ -541,8 +541,12 @@ def ai_samples(c, kind, n=5):
     return {'kind': kind, 'label': label, 'items': items, 'redo': kind not in ('daily-news',)}, 200
 
 
+QUALITY_MIN = 5
+
+
 def ai_quality(c, days=14):
-    """How the marking came out, in numbers only (never what was written): per task, how many, and its averages."""
+    """How the marking came out, in numbers only (never what was written): per task, how many, and its averages; an
+    average or a ratio only from QUALITY_MIN results or more (D2 2026-11-27: few results could point at one learner)."""
     since = time.time() - days * DAY
     rows = c.execute("SELECT kind, status, result, error FROM lab_jobs WHERE created>? AND kind IN "
                      "('next-rewrite','next-essay','next-translate','next-retell','next-dialog','next-ielts')",
@@ -579,7 +583,9 @@ def ai_quality(c, days=14):
         tot = a['done'] + a['failed']
         notes = []
         vt = sum(a['v'].values())
-        if kind == 'next-rewrite' and vt:
+        if a['done'] < QUALITY_MIN:
+            pass
+        elif kind == 'next-rewrite' and vt:
             notes.append('判「没问题」{}%，小改 {}%，要重写 {}%'.format(*(round(100 * a['v'].get(k, 0) / vt) for k in ('natural', 'minor', 'rewrite'))))
             if a['n']:
                 notes.append(f"平均改 {sum(a['n']) / len(a['n']):.1f} 处")
