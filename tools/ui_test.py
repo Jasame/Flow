@@ -4462,6 +4462,18 @@ def shell_run(pw):
         # Safari: no 返回 in the bar, the line is the way back
         ctx, pg = open_(False, hash_='#/speak/cafe-order'); s = pg.evaluate(BACK)
         check(dev, 'Safari, a sub-page: the page\'s own 「← 口语路线」 line is there (no 返回 in the bar)', not s['btn'] and s['line'], s)
+        # back in front after a while (B9's audit, 2026-11-26: yesterday's 今日 the next morning, dots that no longer hold):
+        # the home numbers are asked for again; a short look away asks nothing
+        homes = []; pg.on('request', lambda r: homes.append(r.url) if '/api/next/home' in r.url else None)
+        AWAY = """mins => { const st = v => { Object.defineProperty(document, 'visibilityState', { get: () => v, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); };
+          st('hidden'); const n = Date.now; Date.now = () => n() + mins * 60000; st('visible'); Date.now = n; }"""
+        pg.evaluate(AWAY, 1); pg.wait_for_timeout(400); short = len(homes)
+        pg.evaluate(AWAY, 6); pg.wait_for_timeout(700)
+        check(dev, 'back in front after more than five minutes: the home numbers are asked for again (a minute away: not)', short == 0 and len(homes) == 1, (short, len(homes)))
+        # 错题本 with nothing due says so, not 「都复习完了」 (nothing was reviewed); with no mistake at all, no such block
+        go(pg, '#/cards/mistake'); mb = pg.evaluate("(() => { const b = document.querySelector('#view .wp-blk .wp-big'), sub = document.querySelector('#view .wp-sub'); return [sub ? sub.textContent.trim() : '', b ? b.textContent.trim() : null]; })()")
+        none = mb[0].startswith('共 0 道')
+        check(dev, '错题本: no mistake → no 「到期要复习的」 block; mistakes but none due → 「现在没有到期的」', (mb[1] is None) if none else (mb[1] == '现在没有到期的' or mb[1].endswith('道')), mb)
         # a sheet goes with its page: a link, and the browser's back
         go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
         # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone

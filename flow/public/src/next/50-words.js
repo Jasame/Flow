@@ -246,8 +246,8 @@
       : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
     view.innerHTML = `<div><a class="link small hit44 wp-back" href="#/practice">‹ 练习</a></div>
       <div class="wp-head"><h1 class="h1">错题本</h1><span class="wp-sub">共 ${list.total} 道 · 做错的题都在这里</span></div>
-      <section class="wp-blk"><div class="wp-blk-h"><h2 class="wp-blk-t">到期要复习的</h2>${due ? `<span class="wp-blk-r">约 ${mins} 分钟</span>` : ''}</div>
-        <p class="wp-big">${due ? `${due} 道` : '都复习完了'}</p><p class="wp-note">到期了会在「错题和句型复习」里再考你</p></section>
+      ${list.total || q || due ? `<section class="wp-blk"><div class="wp-blk-h"><h2 class="wp-blk-t">到期要复习的</h2>${due ? `<span class="wp-blk-r">约 ${mins} 分钟</span>` : ''}</div>
+        <p class="wp-big">${due ? `${due} 道` : '现在没有到期的'}</p><p class="wp-note">到期了会在「错题和句型复习」里再考你</p></section>` : ''}
       ${due ? `<a class="btn primary wp-go" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
       ${list.total || q ? `<form class="searchrow wp-msearch" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
       <div id="listSlot">${body(list)}</div>`;
