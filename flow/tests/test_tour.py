@@ -80,6 +80,19 @@ class TourTests(unittest.TestCase):
         self.assertEqual(ts.tip(self.c, None, {'tip': 'read'}), ({'seen': []}, 200))
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_tour_stats").fetchone()[0], 0, 'tips are not counted')
 
+    def test_one_time_entries_are_tips_and_one_comes_back_alone(self):
+        """一次性入口 (2026-11-26): the 操作指南 nudge, the review's first-time guides, the 内测版's line are kept like tips;
+        「下次复习时再看一次」 brings one back without the others."""
+        new = self.id['new']
+        for name in ('guide', 'review-zones', 'review-zones-back', 'swipe-tip', 'know-side', 'beta-note', 'beta-hello'):
+            self.assertEqual(ts.tip(self.c, new, {'tip': name})[1], 200, name)
+        self.assertEqual(len(ts.tips(self.c, new)['seen']), 7)
+        self.assertEqual(ts.tip(self.c, new, {'tip': 'review-zones', 'seen': False})[1], 200)
+        seen = ts.tips(self.c, new)['seen']
+        self.assertNotIn('review-zones', seen); self.assertIn('review-zones-back', seen); self.assertIn('guide', seen)
+        self.assertEqual(ts.tip(self.c, None, {'tip': 'guide', 'seen': False}), ({'seen': []}, 200))  # a guest: its browser keeps them
+        self.assertEqual(ts.tip(self.c, new, {'tip': 'tour', 'seen': False})[1], 400)
+
 
 if __name__ == '__main__':
     unittest.main()

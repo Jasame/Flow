@@ -962,7 +962,7 @@
         '<section class="card"><h2>发过的公告</h2>' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>内容</th><th>时间</th><th>状态</th><th class="opt">谁发的</th></tr></thead><tbody>' + d.items.map(function (x) {
           var state = x.active ? '<span class="pill">显示中</span>' : x.ended ? '<span class="pill off">已结束</span>' : x.ends < Date.now() / 1000 ? '<span class="pill off">到期</span>' : '<span class="pill off">被新公告替换</span>';
           return '<tr><td>' + esc(x.text) + (x.link ? '<span class="sub">→ ' + esc(linkName(x.link)) + '</span>' : '') + '</td><td class="small">' + esc(when(x.starts)) + '<br>到 ' + esc(when(x.ended || x.ends)) + '</td><td>' + state + '</td><td class="opt small">' + esc(x.by) + '</td></tr>';
-        }).join('') + '</tbody></table></div>' : '<p class="muted">还没有发过。</p>') + '</section>';
+        }).join('') + '</tbody></table></div>' : '<p class="muted">还没有发过。</p>') + '</section>' + (d.harmony ? harmonyCard(d.harmony) : '');
       var end = main.querySelector('[data-end]');
       if (end) end.onclick = function () { if (ask('现在结束这条公告？学员就看不到了。')) busy(end, postJSON('/announcements/end', { id: Number(end.dataset.end) })).then(announceView); };
       var f = document.getElementById('anF');
@@ -975,7 +975,27 @@
           busy(f.querySelector('button'), postJSON('/announcements/create', { text: t.value, link: document.getElementById('anLink').value, days: Number(document.getElementById('anDays').value) })).then(announceView);
         };
       }
+      var hf = document.getElementById('hmF');
+      if (hf) {
+        var hu = document.getElementById('hmUrl'), hh = document.getElementById('hmHost');
+        hu.oninput = function () { var h = ''; try { h = new URL(hu.value.trim()).hostname; } catch (x) { h = ''; } hh.textContent = h ? '域名：' + h : ''; };
+        hf.onsubmit = function (e) { e.preventDefault(); busy(hf.querySelector('button'), postJSON('/settings/harmony-link', { url: hu.value })).then(announceView, function () { /* shown */ }); };
+        var hc = document.getElementById('hmClear');
+        if (hc) hc.onclick = function () { if (ask('清空鸿蒙内测链接？内测版下载页的鸿蒙卡片回到「即将开放」。')) busy(hc, postJSON('/settings/harmony-link', { url: '' })).then(announceView, function () { /* shown */ }); };
+      }
     }).catch(fail);
+  }
+  // 内测版后台 only (GET /announcements carries it there): with this link the 内测版's download page shows 「加入内测」 on
+  // the 鸿蒙 card, without it 「即将开放」 (console_ops, D3 #415). Huawei's invite links may end after 30 days (C4).
+  function harmonyCard(h) {
+    var saved = h.saved ? '上次保存：' + esc(when(h.saved.at)) + (h.saved.by ? ' · ' + esc(h.saved.by) : '') : '还没有填过';
+    return '<section class="card"><h2>下载页 · 鸿蒙内测链接</h2>' +
+      (isAdmin() ? '<form class="form" id="hmF"><label><span>华为 AppTest 的公开链接</span><input class="input" id="hmUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…" value="' + esc(h.url) + '"></label>' +
+        '<p class="muted small" id="hmHost">' + (h.host ? '域名：' + esc(h.host) : '') + '</p>' +
+        '<div class="row"><button class="btn primary">保存</button>' + (h.url ? '<button class="btn" type="button" id="hmClear">清空</button>' : '') + '</div></form>'
+        : '<p>' + (h.url ? esc(h.url) + (h.host ? ' <span class="muted small">（' + esc(h.host) + '）</span>' : '') : '<span class="muted">没有填</span>') + '</p>') +
+      '<p class="muted small">填了，内测版下载页的鸿蒙卡片显示「加入内测」；空着显示「即将开放」。华为的邀请链接可能 30 天后失效，到时在这里换一个新的。</p>' +
+      '<p class="muted small">' + saved + '</p></section>';
   }
 
   /* ---------- AI 用量、费用、模型和质量 ---------- */

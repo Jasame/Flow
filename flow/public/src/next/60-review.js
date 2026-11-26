@@ -102,7 +102,8 @@
     const keys = map => { document.onkeydown = e => { if (!sheetEl.hidden || e.metaKey || e.ctrlKey || e.altKey) return; if (e.target.matches && e.target.matches('input,textarea')) { if (e.key === 'Enter' && map.Enter && ['spellIn', 'fixIn'].includes(e.target.id)) { e.preventDefault(); map.Enter(); } return; } const f = map[e.key] || map[e.key.toLowerCase()]; if (f) { e.preventDefault(); f(); } }; };
     swipeOn(() => swipe);
     // the swipe tip, once; where the zones' first-time guide comes it says this too
-    if (TOUCH && !load('flow-next-swipe-tip') && !(KNOW.tap() && !load('flow-tap-guide'))) { save('flow-next-swipe-tip', 1); setTimeout(() => toast(KNOW.side() === 'right' ? '小技巧：右滑「认识」，左滑「不认识」' : '小技巧：左滑「认识」，右滑「不认识」'), 600); }
+    // once per account (08-tips.js: put away on another device, or by seeing the 新手引导 through, it is not said again)
+    if (TOUCH && tipSeen('swipe-tip', 'flow-next-swipe-tip') === false && !(KNOW.tap() && tipSeen('review-zones', 'flow-tap-guide') === false)) { TIPS.mark('swipe-tip'); setTimeout(() => toast(KNOW.side() === 'right' ? '小技巧：右滑「认识」，左滑「不认识」' : '小技巧：左滑「认识」，右滑「不认识」'), 600); }
     // A saved sentence pattern: the frame's fixed words become gaps in its example, so the front does not give it away.
     const frameCloze = (example, frame) => {
       const fixed = (frame.match(/[A-Za-z']+/g) || []).filter(w => !/^(A|B|C|sb|sth|do|doing|done|adj|n|v|X|Y)$/.test(w)).map(w => w.toLowerCase());
@@ -234,9 +235,9 @@
         ${m === 'spell' ? `<div class="row center"><button class="btn primary" id="check">确定</button><button class="btn ghost" id="giveup">不会</button></div>${foot()}`
           : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div>`)}</div>`;
       // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
-      if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && !load('flow-know-tip')) {
+      if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && tipSeen('know-side', 'flow-know-tip') === false) {
         view.querySelector('.review').insertAdjacentHTML('afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
-        document.getElementById('knowTipOk').onclick = () => { save('flow-know-tip', 1); const t = document.getElementById('knowTip'); if (t) t.remove(); };
+        document.getElementById('knowTipOk').onclick = () => { TIPS.mark('know-side'); const t = document.getElementById('knowTip'); if (t) t.remove(); };
       }
       bar(); swipe = null;
       sayable();
@@ -284,18 +285,25 @@
         const k = Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / (r.width / n))));
         flash(r, n, k, btns[k]); btns[k].click();
       };
-      // the first time on each side: its parts drawn over the card, a tap puts it away (and answers nothing)
-      const key = back ? 'flow-tap-guide-back' : 'flow-tap-guide';
-      if (load(key) || card.querySelector('.know-tip')) return;
-      const swipe = KNOW.side() === 'right' ? ['右滑', '左滑'] : ['左滑', '右滑'];
-      const say = !back ? `点左、中、右也能作答，和下面的按钮一样；也可以${swipe[0]}「认识」，${swipe[1]}「不认识」。点单词只是播放。点一下收起`
-        : `翻面也是这三块：${swipe[0]}或点${KNOW.side() === 'right' ? '右' : '左'}边是没错，另一边是记错了，中间是模糊。翻面前选的那个加了框，回车或空格就是它。点一下收起`;
-      card.insertAdjacentHTML('beforeend', `<div class="zone-guide n${btns.length}" id="zoneGuide" aria-hidden="true">${btns.map(b => `<span>${esc(b.firstChild.textContent)}</span>`).join('')}<p>${say}</p></div>`);
-      const gd = document.getElementById('zoneGuide'), ra = card.querySelector('.ractions');
-      if (ra) gd.style.bottom = (card.getBoundingClientRect().bottom - ra.getBoundingClientRect().top) + 'px';  // the buttons stay in view below it
-      // shown once: seen now. It lets taps through (pointer-events: none), so the word still plays and the buttons answer;
-      // a tap on the page itself only puts it away (above)
-      save(key, 1); save('flow-next-swipe-tip', 1);
+      // the first time on each side: its parts drawn over the card, a tap puts it away (and answers nothing); once per
+      // account (08-tips.js), so another phone does not draw it again
+      const tip = back ? 'review-zones-back' : 'review-zones', local = back ? 'flow-tap-guide-back' : 'flow-tap-guide';
+      const draw = () => {
+        if (!card.isConnected || card.querySelector('.know-tip, #zoneGuide')) return;
+        const swipe = KNOW.side() === 'right' ? ['右滑', '左滑'] : ['左滑', '右滑'];
+        const say = !back ? `点左、中、右也能作答，和下面的按钮一样；也可以${swipe[0]}「认识」，${swipe[1]}「不认识」。点单词只是播放。点一下收起`
+          : `翻面也是这三块：${swipe[0]}或点${KNOW.side() === 'right' ? '右' : '左'}边是没错，另一边是记错了，中间是模糊。翻面前选的那个加了框，回车或空格就是它。点一下收起`;
+        card.insertAdjacentHTML('beforeend', `<div class="zone-guide n${btns.length}" id="zoneGuide" aria-hidden="true">${btns.map(b => `<span>${esc(b.firstChild.textContent)}</span>`).join('')}<p>${say}</p></div>`);
+        const gd = document.getElementById('zoneGuide'), ra = card.querySelector('.ractions');
+        if (ra) gd.style.bottom = (card.getBoundingClientRect().bottom - ra.getBoundingClientRect().top) + 'px';  // the buttons stay in view below it
+        // shown once: seen now. It lets taps through (pointer-events: none), so the word still plays and the buttons answer;
+        // a tap on the page itself only puts it away (above)
+        TIPS.mark(tip); TIPS.mark('swipe-tip');
+      };
+      // not known on this phone yet (a new device): drawn over the card, it can come when the answer does without moving
+      // anything; known: now or never
+      const seen = tipSeen(tip, local);
+      if (seen === false) draw(); else if (seen === null) TIPS.load().then(() => { if (tipSeen(tip, local) === false) draw(); });
     }
     // the speaker and the word play it; the examples' speakers are bound by bindExamples
     function sayable() {
