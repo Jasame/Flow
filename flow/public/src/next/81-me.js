@@ -29,7 +29,7 @@
       // 「用法变了」 (changed) first and marked; a link is always inside the site (#/…)
       const b = x && x.beta, el = document.getElementById('meBetaNew'); if (!el || !b) return;
       const item = (v, changed) => { const t = typeof v === 'string' ? v : (v && v.text) || '', link = v && typeof v === 'object' && /^#\//.test(v.link || '') ? v.link : '';
-        return t ? `<li${changed ? ' class="beta-changed"' : ''}>${changed ? '<b>用法变了：</b>' : ''}${esc(t)}${link ? ` <a class="link" href="${esc(link)}">去看看</a>` : ''}</li>` : ''; };
+        return t ? `<li${changed ? ' class="beta-changed"' : ''}>${changed ? '<b>用法变了：</b>' : ''}<span data-zh>${esc(t)}</span>${link ? ` <a class="link" href="${esc(link)}">去看看</a>` : ''}</li>` : ''; };
       const lines = [...(b.changed || []).map(v => item(v, true)), ...[...(b.new || []), ...(b.better || []), ...(b.fixed || [])].map(v => item(v, false))].filter(Boolean).slice(0, 5);
       if (!lines.length) return;
       el.innerHTML = `<div class="small"><b>这一版内测改了什么</b></div><ul class="small">${lines.join('')}</ul>`; el.hidden = false;

@@ -59,6 +59,12 @@ hvigorw assembleHap --mode module -p product=prod -p buildMode=release    # 正�
 hvigorw test -p product=default -p module=entry@default -p isLocalTest=true -p buildMode=test   # 本地单元测试（不要模拟器）
 ```
 
+每个 product 打开哪个网站、是不是内测版，只在根目录 `build-profile.json5` 里各 product 的 `buildProfileFields` 写（`FLOW_SITE`、`FLOW_BETA`）。`entry/build-profile.json5` 里不能再写一份：模块里的会盖掉所有 product 的，1.0.0 正式版包（1000001）就因为这样打开了内测版。`entry/hvigorfile.ts` 现在会拦下。正式版打完包，先核对一下再上传：
+
+```bash
+grep "FLOW_SITE =\|FLOW_BETA =" entry/build/prod/generated/profile/prod/BuildProfile.ets   # 要是 https://flowlang.cn 和 false
+```
+
 单元测试的结果在 `entry/.test/default/intermediates/test/coverage_data/test_result.txt`（最后一行是总数）。没签名的包在 `entry/build/<product>/outputs/default/entry-default-unsigned.hap`；签好名以后用 `hdc install <hap>` 装到模拟器或手机上。
 
 **测试时一律不出声**（docs/native-bridge.md §9）：

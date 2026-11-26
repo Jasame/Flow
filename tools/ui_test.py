@@ -5160,6 +5160,16 @@ def english_run(pw):
             check(dev, '看中文: tapped again, the Chinese is hidden', pg.evaluate("[...document.querySelectorAll('.result .ex-zh')].every(x => !x.offsetParent)"))
         check(dev, '看中文: no script errors', not errs, errs[:3])
         ctx.close()
+        # a new account's first page (选方向和目标, nothing set yet) in English: the device's choice, no profile to keep it
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['english-fresh']['token'], 'url': BASE}])
+        ctx.add_init_script(EN_ONCE)
+        pg = ctx.new_page()
+        pg.goto(BASE + '/', wait_until='load'); settle(pg); pg.wait_for_timeout(400)
+        left = pg.evaluate(LEAK_JS)
+        pg.screenshot(path=str(OUT / 'english-se-light-first-page.png'))
+        check(dev, "a new account's first page (goals): no Chinese left in English mode", not left, left[:8])
+        ctx.close()
         # one screen in English where the Chinese page is one (the review card, 测词汇量): English is longer
         for H in (667, 553):
             ctx = browser.new_context(viewport={'width': 375, 'height': H}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',

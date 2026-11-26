@@ -1,16 +1,7 @@
 {
   "apiType": "stageMode",
-  "buildOption": {
-    "arkOptions": {
-      // read as BuildProfile.FLOW_* (common/Site.ets); each product in ../build-profile.json5 sets its own
-      "buildProfileFields": {
-        "FLOW_SITE": "https://flow.jasa.hk",
-        "FLOW_BETA": "true",
-        "FLOW_BUILD": "dev",
-        "FLOW_BEIAN": ""
-      }
-    }
-  },
+  // BuildProfile.FLOW_* (common/Site.ets) come from each product in ../build-profile.json5 only: fields set here would
+  // override the product's (the 1.0.0 正式版 package opened the 内测版 that way)
   "targets": [
     // 内测版 (product default) and 正式版 (product prod): the same code, each with its own name (src/beta, src/prod)
     { "name": "default", "resource": { "directories": ["./src/main/resources", "./src/beta/resources"] } },
