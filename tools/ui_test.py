@@ -223,7 +223,7 @@ def run_device(pw, dev, opts):
     k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
     hm = pg.evaluate("() => ({notices: document.querySelectorAll('#notice > *').length, tabs: [...document.querySelectorAll('.tabs a span')].map(s => s.textContent), map: !!document.querySelector('#view .graph-mini'), rows: document.querySelectorAll('#view .mlist .mrow').length, more: (document.querySelector('#view .mrow.more') || {}).getAttribute ? document.querySelector('#view .mrow.more').getAttribute('href') : ''})")
-    check(dev, 'home: four tabs, at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
+    check(dev, 'home: five tabs (能力 in the middle), at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '能力', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
 
     # ---- study steps: the green indicator sits under the selected step after moving between steps
     for st in ('read', 'check', 'output', 'listen'):
@@ -4214,6 +4214,24 @@ def shell_run(pw):
         check(dev, "the Android app's basic mode: 注册 asks the app first; still not agreed → no form, agreed → the form opens at once",
               no == (True, ['privacy.state', 'privacy.ask']) and yes == (True, ['privacy.state', 'privacy.ask']), (no, yes))
         ctx.close()
+        # 底栏「能力」 (the user, 2026-11-26: A, an ordinary tab): five tabs, 能力 in the middle, lit on #/radar; a small dot
+        # when skills are due to be measured, the number said to a screen reader; on a 320-pixel phone all five fit
+        ctx, pg = open_(False, w=320, h=568, hash_='#/radar'); pg.wait_for_timeout(600)
+        # goals set on the radar (nothing is due before that, ability_radar.due_today), then 今日's data again
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session')).json();
+          await fetch('/api/next/radar/goals', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ goals: { reading: 'B2', listening: 'B2' } }) }); }""")
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(600)
+        tb = pg.evaluate("""() => { const as = [...document.querySelectorAll('.tabs a')];
+          return { names: as.map(a => a.querySelector('span').textContent), current: (document.querySelector('.tabs a[aria-current=page] span') || {}).textContent,
+                   label: document.querySelector('.tabs a[data-nav=radar]').getAttribute('aria-label'), dot: !document.getElementById('radarBadge').hidden,
+                   widths: as.map(a => Math.round(a.getBoundingClientRect().width)), lines: as.map(a => Math.round(a.querySelector('span').getBoundingClientRect().height)),
+                   sideways: document.scrollingElement.scrollWidth > innerWidth }; }""")
+        due = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => (h.stats || {}).radar_due)")
+        go(pg, '#/me'); me_radar = pg.locator('#view a[href="#/radar"]').count(); ctx.close()
+        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; the dot says how many skills are due; 我的 has no second way in',
+              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due and tb['dot'] and tb['label'] == f'能力，有 {due} 项该测了' and me_radar == 0, (tb, due, me_radar))
+        check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
+              min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

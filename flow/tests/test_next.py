@@ -448,6 +448,15 @@ class NextAudioTests(unittest.TestCase):
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
 
+    def test_stats_say_how_many_skills_are_due_to_be_measured(self):
+        """底栏「能力」 (2026-11-26): its dot follows ability_radar.due_today: nothing before the radar's goals are set,
+        then all six until each is measured."""
+        with app.db() as c:
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.stats(c, 1)['radar_due'], 0)
+            __import__('ability_radar').set_goals(c, 1, {'goals': {k: 'B2' for k, _ in __import__('ability_radar').DIMS}})
+            self.assertEqual(nx.stats(c, 1)['radar_due'], 6)
+
     def test_accent_is_kept_with_the_account(self):
         with app.db() as c:
             nx.save_profile(c, 1, {'level': 'B1'})
