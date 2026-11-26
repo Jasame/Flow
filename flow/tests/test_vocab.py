@@ -430,6 +430,20 @@ class WordCapTests(unittest.TestCase):
         n = vs.counts(self.c, 1, self.now, cap=5)
         self.assertEqual((n['due'], n['new'], n['minutes'], n['later']), (0, 0, 0, 20))
 
+    def test_home_counts_todays_share_as_the_review_does(self):
+        # 「复习单词」 and the 「单词」 tab's dot come from nx.stats: the share the review gives, not every word due (the
+        # owner, 2026-11-26: the review said nothing was due and the dot stayed)
+        self.plan(5)
+        for k in range(30):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        with patch.object(vs.time, 'time', lambda: self.now), patch.object(nx.time, 'time', lambda: self.now):
+            st, q = nx.stats(self.c, 1), vs.queue(self.c, 1)
+            self.assertEqual((st['due'], st['new']), (q['due'], q['new'])); self.assertLess(st['due'], 30)
+            self.answered(60)  # today's share done: 今天的单词做完了, the rest later
+            st, q = nx.stats(self.c, 1), vs.queue(self.c, 1)
+            self.assertEqual((st['due'] + st['new'], q['due'] + q['new'], q['later']), (0, 0, 30))
+
     def test_new_words_come_in_the_time_the_reviews_leave(self):
         self.plan(5, daily=10)
         self.assertEqual(vs.introduce(self.c, 1, self.now), 10)  # nothing due: 5 minutes hold 10 new words (3 answers each)

@@ -62,7 +62,7 @@
     const NAME = other ? '复习错题和句型' : '复习单词';
     const seenOld = !!(load('flow-next-review-cache') || load('flow-next-swipe-tip'));  // this device reviewed before (the cache is saved just below)
     let first, offline = false;
-    try { await OUTBOX.flush(); first = await api(R); save(CACHE, { at: Date.now(), q: first }); }
+    try { await OUTBOX.flush(); first = await api(R); save(CACHE, { at: Date.now(), q: first }); if (!other) wordCounts(first); }
     catch (e) {
       const cached = load(CACHE);
       if (!e.network || !cached || Date.now() - cached.at > 2 * 86400000) throw e;
@@ -488,7 +488,7 @@
         const back = extra.filter(x => seen.has(x.id)), next = extra.filter(x => !seen.has(x.id));
         const go = back.length ? back : uniq.size >= batchN ? [] : next;
         if (go.length) { go.forEach(x => { seen.add(x.id); uniq.add(x.id); items.push(x); }); return ask(); }
-        left = q;
+        left = q; if (!other) wordCounts(q);  // the dots (单词 tab, 练习's 复习单词) go at once, not after refreshHome
       } catch (e) { /* show the summary anyway */ }
       refreshHome().catch(() => {});
       if (location.hash !== HERE) return;

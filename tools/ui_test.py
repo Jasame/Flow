@@ -4154,6 +4154,14 @@ def review_side_run(pw):
                    tabShown: !document.getElementById('otherBadge').hidden }; }""")
         check(dev, '练习 → 复习 first: 错题和句型 with a dot (2 due, said to a screen reader) and 错题本 (only there); the 「练习」 tab has a dot, and says 2',
               rb['first'] and rb['rows'] == [['#/review/other', '错题和句型', '错题和句型，有 2 项到期', True], ['#/cards/mistake', '错题本', None, False]] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
+        # 「复习单词」's dot (the owner, 2026-11-26: it stayed with nothing left to review): there while words are due, gone
+        # the moment the last one is done, with the 「单词」 tab's, from the review's own counts (home blocked meanwhile)
+        dots = """() => { const r = document.querySelector('#view .pc-row[href="#/review"]'), b = document.getElementById('dueBadge');
+          return { row: !!(r && r.querySelector('.pc-dot')), label: r ? r.getAttribute('aria-label') : null, tab: !b.hidden }; }"""
+        d0 = pg.evaluate(dots)
+        check(dev, '练习: 复习单词 has a dot while words are due (2, said to a screen reader), and so has the 「单词」 tab',
+              d0 == {'row': True, 'label': '复习单词，有 2 项到期', 'tab': True}, d0)
+        pg.route('**/api/next/home*', lambda r: r.abort())
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         seen = set()
         for k in range(6):
@@ -4161,6 +4169,11 @@ def review_side_run(pw):
             seen.add((pg.text_content('.review .wordbig') or '').strip()); pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="good"]', timeout=4000)
             pg.click('[data-rate="good"]'); pg.wait_for_timeout(500)
         check(dev, '复习 (单词) shows the words only', seen == {'borrow', 'lend'}, sorted(seen))
+        pg.wait_for_selector('.done-card', timeout=6000)
+        go(pg, '#/practice'); pg.wait_for_selector('#view .pc-row[href="#/review"]', timeout=6000)
+        d1 = pg.evaluate(dots); pg.unroute('**/api/next/home*')
+        check(dev, '练习 right after the last word: no dot on 复习单词 nor on the 「单词」 tab (no fresh home data needed)',
+              d1 == {'row': False, 'label': None, 'tab': False}, d1)
         go(pg, '#/review/other'); pg.wait_for_timeout(600)
         o = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', text: document.getElementById('view').textContent })")
         check(dev, '#/review/other: 复习错题和句型, under 练习, a mistake or the pattern first', o['h1'] == '复习错题和句型' and '练习' in o['nav'] and ('划线' in o['text'] or '回忆这个句型' in o['text'] or 'went' in o['text']), {k: v[:120] for k, v in o.items()})

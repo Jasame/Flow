@@ -1076,7 +1076,10 @@ def stats(c, uid):
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
-    vc = vocab_service.counts(c, uid, now)  # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md)
+    # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md). Today's share under the word
+    # cap, as the review and the 单词 page count it: with the share done, no dot (the owner, 2026-11-26: the review said
+    # nothing was due while 「复习单词」 and the 「单词」 tab still had their dot, counted from every word due today)
+    vc = vocab_service.counts(c, uid, now, cap=vocab_service.word_cap(c, uid, now))
     oc = vocab_service.other_counts(c, uid, now)
     return {
         'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),

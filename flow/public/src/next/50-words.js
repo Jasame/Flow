@@ -130,6 +130,7 @@
     }
     q = q || ''; page = page || 1; f = f || '';
     const [o, list] = await Promise.all([api('/api/next/vocab'), api('/api/next/cards?q=' + encodeURIComponent(q) + '&page=' + page + '&f=' + f)]);
+    wordCounts(o);  // today's share, the same as 今天要背 below: the tab's dot follows it (02-shell.js)
     const n = o.due + o.new;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const maxF = Math.max(1, ...o.forecast), maxC = Math.max(1, ...o.calendar.map(d => d.n));

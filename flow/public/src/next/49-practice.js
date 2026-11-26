@@ -38,7 +38,7 @@
     const n = st ? st.other_due || 0 : 0;
     return practiceGroup('复习', practiceRow(['#/review/other', '错题和句型', '', 'retry'], n, 'practice-review-other') + practiceRow(['#/cards/mistake', '错题本', '', 'bookx'], 0));
   }
-  async function practiceView() {
+  async function practiceView(fresh) {
     const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
     const col = side => (side === 'left' ? reviewGroup(st) : '') + PRACTICE.filter(g => g[1] === side)
       .map(([name, , items]) => practiceGroup(name, items.map(x => practiceRow(x, x[4] === 'due' ? due : 0)).join(''))).join('');
@@ -46,6 +46,9 @@
       <div id="pSuggest">${practiceTip(null, due)}</div>
       <div class="pc-cols"><div class="pc-col">${col('left')}</div><div class="pc-col">${col('right')}</div></div>
       ${tipSeen('guide') === false ? '<a class="guide-cta link" href="#/guide" data-tip-seen="guide">第一次用？看操作指南 ›</a>' : ''}`;  // 一次性 (08-tips.js)
+    // the dots from fresher home data (words come due during the day; a review just done elsewhere): drawn again quietly,
+    // once (fresh: drawn from data just fetched)
+    if (S.user && !fresh) { const drawnFor = location.hash; refreshHome().then(changed => { if (changed) redrawQuietly(drawnFor); }).catch(() => {}); }
     if (S.user) api('/api/next/radar').then(r => {
       const el = document.getElementById('pSuggest'); if (el && r && r.gap) el.innerHTML = practiceTip(r, due);
     }).catch(() => { /* the plain suggestion stays */ });
