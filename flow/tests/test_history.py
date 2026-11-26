@@ -113,6 +113,20 @@ class HistoryTests(unittest.TestCase):
         for uid, rid in ((2, 'hist-end-0000a'), (1, 'hist-turn-001a'), (1, ''), (1, None)):
             self.assertIsNone(hs.origin(self.c, uid, rid), (uid, rid))  # not yours, a round, none
 
+    def test_an_old_card_without_a_request_id_finds_its_record_by_its_text(self):
+        self.cafe(start=time.time() - 300)  # the card is made just after the end (now); the end row says when it was asked
+        item = self.items()['items'][0]
+        card = self.c.execute("SELECT * FROM next_cards WHERE source='mistake'").fetchone()
+        self.assertNotIn('rid', json.loads(card['extra']))  # cards from before B2's extra.rid
+        self.assertEqual(hs.source_of(self.c, 1, card), {'id': item['id'], 'label': '口语情景', 'title': '在咖啡店点单', 'at': item['at']})
+        self.assertEqual(hs.source_of(self.c, 1, {**dict(card), 'extra': json.dumps({'rid': 'hist-end-0000a'})}), hs.origin(self.c, 1, 'hist-end-0000a'))
+        self.assertIsNone(hs.source_of(self.c, 2, card))
+        self.assertIsNone(hs.source_of(self.c, 1, {**dict(card), 'norm': 'fix:something else'}))
+        self.assertIsNone(hs.source_of(self.c, 1, {**dict(card), 'created': card['created'] + 3600}))
+        self.assertIsNone(hs.source_of(self.c, 1, {**dict(card), 'source': 'word'}))
+        hs.delete(self.c, 1, {'id': item['id'], 'mistakes': False})
+        self.assertIsNone(hs.source_of(self.c, 1, card))  # the record is gone; the card stays
+
     def test_only_your_own_records_and_ids_from_elsewhere_are_not_found(self):
         self.cafe()
         rid = self.items()['items'][0]['id']

@@ -394,6 +394,36 @@ def origin(c, uid, request_id, cache=None):
             'title': _title(c, uid, row['pack'] or '', {} if cache is None else cache), 'at': int(row['created'])}
 
 
+def source_of(c, uid, card, cache=None):
+    """错题卡的「来自 …」 for a next_cards row (B2: vocab_service.card_out, nx.cards): {id, label, title, at} or None.
+    A card with extra.rid (the request id of the practice that first made it) is that record; an older card is the
+    record of its pack and kind (extra.kind) made in the minutes before the card whose corrections give the card's
+    text (the rule _norms shares with mistakes_from_changes). None when it is not a mistake card or nothing matches
+    (deleted, or past 180 days)."""
+    get = (lambda k: card[k] if k in card.keys() else None) if hasattr(card, 'keys') else (lambda k: None)
+    if (get('source') or '') != 'mistake':
+        return None
+    extra = get('extra')
+    if isinstance(extra, str):
+        try:
+            extra = json.loads(extra or '{}')
+        except ValueError:
+            extra = {}
+    extra = extra if isinstance(extra, dict) else {}
+    if extra.get('rid'):
+        return origin(c, uid, extra['rid'], cache)
+    if not get('pack') or not _num(get('created')) or not get('norm'):
+        return None
+    kinds = [JOB_OF[extra['kind']]] if extra.get('kind') in JOB_OF else list(JOB_KINDS)
+    for row in c.execute("SELECT id, kind, pack, result, created FROM lab_jobs WHERE user_id=? AND pack=? AND status='complete' AND kind IN (%s) "
+                         "AND created BETWEEN ? AND ? AND " % ','.join('?' * len(kinds)) + RECORD + " ORDER BY created DESC",
+                         (uid, get('pack'), *kinds, get('created') - 10 * 60, get('created') + 60)):
+        if get('norm') in _norms(_load(row['result'])):
+            return {'id': 'j%d' % row['id'], 'label': _label(JOB_KINDS[row['kind']], row['pack']),
+                    'title': _title(c, uid, row['pack'] or '', {} if cache is None else cache), 'at': int(row['created'])}
+    return None
+
+
 # ---------- 3. delete ----------
 
 def _remove(c, uid, rows, results, mistakes):
