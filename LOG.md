@@ -949,3 +949,12 @@
   - #408 harmony: ask first on first start, 基本模式, privacy commands (as Android 1.0.4)（发版和构建）
 - 自检：DEPLOYED，装了 15 个文件（2 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45759719491
+
+### b118 · 2026-11-26 13:28
+- main `ebccbc4`，构建 `371880b`
+- 新合并的 PR（自 b117 起）：
+  - #409 总账：正式版 r38、内测版 b111–b115；两个站删掉关着的 Gemini 主模型名（发版和构建）
+  - #411 隐私说明：补上已停用的 Gemini，写准百炼账号和保存规则；匿名问卷写明访问日志（操作指南）
+  - #410 更新记录（内测中）：r39 的第一句，5 分钟的日子单词和表达轮着来（内容）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45761708610
