@@ -187,6 +187,8 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'ageless': ('B1', 'work', ['work']), 'young': ('B1', 'work', ['work']),
             'unasked': ('B1', 'work', ['work']),  # 数据存放在香港 (privacy_run): an older account, not asked yet
             'veteran': ('B1', 'work', ['work']),  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
+            # 全英文界面 (english_run): the pages in English; one screen in English (as 'screen'); a Chinese account switched from elsewhere
+            'english': ('B1', 'work', ['work', 'science']), 'english-screen': ('B1', 'work', ['work']), 'english-switch': ('B1', 'work', ['work']),
             'tour': ('B1', 'work', ['work', 'science']), 'tour-teacher': ('B1', 'work', ['work'])}  # 新手引导 (tour_run): theirs still to see
 out = {}
 with app.db() as c:
@@ -271,7 +273,7 @@ with app.db() as c:
             c.execute("INSERT INTO next_node_notes(user_id,node,pack,kind,detail,created) VALUES(?,?,?,?,?,?)", (uid, 'agreement-head', PID, 'flag', 'guide|it make → it makes', now - 7200))
             sk.log(c, uid, 'speaking', 'ielts', 6.0 / 9, 'B2', 'ielts-p1-mornings')  # 雅思口语: 「上次约 6.0」 on the list
             c.execute("INSERT INTO next_skill_events(user_id,skill,kind,score,level,pack,created) VALUES(?,'speaking','dialog',0.6,'A2','scene-cafe-order',?)", (uid, now - 20 * 86400))  # 情景第 2 轮 (the guide's scene picture)
-        if name in ('side', 'screen', 'zones'):  # 20 word reviews due, shown as 不认识 / 模糊 / 认识 (stability 1: recognise)
+        if name in ('side', 'screen', 'zones', 'english-screen'):  # 20 word reviews due, shown as 不认识 / 模糊 / 认识 (stability 1: recognise)
             c.execute("DELETE FROM next_cards WHERE user_id=? AND source='book'", (uid,))
             now, d = time.time(), nx.dictionary()
             for k, (rank, w) in enumerate(vs.book_words()['mid'][100:120]):
@@ -300,6 +302,8 @@ with app.db() as c:
             for w in ('lucky', 'deadline'):
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, w, w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600, d[w]['rank'], now - 3 * 86400))
+        if name in ('english', 'english-screen'):  # 全英文界面 chosen on this account (english_run)
+            c.execute("UPDATE next_profiles SET lang='en' WHERE user_id=?", (uid,))
         if name == 'nowords':  # a new account's word page: no cards, no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)

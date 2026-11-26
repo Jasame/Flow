@@ -47,7 +47,16 @@
       draw(d);
     } catch (e) { if (!slots.some(s => s.firstChild)) slots.forEach(s => s.remove()); }
   }
-  function refreshWeekCard() { mountWeekCards(document, true); }
+  // After the weekly goal changed: the card where a page has one, else 今日's 这周 line (13-today-views.js) drawn again
+  async function refreshWeekCard() {
+    if (document.querySelector('[data-week-card]')) return mountWeekCards(document, true);
+    if (!document.getElementById('weekCard') && !document.querySelector('.tv-dc.tv-week')) return;
+    try {
+      const d = await api('/api/next/week?brief=1'), st = S.home && S.home.stats;
+      if (st) { st.progress = { remembered: d.remembered, finished: d.finished, accuracy: d.accuracy, mail: d.mail, monday: d.monday, from: d.from, to: d.to }; st.habit = d.habit; }
+      redrawToday();
+    } catch (e) { /* the line stays as it was */ }
+  }
   async function weekSheet() {
     openSheet('<div class="stack"><h2 class="h2" id="sheetTitle">这周进步</h2><div class="loading"><span class="spin"></span></div></div>');
     let w;

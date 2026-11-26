@@ -298,7 +298,7 @@ TAP_LABEL = {
     'home-sprint': '今日 · 考试倒计时', 'home-remind-once': '今日 · 计划完成后约复习时间', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
-    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
+    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'today-view-list': '今日 · 换成列表', 'today-view-cards': '今日 · 换成卡片', 'today-edit': '今日 · 调整顺序', 'today-edit-done': '今日 · 调整顺序 · 完成', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-tip': '练习 · 今天建议',
     'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
