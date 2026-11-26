@@ -24,7 +24,7 @@
   const WEEKDAY = '日一二三四五六';
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [['#/vocab/plan', '背词计划', 'cal'], ['#/words/confuse', '词汇辨析', 'venn'], ['#/vocab/test', '测词汇量', 'gauge'], ['imp', '导入', 'inbox']];  // B9's icons (00-icons.js)
-  // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
+  // 「认识」放在 (我的 → 使用习惯; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
   // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
   // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
   // 复习时的轻触震动 (语流 C1; the iOS app's own setting turns it off): a light tap where the app can, nothing in a browser.
@@ -55,7 +55,7 @@
     keys(acts) { const m = {}; acts.forEach((f, k) => { m[k + 1] = f; }); m.ArrowLeft = acts[0]; m.ArrowRight = acts[acts.length - 1]; return m; },
     // 点卡片作答 (the owner, 2026-11-25): the card's left, middle and right thirds answer like the buttons below them, so
     // 认识 is on its side too. On by default where a finger points; with a mouse a click into the card (to select a word)
-    // should not answer, so there it is off until chosen in 我的 → 设置.
+    // should not answer, so there it is off until chosen in 我的 → 使用习惯.
     tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
     setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } prefSave('tap', on ? 'on' : 'off'); },
     // 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words and reviews apart, new words detailed (the

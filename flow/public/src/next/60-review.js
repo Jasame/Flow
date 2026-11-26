@@ -260,7 +260,7 @@
           : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div>`)}</div>`;
       // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
       if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && tipSeen('know-side', 'flow-know-tip') === false) {
-        (view.querySelector('.review .ph') || view.querySelector('.review')).insertAdjacentHTML(view.querySelector('.review .ph') ? 'afterend' : 'afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
+        (view.querySelector('.review .ph') || view.querySelector('.review')).insertAdjacentHTML(view.querySelector('.review .ph') ? 'afterend' : 'afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 使用习惯</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
         document.getElementById('knowTipOk').onclick = () => { TIPS.mark('know-side'); const t = document.getElementById('knowTip'); if (t) t.remove(); };
       }
       bar(); swipe = null;

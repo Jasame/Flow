@@ -240,7 +240,7 @@
     '回忆这个句型': 'Recall this pattern', '回忆这个表达': 'Recall this expression',
     '想起来了': 'Know it', '有点模糊': 'Not sure',
     '首字母 {x} · {x} 个字母': 'Starts with “{1}” · {2} {2|letter|letters}',
-    '「认识」换到右边了，想换回去：我的 → 设置': '“Know it” is on the right now. To switch back: Me → Settings',
+    '「认识」换到右边了，想换回去：我的 → 使用习惯': '“Know it” is on the right now. To switch back: Me → Preferences',
     '右滑': 'swipe right', '左滑': 'swipe left', '右': 'right', '左': 'left',
     '点左、中、右也能作答，和下面的按钮一样；也可以{x}「认识」，{x}「不认识」。点单词只是播放。点一下收起': 'Tapping left, middle or right answers like the buttons below. You can also {1} for “Know it” and {2} for “Forgot”. Tapping the word only plays it. Tap to close',
     '翻面也是这三块：{x}或点{x}边是没错，另一边是记错了，中间是模糊。翻面前选的那个加了框，回车或空格就是它。点一下收起': 'The back has the same three parts: {1} or tap the {2} side for “Right”, the other side for “Wrong”, the middle for “Not sure”. The one you chose before turning has a frame; Enter or Space picks it. Tap to close',

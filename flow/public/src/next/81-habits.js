@@ -3,6 +3,12 @@
      spec, today-regroup/final): one screen with no sheets: the two-choice settings as switches in two columns (点哪边就是
      哪个), then 字号和行距 together at the bottom (行距's switch by the title, the size a slider, a sample that follows both). Each takes effect at once and is kept with
      the account (07-prefs.js; 主题色 07-accent.js; 今日的样子 is 今日's own switch). ---------- */
+  // 我的's row: the gist of what is chosen (今日的样子, 主题色, 字号)
+  function habitsLabel() {
+    const tv = typeof todayView === 'function' && S.user && S.home && S.home.profile ? (todayView() === 'cards' ? '今日卡片' : '今日列表') : '';
+    const sz = (TEXT_SIZES.find(x => x[0] === TEXT.size) || TEXT_SIZES[0])[1];
+    return [tv, accentLabel(), '字号' + sz].filter(Boolean).join(' · ');
+  }
   function habitsView() {
     const two = (a, b) => [a, b];
     const blocks = [];
@@ -15,7 +21,8 @@
     blocks.push(['know', '背单词「认识」在', two(['left', '左边'], ['right', '右边']), KNOW.side()]);
     blocks.push(['tap', '点卡片作答', two(['on', '开'], ['off', '关']), KNOW.tap() ? 'on' : 'off']);  // until chosen: this device's own (a finger on, a mouse off)
     const at = Math.max(0, TEXT_SIZES.findIndex(x => x[0] === TEXT.size));
-    view.innerHTML = `<h1 class="h1 hb-h"><a class="hb-back" href="#/me" aria-label="返回我的">‹</a>使用习惯</h1>
+    // 界面语言 on the title row's right (语流 E1, 07-lang.js): 中文 | English
+    view.innerHTML = `<div class="hb-top"><h1 class="h1 hb-h"><a class="hb-back" href="#/me" aria-label="返回我的">‹</a>使用习惯</h1>${typeof langSwitchHTML === 'function' ? langSwitchHTML() : ''}</div>
       <div class="hb-grid">${blocks.map(([key, name, opts, cur]) => `<div class="hb-card"><span class="hb-name" id="hb-${key}">${esc(name)}</span>
         <div class="hb-seg" role="radiogroup" aria-labelledby="hb-${key}">${opts.map(([v, l]) => `<button type="button" role="radio" data-hb="${key}" data-v="${v}" aria-checked="${v === cur}">${key === 'accent' ? `<i class="hb-dot" data-c="${v}" aria-hidden="true"></i>` : ''}${esc(l)}</button>`).join('')}</div></div>`).join('')}</div>
       <div class="hb-card hb-size"><div class="hb-row"><span class="hb-name"><span id="hbSizeN">字号</span> · <b id="hbSizeV">${TEXT_SIZES[at][1]}</b></span>
@@ -25,6 +32,7 @@
           <span class="hb-a big" aria-hidden="true">A</span></div>
         <div class="hb-ticks" aria-hidden="true">${TEXT_SIZES.map(([, l]) => `<span>${l}</span>`).join('')}</div>
         <p class="text hb-sample" lang="en">The first time you switch on a pair of noise-cancelling headphones, the world goes quiet.</p></div>`;
+    if (typeof langSwitchWire === 'function') langSwitchWire(view);
     view.querySelectorAll('[data-hb]').forEach(b => b.onclick = async () => {
       if (b.getAttribute('aria-checked') === 'true') return;
       const key = b.dataset.hb, v = b.dataset.v, seg = b.parentNode;
