@@ -609,8 +609,20 @@ document.documentElement.classList.add('js');
     });
   }
 
+  /* ---------- the top bar's 开始学 (the owner, 2026-11-26): hidden while the hero's 免费开始学 is on screen or below it,
+     shown once that button has scrolled up out of sight, hidden again on the way back; the first screen keeps one
+     solid button. With 减少动态效果 it appears at once (about.css). No IntersectionObserver: it just stays. ---------- */
+  function ctaReveal() {
+    const top = $('#top'), hero = $('.hero .cta-row .btn.primary');
+    if (!top || !hero || !IO) return;
+    top.classList.add('cta-watch');
+    new IO(es => es.forEach(e => {
+      top.classList.toggle('cta-on', !e.isIntersecting && e.boundingClientRect.bottom < (e.rootBounds ? e.rootBounds.top : 0) + 1);
+    }), { rootMargin: '-64px 0px 0px 0px' }).observe(hero);
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); ctaReveal(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

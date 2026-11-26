@@ -646,9 +646,11 @@ ul.app-steps{list-style:disc}
 .guide-link:hover{color:var(--ink);text-decoration:underline;text-underline-offset:4px}
 .hero-dl{gap:10px}
 .hero-dl .hd-ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.top-dl{margin-left:auto}
-.top-dl+.top-cta{margin-left:8px}
-@media (min-width:860px){.top-dl{display:none}}
+/* the top bar's 开始学 waits until the hero's 免费开始学 has scrolled away (about.js ctaReveal adds .cta-watch, then
+   .cta-on), so the first screen has one solid button; without the script it simply stays */
+.top.cta-watch .top-cta{opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .25s var(--ease),transform .25s var(--ease),visibility 0s linear .25s}
+.top.cta-watch.cta-on .top-cta{opacity:1;visibility:visible;transform:none;transition:opacity .25s var(--ease),transform .25s var(--ease),visibility 0s}
+@media (prefers-reduced-motion:reduce){.top.cta-watch .top-cta,.top.cta-watch.cta-on .top-cta{transition:none;transform:none}}
 .film-link:hover{text-decoration:underline;text-underline-offset:4px}
 .fl-ico{width:26px;height:26px;border-radius:50%;background:var(--green-soft);display:grid;place-items:center}
 .fl-ico::before{content:"";margin-left:3px;border-left:9px solid var(--green-ink);border-top:6px solid transparent;border-bottom:6px solid transparent}
