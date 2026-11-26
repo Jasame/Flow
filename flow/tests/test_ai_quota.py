@@ -172,6 +172,23 @@ class QuotaTests(unittest.TestCase):
         self.assertNotIn(-1, [r['user_id'] for r in q.report(self.c, now=now)])
         self.assertIn('「我的 → 帮助 → 问题反馈」', q.PAUSED)  # #464: 问题反馈 sits under 我的 → 帮助
 
+    def test_an_ai_result_goes_after_180_days_with_its_dispute(self):  # the owner 2026-11-27, via D2
+        now = time.time()
+        rows = [(1, 'old-job-00001', 'next-rewrite', now - 181 * 86400), (1, 'new-job-00001', 'next-rewrite', now - 179 * 86400),
+                (2, 'old-job-00002', 'next-shadow', now - 200 * 86400)]
+        for uid, rid, kind, at in rows:
+            self.c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,result,created,updated) "
+                           "VALUES(?,?,?,'p','writing','f','complete','{\"summary\": \"x\"}',?,?)", (uid, rid, kind, at, at))
+        ids = {r['request_id']: r['id'] for r in self.c.execute('SELECT id, request_id FROM lab_jobs')}
+        self.c.executemany('INSERT INTO feedback_disputes VALUES(?,?,?,?)', [(1, ids['old-job-00001'], '我觉得没错', now - 180 * 86400),
+                                                                           (1, ids['new-job-00001'], '这里不对', now)])
+        self.c.commit()
+        self.assertEqual(self.c.execute('PRAGMA foreign_keys').fetchone()[0], 1)  # as the site runs: the dispute must go first
+        self.assertEqual(q.prune(self.c, now), 3)  # two results, one dispute
+        self.assertEqual([r[0] for r in self.c.execute('SELECT request_id FROM lab_jobs')], ['new-job-00001'])
+        self.assertEqual([r[0] for r in self.c.execute('SELECT correction FROM feedback_disputes')], ['这里不对'])
+        self.assertEqual(q.prune(self.c, now), 0)
+
     def test_read_aloud_characters_go_after_90_days_with_the_account_and_into_the_export(self):  # B6, D2
         import account_data
         now = time.time()

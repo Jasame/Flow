@@ -15,6 +15,7 @@ total; the quota itself and its log stay while the account does.
 import datetime, json, time
 
 DAILY_MAX, FACTOR_MIN, FACTOR_MAX, REASON_MAX, UNTIL_MAX_DAYS = 1000, 0.1, 10.0, 120, 366
+JOB_KEEP_DAYS = 180  # each AI result (lab_jobs: a marking, a recording's transcript): the owner 2026-11-27, via D2
 KEEP_DAYS, TOTAL = 90, -1  # TOTAL: the no-account row of a day once its people are folded in (0 is the site's own, daily_service)
 PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 帮助 → 问题反馈」里说。'  # D2: a way to reach someone
 SITE_FULL = '本站今日 AI 调用额度已用完，请明天再来。'
@@ -185,8 +186,11 @@ def give_back(c, uid, kind, day=None):
 
 
 def prune(c, now=None):
-    """Once a day (ai_routes.tick): a person's counts older than KEEP_DAYS become the day's total with no account.
-    Returns the rows folded. Every reader looks 30 days back at most (console_data.ai, report(), site_limit 7)."""
+    """Once a day (ai_routes.tick): a person's counts older than KEEP_DAYS become the day's total with no account, and
+    each AI result older than JOB_KEEP_DAYS goes (lab_jobs, with a learner's dispute of it first: feedback_disputes.job
+    refers to it and the site runs with foreign keys on). Returns the rows folded or removed. Every reader of the counts
+    looks 30 days back at most (console_data.ai, report(), site_limit 7); every reader of lab_jobs looks at a request
+    just made or at recent days (B7 checked them all, 2026-11-27)."""
     cut = _today((now or time.time()) - KEEP_DAYS * 86400)
     n = c.execute('SELECT COUNT(*) FROM ai_usage WHERE day<? AND user_id>0', (cut,)).fetchone()[0]
     c.execute('INSERT INTO ai_usage(user_id, day, count) SELECT ?, day, SUM(count) FROM ai_usage WHERE day<? AND user_id>0 GROUP BY day '
@@ -200,8 +204,17 @@ def prune(c, now=None):
     for t in ('tts_usage', 'tts_import'):
         if c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone():
             n += c.execute(f'DELETE FROM "{t}" WHERE day<? AND who>0', (cut,)).rowcount
+    if _table(c, 'lab_jobs'):
+        old = (now or time.time()) - JOB_KEEP_DAYS * 86400
+        if _table(c, 'feedback_disputes'):
+            n += c.execute('DELETE FROM feedback_disputes WHERE job IN (SELECT id FROM lab_jobs WHERE created<?)', (old,)).rowcount
+        n += c.execute('DELETE FROM lab_jobs WHERE created<?', (old,)).rowcount
     c.commit()
     return n
+
+
+def _table(c, name):
+    return c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
 
 # ---------- what learners and the consoles read ----------
