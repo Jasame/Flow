@@ -230,6 +230,13 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
   - `siri` 快捷指令和 Siri（默认开）：App Intents 的三句话「语流开始复习」（打开 `#/review`）、「语流还有多少词要复习」（不打开 App，说出提醒用的那几个数；手机要解锁）、「用语流打开今天这篇」（今日「读」那篇的 `#/m/<id>`，没有就 `#/`）。快捷指令 App 里也有这三个。不用 Apple Intelligence 的实体索引和助手模式，学员的内容不交给 Siri 的大模型。网页不用改。
   - `word-search` 在系统搜索里找生词（默认关）：App 回到前台时问 `GET /api/next/cards/index?v=<上次的 v>`（语流 B2，#366），变了才重建 Core Spotlight 的本机索引（每张卡：词或表达、释义第一段）；学员在 iPhone 的搜索里点了，就打开 `#/cards/find/<encodeURIComponent(词)>`。没登录、没同意存放、关掉开关：索引清空。不用带大模型的搜索。网页不用改。
   - 专注模式过滤（不设开关，学员在系统设置里加）：「设置 → 专注模式 → 某个模式 → 添加过滤条件 → 语流」，选都提醒 / 只提醒复习单词 / 都不提醒。复习提醒和每天计划提醒的通知各带 `filterCriteria`（`review` / `plan`），过滤由系统做。
+- **切换账号 `account.changed`**（第 5 节；切换、添加账号、退出登录、注销账号以后网页调）：回答之前先清掉上一个账号的东西，网页马上走开也算数：
+  - 「在系统搜索里找生词」的索引马上清空（不管开关开没开）；正在拿上一个账号清单的那次重建作废，不会放回去；
+  - 复习进度的实时活动结束；小组件的数字卡删掉（显示「打开语流 App…」直到新账号的数字到）；
+  - 正在放的朗读停下，本机各篇的朗读进度清掉；
+  - 上一个账号排好的提醒和通知中心里已经弹出的撤掉，忘掉它的「这次什么时候复习」；提醒开关和每天计划提醒是这台手机的，不跟账号走。
+  - 回答 `{ok: true}` 以后在后台照「回到前台」那样按新账号重新取：提醒、小组件和 Siri 的数字、生词索引（开关开着才建）、离线朗读包。
+  - 登录凭证仍在 WebView 的 cookie 里；App 在钥匙串里另存一份（只在这台设备，不进备份），`flow_session` 和 `flow_more` 都存，网站清掉了就删。App 不存用户名。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。

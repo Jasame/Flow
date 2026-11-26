@@ -27,6 +27,14 @@ enum WidgetsFeed {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    /// Another account: the widgets show nothing of the last one (the card goes, 今日好句 and 今天这篇 are asked again).
+    static func forget() {
+        homeAt = nil
+        home = (nil, nil)
+        SharedStore.defaults?.removeObject(forKey: SharedStore.key)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     nonisolated static func card(_ x: ReminderPlan.Input, state: TodayCard.State, line: TodayCard.Line?, read: TodayCard.Read?,
                                  accent: String, now: Date = Date()) -> TodayCard {
         var c = TodayCard(updated: now, state: state, line: line, accent: accent)

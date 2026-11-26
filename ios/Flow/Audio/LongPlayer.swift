@@ -432,6 +432,12 @@ final class LongPlayer: NSObject {
 
     func stop(why: Why) { stopNow(save: true, why: why) }
 
+    /// Another account (account.changed): what plays is the last account's text, and so is every place kept.
+    func forgetAccount() {
+        stopNow(save: false, why: .user)
+        store.clearAll()
+    }
+
     func progress(_ key: String?) -> [String: Any]? { key.flatMap { store.get($0) } }
 
     func snapshot(why: String? = nil) -> [String: Any] {
