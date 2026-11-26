@@ -35,6 +35,7 @@ def schema(c):
  if 'disabled' not in cols:c.execute('ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0')
  __import__('privacy_service').schema(c)  # 年龄段, a guardian's agreement under 14
  __import__('teacher_service').schema(c)  # 老师账号 (users.role) and the one-use 老师注册链接
+ __import__('beta_invites').schema(c)  # 内测版邀请码 (FLOW_SIGNUP_INVITE_ONLY)
  c.executescript('''CREATE UNIQUE INDEX IF NOT EXISTS verified_email ON users(email) WHERE email IS NOT NULL;
  CREATE TABLE IF NOT EXISTS recovery_tokens(digest TEXT PRIMARY KEY,user_id INTEGER REFERENCES users(id),email TEXT,purpose TEXT,expires REAL,used INTEGER DEFAULT 0);
  CREATE TABLE IF NOT EXISTS mail_limits(key TEXT PRIMARY KEY,last REAL);

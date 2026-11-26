@@ -37,6 +37,7 @@ NEED_GUARDIAN = '不满 14 岁需要先告诉家长（或监护人）并得到�
 # AI pages, ai_stream.PATHS, which all carry the learner's own words)
 GUARDED = {'/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/shadow', '/api/next/retell',
            '/api/next/dialog', '/api/next/essay', '/api/next/translate', '/api/next/say', '/api/next/ielts', '/api/next/import/enrich',
+           '/api/next/two/ask', '/api/next/two/check',
            '/api/ai/help', '/api/chat', '/api/coach/chat', '/api/lab/feedback', '/api/lab/audio', '/api/vocab/feedback'}
 
 

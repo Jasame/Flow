@@ -210,3 +210,16 @@ table.cmp th.c{text-align:center}
 .row.between{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .card code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--bg2);padding:1px 5px;border-radius:4px}
 table.cmp select{max-width:120px}
+/* Which site (2026-11-26): the 内测版's console has an amber band above the top bar, always there; 语流's keeps its look,
+   with a small 「正式版」 label next to the name. Both say it in the browser tab too (admin.js envMarks). */
+.adm-env{background:#d97706;color:#fff;font-size:13px;line-height:1.5;padding:6px var(--w-pad);text-align:center}
+.adm-env b{font-weight:700}
+.adm-env[hidden]{display:none}
+.adm-env-tag{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;border:1px solid currentColor;color:#1a7f47}
+html[data-env="beta"] .adm-env-tag{color:#fff;background:#d97706;border-color:#d97706}
+.adm-env-tag[hidden]{display:none}
+html[data-env="beta"] .adm-brand svg rect{fill:#d97706}
+.inv-code code{font-size:28px;font-weight:700;letter-spacing:2px}
+
+#invNew .field{display:grid;gap:4px;max-width:340px}
+#invNew .input{width:100%}

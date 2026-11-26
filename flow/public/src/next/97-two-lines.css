@@ -1,0 +1,22 @@
+/* 听两句、答一句 (r29, 26-two-lines.js): one task a page — listen, the question, one way to answer; sizes from the
+   seven steps (12 / 13.5 / 15.5 / 17 / 20 / 24 / 28), few borders. */
+.one-task{gap:16px}
+.two-listen{display:grid;gap:10px;padding:14px;border-radius:16px;background:var(--paper)}
+.two-listen .btn{justify-content:center;gap:8px}
+.two-listen .btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.two-lines{margin:0;font-size:15.5px;line-height:1.5}
+.two-q{display:grid;gap:6px}
+.two-q b{font-size:17px;line-height:1.45}
+.two-hint{color:var(--green-ink)}
+.two-answer{display:grid;gap:10px}
+.two-say{min-height:56px;font-size:17px;justify-content:center}
+.two-alts{display:flex;justify-content:center;gap:28px}
+.two-answer textarea{font-size:17px}
+.two-fb{padding:14px;border-radius:16px;background:var(--paper)}
+.two-ok{color:var(--green-ink);font-weight:700}
+.two-en{font-size:15.5px;line-height:1.5}
+.two-en b{color:var(--green-ink)}
+.two-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:10px}
+.two-skip{justify-self:center}
+.today-plan .tp-note{margin:-4px 4px 0}
+#twOut{display:grid;gap:14px}
