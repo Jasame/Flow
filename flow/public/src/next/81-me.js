@@ -77,6 +77,8 @@
   // 错题本's tile: how many there are (the list's own count, asked for after the page is drawn)
   function fillMistakeTile() {
     api('/api/next/cards?f=mistake&page=1').then(r => { const el = document.getElementById('meMistakeV'); if (el) el.textContent = r.total ? `${r.total} 道` : '还没有'; }).catch(() => {});
+    // 练习记录 (86-history.js): when the last one was; none yet says so
+    api('/api/next/history?limit=1').then(r => { const el = document.getElementById('meHistV'); if (el) el.textContent = r.total && r.items.length ? `最近 ${histDate(r.items[0].day)}` : '还没有'; }).catch(() => {});
   }
   // 提醒和每周邮件 (B9: 「每天提醒」「每周进度邮件」 as one row): the two, each to its own sheet
   function remindMailSheet(minutes) {
@@ -136,7 +138,7 @@
           ${st ? `<span class="me-line">${meTotals(st, days)}</span>` : u ? '' : '<span class="me-line">登录后才能保存进度、收藏表达和使用 AI。</span>'}</div>
         ${u ? '' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
       ${u ? '<div id="meTeach"></div>' : ''}
-      ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', '最近 7 天', '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
+      ${u ? sec('进步', `<div class="me-tiles four">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', '最近 7 天', '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}${meTile('#/history', 'clock', '练习记录', '', 'meHistV', 'me-history')}</div>`) : ''}
       ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
       ${groups.map(([h, rows, foot]) => sec(h, `<div class="glist">${rows.join('')}</div>`, foot)).join('')}
       <div class="me-folds">${u ? meFold('account', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
