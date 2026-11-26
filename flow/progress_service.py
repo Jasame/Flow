@@ -49,6 +49,9 @@ def schema(c):
               'card INTEGER NOT NULL, kind TEXT NOT NULL, sentence TEXT NOT NULL, source TEXT NOT NULL, assisted INTEGER, created REAL NOT NULL, '
               'UNIQUE(user_id, card, source))')
     c.execute('CREATE INDEX IF NOT EXISTS next_evidence_user ON next_evidence(user_id, node, created)')
+    # 没人提醒自己回来 (r29 第 1 项的量法): counts a day, nothing about who (count_returns)
+    c.execute('CREATE TABLE IF NOT EXISTS daily_returns(day TEXT PRIMARY KEY, active INTEGER NOT NULL, returned INTEGER NOT NULL, '
+              'reminded INTEGER NOT NULL)')
 
 
 # ---------- days and weeks ----------
@@ -161,6 +164,55 @@ def prune(c, now=None):
     c.execute('DELETE FROM next_corrections WHERE created<?', (now - CORRECTIONS_DAYS * 86400,))
     c.execute('DELETE FROM next_evidence WHERE created<?', (now - EVIDENCE_DAYS * 86400,))
     c.commit()
+
+
+# ---------- 没人提醒自己回来 (r29 第 1 项的量法; D2's four conditions, with B6) ----------
+
+RETURN_BEFORE_HOUR = 7  # counted for the day before, early the next morning: before the day's mails change the dates
+SMALL = 5  # the console shows no count under this
+
+
+def count_returns(c, now=None):
+    """Once a day, for yesterday: how many learners studied (active), how many of them came back (no study the day
+    before, an account older than yesterday), and how many of those had a reminder mail that day or the day before
+    (next_reminders.last_mailed, next_weekly.mailed: only the latest date of each is kept, hence early the next day).
+    Only the three counts are stored; nothing about who. Returns the row, or None when it is not the time or done."""
+    now = now or time.time()
+    local = _local(now)
+    if local.hour >= RETURN_BEFORE_HOUR:
+        return None
+    day = local.date() - D(days=1)
+    if c.execute('SELECT 1 FROM daily_returns WHERE day=?', (day.isoformat(),)).fetchone():
+        return None
+    before = day - D(days=1)
+    by = {}
+    for t in DAY_TABLES:
+        for uid, d in c.execute(f'SELECT DISTINCT user_id, CAST((created+{CN})/86400 AS INTEGER) FROM {t} WHERE created>=? AND created<?',
+                                (_start(before), _start(day + D(days=1)))):
+            by.setdefault(uid, set()).add(EPOCH + D(days=d))
+    old = {r[0] for r in c.execute('SELECT user_id FROM next_profiles WHERE created<?', (_start(day),))}
+    active = [u for u, ds in by.items() if day in ds]
+    back = [u for u in active if before not in by[u] and u in old]
+    mailed, when = set(), (day.isoformat(), before.isoformat())
+    for table, col in (('next_reminders', 'last_mailed'), ('next_weekly', 'mailed')):
+        if col in {r[1] for r in c.execute(f'PRAGMA table_info({table})')}:
+            mailed |= {r[0] for r in c.execute(f'SELECT user_id FROM {table} WHERE {col} IN (?,?)', when)}
+    row = (day.isoformat(), len(active), len(back), sum(1 for u in back if u in mailed))
+    c.execute('INSERT OR IGNORE INTO daily_returns(day, active, returned, reminded) VALUES(?,?,?,?)', row)
+    c.commit()
+    return dict(zip(('day', 'active', 'returned', 'reminded'), row))
+
+
+def return_stats(c, days=28):
+    """For the console: the last days, newest first, with unprompted = returned − reminded (自己回来). A count under
+    SMALL is None (shown as 「少于 5」), and so is a difference made from one."""
+    small = lambda n: n if n is not None and n >= SMALL else None
+    out = []
+    for r in c.execute('SELECT * FROM daily_returns ORDER BY day DESC LIMIT ?', (days,)):
+        shown = {'active': small(r['active']), 'returned': small(r['returned']), 'reminded': small(r['reminded'])}
+        shown['unprompted'] = small(r['returned'] - r['reminded']) if shown['returned'] is not None and shown['reminded'] is not None else None
+        out.append({'day': r['day'], **shown})
+    return out
 
 
 def recurring(c, uid, now=None):

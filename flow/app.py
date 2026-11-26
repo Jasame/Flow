@@ -808,6 +808,9 @@ if __name__=='__main__':
    # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai), and the Sunday progress mail.
    while True:
     try:
+     with db() as c:__import__('progress_service').count_returns(c)  # 没人提醒自己回来: yesterday's counts (no account), before today's mails
+    except Exception as exc:print('return counts failed:',type(exc).__name__,flush=True)
+    try:
      with db() as c:
       __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too
       __import__('vocab_service').send_reminders(c)

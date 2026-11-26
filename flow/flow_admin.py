@@ -222,6 +222,8 @@ TAP_LABEL = {
     'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
     'two-play': '听两句、答一句 · 听这两句', 'two-hint': '听两句、答一句 · 给我一点提示', 'two-next': '听两句、答一句 · 下一步',
+    # 从提醒点进来 (r29): counted per day and kind, no account (99-boot.js remindOpen)
+    'remind-review': '从复习提醒邮件点进来', 'remind-once': '从「这次什么时候复习」的提醒点进来', 'remind-weekly': '从周报邮件点进来', 'remind-other': '从其他提醒链接点进来',
 }
 
 
