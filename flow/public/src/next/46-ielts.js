@@ -56,8 +56,8 @@
         <div class="ai-line">${aiVoiceNote('考官的声音由 AI 合成', 'span')}</div><p class="small">考官一题一题问，不会打断你。每题说 2–4 句：先直接回答，再加一个理由或例子。可以说，也可以打字（打字不评发音）。</p></div>
       <div class="chat" id="chat"></div>
       <div id="ieIn" class="stack-s" hidden><div class="tiny muted" id="ieQn"></div>
-        <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>
-        <div class="row between"><span class="tiny muted">说完再点一次 ● 停止，最长 45 秒</span><button class="btn small ghost" id="ieEnd">结束并看反馈</button></div></div>
+        <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点录音键说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>
+        <div class="row between"><span class="tiny muted">说完再点一次录音键停止，最长 45 秒</span><button class="btn small ghost" id="ieEnd">结束并看反馈</button></div></div>
       <div><button class="btn primary block" id="ieStart">开始</button></div><div id="ieOut"></div></div>`;
     const chat = view.querySelector('#chat'), box = view.querySelector('#ieIn');
     const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
