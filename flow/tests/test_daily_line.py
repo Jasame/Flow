@@ -111,7 +111,8 @@ class PageTests(unittest.TestCase):
             self.assertIn(s, JS, s)
         self.assertNotIn('(innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', JS)
         self.assertIn("${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>", JS)  # the voice is synthesized: 「AI 合成」 at the end of the row (标识办法)
-        for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot'):
+        for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot',
+                  '.tv-days i.on{background:var(--green)}', '.tv-wk7 i.on{background:var(--green)}'):  # the days studied, in the accent (B9 2026-11-26)
             self.assertIn(s, CSS, s)
 
     def test_the_easter_egg_is_short_silent_and_never_in_the_way(self):
