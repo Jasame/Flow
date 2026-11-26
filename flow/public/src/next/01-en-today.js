@@ -163,4 +163,7 @@
     '录音到了长度上限，已经停下，先交这一段': 'Recording reached the time limit and stopped. This part will be sent',
     '录音太长了，请在 {n} 分钟内说完再交': 'Too long. Keep it under {1} {1|minute|minutes}',
     '这些已经放进错题本，会按遗忘曲线回来让你再改一次。': 'These are now in Mistakes and will come back, spaced over time, for another try.',
+    // 70-learner.js: before the first recording (D2 2026-11-26: English is fine; the system's own microphone prompt is not ours)
+    '说出来的回答要录音。麦克风只在你点 ● 以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。':
+      'Your spoken answer is recorded. The microphone is on only for the seconds after you tap ●, and off as soon as you stop. The recording goes to the AI only for checking and is not kept on the server.',
   });

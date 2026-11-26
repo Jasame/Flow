@@ -167,4 +167,13 @@
     '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes & patterns',
     '{x}离你的目标最远，先练它': '{1} is furthest from your goal. Practice it first', '去练{x}': 'Practice {1}',
     '{x}，有 {n} 项到期': '{1}, {2} due',
+    // 81-privacy.js: 按我的学习记录推荐 (a description of the feature; D2 2026-11-26: English is fine, the name matches the privacy notes)
+    '按我的学习记录推荐': 'Recommend from my learning records',
+    '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。': "Turn off “Recommend from my learning records” and suggestions follow only the level you picked and what's new, not your records.",
+    '了解更多': 'Learn more',
+    '打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。':
+      "When it's on, Flow picks content from your learning records: “Today's text” and “More to read” on Today (what you've studied, grammar to work on, the words you saved and are learning), the line of the day, what today's plan practices, and the level and weekly report suggestions.",
+    '关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。':
+      "Turning it off works at once: suggestions follow only the level you picked, featured and newest first, without your records. Word and mistake reviews, listening again and “Continue” still follow what you've studied, since they go over your own work.",
+    '用到了哪些记录（隐私说明）': 'Which records are used (privacy notes, in Chinese)',
   });
