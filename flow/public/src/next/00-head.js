@@ -74,6 +74,7 @@
   // again (not for a preload: quiet). Returns the answer parsed (j) and as text (t, for the data layer to share).
   async function request(path, body, quiet) {
     const opt = { credentials: 'same-origin', headers: {} };
+    if (uiLang() === 'en') opt.headers['X-Flow-Lang'] = 'en';  // the server answers in English too (ui_lang.py)
     if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
     const waiting = aiWait(path, body);
@@ -97,7 +98,7 @@
       if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
       // the day's AI stop (ai_routes.day_full: 429 code ai_day_full, back at 08:00 Beijing): also what still works.
       // AI voice says its own line (01-audio-offline.js).
-      if (j.code === 'ai_day_full' && !path.startsWith('/api/next/tts')) e.message = (j.error || '今天的 AI 用量已满，北京时间早上 8 点恢复。') + '学材料、背单词、复习和做题照常能用。';
+      if (j.code === 'ai_day_full' && !path.startsWith('/api/next/tts')) e.message = (j.error || '今天的 AI 用量已满，北京时间早上 8 点恢复。') + zhEn('学材料、背单词、复习和做题照常能用。', ' Texts, words, review and exercises still work.');
       throw e;
     }
     return { j, t };

@@ -309,6 +309,7 @@ FLOW_FILES=(
   tour_service.py
   tts_service.py
   two_lines.py
+  ui_lang.py
   updates_service.py
   user_guide.py
   vertex_auth.py

@@ -425,6 +425,7 @@ flow/tests/test_tour.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
 flow/tests/test_two_lines.py
+flow/tests/test_ui_lang.py
 flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
@@ -445,6 +446,7 @@ flow/topic_guard.py
 flow/tour_service.py
 flow/tts_service.py
 flow/two_lines.py
+flow/ui_lang.py
 flow/updates_service.py
 flow/upgrade.sh
 flow/user_guide.py

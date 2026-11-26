@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit,parse_qs
 from chat_service import schema as chat_schema,history as chat_history,chat as tutor_chat
 import lab_service as lab
+import ui_lang
 import daily_service as daily
 import knowledge_service as knowledge
 import adaptive_service as adaptive
@@ -267,6 +268,7 @@ class Handler(BaseHTTPRequestHandler):
   super().setup();self.connection.settimeout(45)
  def log_message(self,*args): pass
  def send(self,obj,status=200,cookie=None):
+  obj=ui_lang.answer(obj)  # 全英文界面: an English page's error message in English (ui_lang.ERRORS)
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
   body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
   quota=self.ai_quota_now()
@@ -363,6 +365,7 @@ class Handler(BaseHTTPRequestHandler):
    c.execute('UPDATE sessions SET expires=? WHERE token=?',(now+SESSION_DAYS*86400,token));c.commit();self.renew=token
   return u
  def do_GET(self):
+  ui_lang.use(self.headers.get('X-Flow-Lang'))  # the language this answer is written in (ui_lang.py)
   try:self.get()
   except (BrokenPipeError,ConnectionResetError):pass
   except (ValueError,TypeError):self.send({'error':'材料或请求参数不正确'},400)
@@ -553,6 +556,7 @@ class Handler(BaseHTTPRequestHandler):
   versioned=(name in ('next.js','next.css') and v==asset_version()) or (name in ABOUT_ASSETS and v==asset_version(ABOUT_ASSETS))
   self.send_header('Cache-Control','public, max-age=31536000, immutable' if name.endswith('.woff2') or versioned else 'no-cache');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def do_POST(self):
+  ui_lang.use(self.headers.get('X-Flow-Lang'))
   try:self.post()
   except (ValueError,KeyError,TypeError,json.JSONDecodeError):self.send({'error':'请求格式或参数不正确'},400)
   except sqlite3.IntegrityError:self.send({'error':'用户名已存在，或数据关联无效'},409)
