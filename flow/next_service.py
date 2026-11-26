@@ -1610,7 +1610,7 @@ def shadow(c, uid, data):
         i = data.get('i')
         if not isinstance(i, int) or not 0 <= i < len(sents):
             return {'error': '句子不存在'}, 400
-        sentence = re.sub(r'^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+', '', sents[i])  # dialogue labels are not read aloud
+        sentence = re.sub(r'^(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|[A-Z]):\s+', '', sents[i])  # dialogue labels and Q:/A: are not read aloud
         pid, lvl = p['id'], cefr(p)
     audio = data.get('audio')
     raw_audio = validate_audio(audio)
