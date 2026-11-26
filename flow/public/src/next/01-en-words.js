@@ -48,7 +48,7 @@
     '还有 {n} 个复习留到之后几天，想多背可以继续': '{1} more {1|review waits|reviews wait} for the next few days. You can keep going if you like',
     '明天预计 {n} 个复习': '{1} due tomorrow',
     '补积压：还剩 {n} 个，大约 {n} 天补完。最容易忘的排在前面，补完之前先不加新词。': 'Catching up: {1} left, about {2} {2|day|days} to go. The ones easiest to forget come first; no new words until you catch up.',
-    '到期的词比较多，今天先复习，新词明天继续。': 'Many words are due, so today is for review. New words continue tomorrow.',
+    '到期的词比较多，今天先复习，词书的新词明天继续。': 'Many words are due, so today is for review. New words from your book continue tomorrow.',
     '继续复习': 'Keep reviewing', '再学 10 个': 'Learn 10 more',
     '（跳过 {n} 个常用词）': ' ({1} common {1|word|words} skipped)',
     '《{x}》已学 {x} / {x}{x}': '“{1}”: {2} / {3}{4} studied', '《{x}》已学 {n} / {n}': '“{1}”: {2} / {3} studied',

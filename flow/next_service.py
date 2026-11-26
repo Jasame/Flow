@@ -1086,7 +1086,9 @@ def stats(c, uid):
         'other_due': oc['due'], 'other_minutes': oc['minutes'],
         # 底栏「能力」's dot (2026-11-26): the skills measured before and due again (ability_radar.retest_due)
         'radar_due': __import__('ability_radar').retest_due(c, uid, now),
-        'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
+        'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],  # every card, mistakes and patterns too
+        # words and phrases only: the 单词 page's 「共 N 个」 (B9's audit 第 7 条: 我的 said all cards beside it)
+        'word_cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND ' + vocab_service.WORDS, (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],
