@@ -271,7 +271,10 @@ export class FlowAudio {
     return FlowAudio.snapshot(true);
   }
 
-  /** 不同意 or 撤回同意 (common/ConsentGate.ets): reading stops, and where each text was left is forgotten. */
+  /**
+   * 不同意 or 撤回同意 (common/ConsentGate.ets), or another account in use (account.changed): reading stops, and where
+   * each text was left is forgotten.
+   */
   static async forget(): Promise<void> {
     if (FlowAudio.job) {
       await FlowAudio.halt();
