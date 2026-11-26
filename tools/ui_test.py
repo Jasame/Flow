@@ -820,10 +820,19 @@ def run_device(pw, dev, opts):
     go(pg, '#/library')
     lib = pg.evaluate("() => { const rows = [...document.querySelectorAll('#lib .mrow')]; return [rows.length, Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))]; }")
     check(dev, 'library: one short row per material', lib[0] >= 3 and lib[1] <= 80, lib)
-    pg.select_option('#fl', 'B2'); pg.wait_for_timeout(500)
+    # the page's parts: two ways out on top, the serial stories side by side (the second one peeks in on a phone), 单篇
+    # with its two small filters on the same line as its count, the level as a five-cell switch; nothing wider than the screen
+    lay = pg.evaluate("""() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; }, cap = r('.lib-caprow .lib-cap'), ft = r('#ft'), ff = r('#ff');
+      return { ways: document.querySelectorAll('.lib-way').length, sers: document.querySelectorAll('.lib-ser').length, levels: [...document.querySelectorAll('#fl [role=radio]')].map(b => b.textContent),
+               oneLine: !!cap && !!ft && !!ff && ft.top < cap.bottom && ff.top < cap.bottom && ff.right <= innerWidth, tall: Math.round(Math.min(ft.height, ff.height)),
+               wide: document.documentElement.scrollWidth > innerWidth }; }""")
+    check(dev, 'library: two ways out, the stories as cards, 单篇 with its filters on one line and the level as a switch',
+          lay['ways'] == 2 and lay['sers'] >= 1 and lay['levels'] == ['全部', 'A2', 'B1', 'B2', 'C1'] and lay['oneLine'] and lay['tall'] >= 44 and not lay['wide'], lay)
+    pg.click('#fl [data-l="B2"]'); pg.wait_for_timeout(500)
     pg.click('#lib a >> nth=0'); settle(pg)
     pg.go_back(); settle(pg)
-    check(dev, 'library keeps its filter after going back', pg.input_value('#fl') == 'B2', pg.input_value('#fl'))
+    kept = pg.evaluate("(document.querySelector('#fl [aria-checked=true]') || {}).textContent")
+    check(dev, 'library keeps its filter after going back', kept == 'B2', kept)
 
     check(dev, 'no script errors', not [e for e in errors if 'Failed to load resource' not in e], errors[:5])
     ctx.browser.close()

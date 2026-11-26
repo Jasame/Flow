@@ -13,18 +13,26 @@
     try { sessionStorage.setItem('flow-next-lib', JSON.stringify(f)); } catch (e) { /* private mode */ }
     const d = await api(libraryPath(f));  // the same address a touch of the link already preloaded
     const pages = Math.max(1, Math.ceil(d.total / d.per));
-    view.innerHTML = `<div class="row between"><h1 class="h1">全部材料</h1><span class="row"><a class="btn small" href="#/easy">轻松读</a><a class="btn small" href="#/import">我的文章</a></span></div><span class="muted small">${d.total} 篇${f.featured === '1' ? ' · 精选' : ''}</span>
-      <div class="filters"><select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select>
-        <select id="fl" aria-label="难度"><option value="">全部难度</option>${['A2', 'B1', 'B2', 'C1'].map(l => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>
-        <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>
-      ${d.series && d.series.length ? `<section class="section"><h2 class="h2 mhead">连载故事</h2><div class="mlist">${d.series.map(s => `<a class="mrow" href="#/series/${encodeURIComponent(s.id)}">
-        <span class="t"><b>《${esc(s.title)}》${esc(s.title_en)}</b><span class="tiny muted">${esc(s.level)} · ${s.done ? `已读 ${s.done} / ${s.of} 集${s.next ? ` · 继续第 ${s.next_part} 集` : ' · 读完了'}` : `共 ${s.of} 集 · 从第 1 集开始`} ${aiTag()}</span></span>
-        <span class="go" aria-hidden="true">›</span></a>`).join('')}</div></section>` : ''}
-      <section class="section">${d.series && d.series.length ? '<h2 class="h2 mhead">单篇</h2>' : ''}<div class="mlist" id="lib">${d.items.map(m => mrow(m, libTag(m, f))).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div></section>
-      ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${f.page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${f.page} / ${pages}</span><button class="btn small" id="nx" ${f.page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
+    // The page in the order a learner picks (B9, 2026-11-26; the user on the mock-ups: 完全做，按照现在的效果图, and on the
+    // filter row: 留空太多 / 这里按照舒服的方式改): two ways out on top (轻松读, 我的文章), the serial stories as cards
+    // to swipe sideways, then 单篇: its count and the two small filters on one line, the level as a switch under it.
+    const LV = ['', 'A2', 'B1', 'B2', 'C1'];
+    view.innerHTML = `<h1 class="h1">全部材料</h1>
+      <div class="lib-two"><a class="lib-way" href="#/easy">${fi('read')}<b>轻松读</b><span class="tiny muted">低一级</span></a><a class="lib-way" href="#/import">${fi('docpen')}<b>我的文章</b><span class="tiny muted">导入</span></a></div>
+      ${d.series && d.series.length ? `<section class="lib-sec"><h2 class="lib-cap">连载故事</h2><div class="lib-sers">${d.series.map(s => `<a class="lib-ser" href="#/series/${encodeURIComponent(s.id)}">
+        <b>《${esc(s.title)}》</b><span class="en" lang="en">${esc(s.title_en)}</span><span class="tiny muted">${esc(s.level)} · 共 ${s.of} 集 ${aiTag()}</span>
+        <span class="lib-bar" aria-hidden="true"><i data-w="${Math.round((s.done || 0) / s.of * 100)}"></i></span>
+        <span class="tiny muted">${s.done ? (s.next ? `读到第 ${s.done} 集 · 继续第 ${s.next_part} 集` : '读完了') : '从第 1 集开始'}</span></a>`).join('')}</div></section>` : ''}
+      <section class="lib-sec"><div class="lib-caprow"><h2 class="lib-cap">单篇 · ${d.total} 篇</h2><span class="lib-filt">
+          <select id="ft" aria-label="话题"><option value="">全部话题</option>${Object.entries(d.themes).map(([k, v]) => `<option value="${k}" ${f.theme === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+          <select id="ff" aria-label="范围"><option value="1" ${f.featured === '1' ? 'selected' : ''}>精选</option><option value="" ${f.featured !== '1' ? 'selected' : ''}>全部材料</option></select></span></div>
+        <div class="seg lib-lv" id="fl" role="radiogroup" aria-label="难度">${LV.map(l => `<button type="button" role="radio" aria-checked="${(f.level || '') === l}" data-l="${l}">${l || '全部'}</button>`).join('')}</div>
+        <div class="mlist" id="lib">${d.items.map(m => mrow(m, libTag(m, f))).join('') || '<div class="empty">这个筛选下还没有材料。</div>'}</div></section>
+      ${pages > 1 ? `<div class="pager lib-pager"><button class="icon-btn" id="pv" type="button" aria-label="上一页" ${f.page <= 1 ? 'disabled' : ''}><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5"/></svg></button><span class="muted small">${f.page} / ${pages}</span><button class="icon-btn" id="nx" type="button" aria-label="下一页" ${f.page >= pages ? 'disabled' : ''}><svg viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6 4.5 9.5"/></svg></button></div>` : ''}`;
+    view.querySelectorAll('.lib-bar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
     const again = nf => libraryView(nf).then(() => enter(document.getElementById('lib')));
     document.getElementById('ff').onchange = e => again({ ...f, featured: e.target.value, page: 1 });
-    document.getElementById('fl').onchange = e => again({ ...f, level: e.target.value, page: 1 });
+    document.getElementById('fl').querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.l !== (f.level || '')) again({ ...f, level: b.dataset.l, page: 1 }); });
     document.getElementById('ft').onchange = e => again({ ...f, theme: e.target.value, page: 1 });
     const pv = document.getElementById('pv'), nx = document.getElementById('nx');
     if (pv) pv.onclick = () => { scrollTo(0, 0); again({ ...f, page: f.page - 1 }); };
