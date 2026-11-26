@@ -691,14 +691,18 @@ def word_cap(c, uid, now=None, p=None, default=None):
 
 
 def exam_minutes(c, uid, p, now=None):
-    """Minutes a day the words need to finish the exam's book in time (考试冲刺: need new words a day), or 0."""
+    """Minutes a day the words need to finish the exam's book in time (考试冲刺: need new words a day), or 0. A need
+    past what a day can hold (more than EASY_MAX new words: the sprint page says so and suggests EASY_MAX) counts as
+    EASY_MAX: a few weeks before the exam with most of the book left asked for hundreds of minutes a day (单词每天 475
+    分钟, B9's audit 2026-11-26)."""
     try:
-        cd = __import__('exam_sprint').countdown(c, uid, now)
+        es = __import__('exam_sprint')
+        cd = es.countdown(c, uid, now)
     except Exception:  # noqa: BLE001 - no exam, no date: no floor
         return 0
     if not cd or not cd.get('need') or cd.get('plan_book') != cd.get('book'):
         return 0
-    return math.ceil(cd['need'] * _per_new(p['retention']) * answer_seconds(c, uid, now) / 60)
+    return math.ceil(min(cd['need'], es.EASY_MAX) * _per_new(p['retention']) * answer_seconds(c, uid, now) / 60)
 
 
 def fit_new(cap, retention, seconds):
