@@ -21,7 +21,7 @@ class PracticeHubTests(unittest.TestCase):
         known = set(re.findall(r"name === '([a-z]+)'", shell)) | {''}
         hub = (SRC / '49-practice.js').read_text(encoding='utf-8')
         tiles = re.findall(r"\['(#/[^']*)', '([^']+)'", hub)
-        self.assertGreaterEqual(len(tiles), 14)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here
+        self.assertGreaterEqual(len(tiles), 13)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here; 能力雷达 is its own tab (2026-11-26)
         # 复习 on top (方案 1, 2026-11-25): 错题和句型复习 and 错题本 in a block of their own, not among 单词's rows
         self.assertNotIn("['#/cards/mistake', '错题本'", hub)
         for href in ('href="#/review/other"', 'href="#/cards/mistake"'):
@@ -31,14 +31,15 @@ class PracticeHubTests(unittest.TestCase):
             self.assertIn(href[2:].split('/')[0], known, title)
         # r20: four tabs; the grammar map has no tab of its own and is the 语法 group's wide card in the hub
         self.assertNotIn('data-nav="graph"', html)
-        self.assertEqual(re.findall(r'data-nav="([a-z]+)"', html), ['today', 'practice', 'cards', 'me'])
+        self.assertEqual(re.findall(r'data-nav="([a-z]+)"', html), ['today', 'practice', 'radar', 'cards', 'me'])  # 能力 (2026-11-26)
         self.assertIn("['#/graph', '知识图谱', '44 个语法点按顺序连成路线，点亮一个学一个', 'map']", hub)
         for name in ('graph', 'mix', 'placement'):
             self.assertIn(f"name === '{name}') {{ setNav('practice')", shell)
         # 我的 is a grouped list: progress, settings, account and help; practice lives in its tab, not in a list here
         me = (SRC / '81-me.js').read_text(encoding='utf-8')
-        for href in ('#/radar', '#/growth', '#/report', '#/cards/mistake', '#/welcome/edit', '#/guide'):
+        for href in ('#/growth', '#/report', '#/cards/mistake', '#/welcome/edit', '#/guide'):
             self.assertIn(f"grow('{href}'", me)
+        self.assertNotIn("grow('#/radar'", me)  # 能力雷达 is the 「能力」 tab (2026-11-26), not a row here too
         self.assertNotIn('#/easy', me); self.assertNotIn('abilityHTML', me)
 
     def test_the_built_script_carries_the_hub_and_the_guide(self):

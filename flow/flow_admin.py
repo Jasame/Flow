@@ -256,7 +256,7 @@ TAP_LABEL = {
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
-    'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
+    'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
