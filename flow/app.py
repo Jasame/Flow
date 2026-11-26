@@ -172,13 +172,14 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
 # 下载安装 (认识语流 #download): the apps' installers and download/latest.json, which says which one each platform gets:
-# {"android"|"windows"|"mac": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
+# {"android"|"windows"|"mac"|"linux-appimage"|"linux-deb": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
 # serves /download/ from a folder outside the release (A1, app-downloads-hosting); this route is what answers where it
 # does not: files from FLOW_DOWNLOAD_DIR (by default <data>/download), and an empty list when there is none, so the page
 # shows 即将开放 with no failed request. Only plain file names of these types are served.
 DOWNLOADS=Path(os.environ.get('FLOW_DOWNLOAD_DIR') or str(DATA/'download'))
 DOWNLOAD_TYPES={'apk':'application/vnd.android.package-archive','exe':'application/octet-stream',
- 'dmg':'application/x-apple-diskimage','json':'application/json; charset=utf-8'}
+ 'dmg':'application/x-apple-diskimage','deb':'application/vnd.debian.binary-package','appimage':'application/octet-stream',
+ 'json':'application/json; charset=utf-8'}
 def download_file(name):
  """The file under DOWNLOADS for /download/<name>, with its type, or None: one plain name, no folders, a known type."""
  if not (0<len(name)<=100 and name.isascii() and name[0].isalnum() and all(ch.isalnum() or ch in '._-' for ch in name)):return None
