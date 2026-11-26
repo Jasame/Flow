@@ -405,7 +405,7 @@
       else if (name === 'library') { setNav('practice'); await libraryView(); }
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'me') { setNav('me'); await meView(); }
+      else if (name === 'me') { setNav('me'); await meView(a); }  // #/me/account, #/me/help: that fold open
       else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
       else if (name === 'class' && a) { setNav(S.user && S.user.teacher ? 'today' : 'me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }

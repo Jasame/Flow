@@ -163,7 +163,7 @@
       } else {
         body = `${tag}<div class="wordbig">${esc(c.text)}</div><div class="row center">${sayBtn('听', true)}</div>
           ${c.meaning ? `<div class="mean-q small" data-zh>${esc(c.meaning)}</div>` : ''}
-          <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
+          <div class="row center">${recBtn('sndMic', '读一遍', true)}<span class="muted tiny" id="sndOut">${S.user ? '点录音键读一遍，AI 听你读得准不准' : ''}</span></div>
           ${actions(`<div class="choice">${KNOW.order([['读准了', 'good', 'good'], ['还不稳', '', 'hard'], ['不会读', 'again', 'again']]).map(([t, cls, r]) => `<button class="${cls}" data-self="${r}">${t}</button>`).join('')}</div>`)}`;
       }
       // A question or a sentence to fix has no word to put in the middle of the screen: it starts at the top.

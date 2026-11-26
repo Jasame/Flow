@@ -44,7 +44,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `49-practice.js` | 练习 tab: every kind of practice grouped by skill, with one suggestion from the radar on top |
 | `50-words.js` | 单词 page, word cards, word-list import, plan, vocabulary test |
 | `60-review.js` | review session (keys, swipes, mistake cards) |
-| `70-learner.js` | ability profile, daily plan, level suggestion, microphone |
+| `70-learner.js` | ability profile, daily plan, level suggestion, microphone; the record key (`recBtn`, `REC_MARK`: 语流's mark, its waves move while recording, `97-rec-key.css`) |
 | `71-import.js` | 我的文章 |
 | `72-sounds.js` | 发音入门 and its listening quiz |
 | `73-report.js` | weekly report and share picture |

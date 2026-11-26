@@ -1,8 +1,9 @@
   /* ---------- me: one grouped list, like a phone's settings; each row opens a page or a sheet ---------- */
   // A row: a link (to starts with # or /) or a button (to is its id); the value sits on the right, greyed.
-  function grow(to, label, value, vid, tapKey) {
+  // icon (00-icons.js): the soft square in front, as 设置's rows have it
+  function grow(to, label, value, vid, tapKey, icon) {
     const tag = /^(#|\/|https?:)/.test(to) ? 'a' : 'button';
-    return `<${tag} class="grow" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}><span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
+    return `<${tag} class="grow${icon ? ' gi' : ''}" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}>${icon ? fiTile(icon) : ''}<span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
   }
   // 帮助 → 更多: the two rows that are not looked at every week (简洁化, the user's pick 2026-11-25)
   function moreSheet() {
@@ -57,26 +58,54 @@
       <button class="btn ghost" data-close type="button">完成</button></div>`);
     const v = document.getElementById('meAiV'); if (v) v.textContent = aiRowLabel(a);
   }
-  async function meView() {
+  // 我的 (B9's batch 1, the user 2026-11-26 15:3x; ui-refine/batch1/me-*.png and spec.md): a white card with who you are
+  // and one line on this week; 进步 as three tiles; 设置 one white card, an icon in front of each row and its value on
+  // the right; 账号和隐私 and 帮助 each a fold that opens in place (D2's fold rules: the name in ink, what is inside on the
+  // right, never 「8 项」). #/me/account and #/me/help open their fold (the guide's and the mails' links); a fold
+  // opened stays open on the way back from a page it led to.
+  const ME_OPEN = {};
+  const ME_FOLDS = { account: ['shield', '账号和隐私', '导出、注销、数据存放'], help: ['help', '帮助', '指南、隐私说明、反馈'] };
+  function meFold(id, rows, foot) {
+    const [icon, name, inside] = ME_FOLDS[id];
+    return `<details class="me-fold" id="meFold-${id}" data-fold="${id}"${ME_OPEN[id] ? ' open' : ''}><summary class="fold-s"><span class="fold-r">${fi(icon)}<span class="fold-n">${name}</span><span class="fold-v">${inside}</span>
+      <svg class="fold-a" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></span></summary>
+      <div class="fold-b"><div class="glist">${rows.join('')}</div>${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</div></details>`;
+  }
+  const meTile = (href, icon, name, line, vid, tap) => `<a class="me-tile" href="${href}" data-tap="${tap}">${fiTile(icon)}<b>${name}</b><span class="me-tv"${vid ? ` id="${vid}"` : ''}>${line}</span></a>`;
+  // 错题本's tile: how many there are (the list's own count, asked for after the page is drawn)
+  function fillMistakeTile() {
+    api('/api/next/cards?f=mistake&page=1').then(r => { const el = document.getElementById('meMistakeV'); if (el) el.textContent = r.total ? `${r.total} 道` : '还没有'; }).catch(() => {});
+  }
+  // 提醒和每周邮件 (B9: 「每天提醒」「每周进度邮件」 as one row): the two, each to its own sheet
+  function remindMailSheet(minutes) {
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">提醒和每周邮件</h2><div class="glist">${grow('rmDay', '每天提醒', '加到手机日历')}${grow('rmMail', '每周进度邮件', weeklyMailLabel(), '', 'me-weekly-mail')}</div>
+      <button class="btn ghost" data-close type="button">关闭</button></div>`, card => {
+      card.querySelector('#rmDay').onclick = () => remindSheet(minutes);
+      card.querySelector('#rmMail').onclick = weeklyMailSheet;  // 11-progress.js
+    });
+  }
+  async function meView(fold) {
     if (!S.meta) S.meta = await api('/api/next/meta');
+    if (ME_FOLDS[fold]) ME_OPEN[fold] = true;  // #/me/account, #/me/help
     const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
     const lv = S.meta.levels.find(l => l.id === p.level);
     // 学英语为了什么: every goal chosen, the main one first (2026-11-26; an older profile has goal only)
     const goalNames = ((p.goals && p.goals.length ? p.goals : p.goal ? [p.goal] : [])).map(id => (S.meta.goals.find(g => g.id === id) || {}).label).filter(Boolean);
     const installed = HOME_APP;  // the home-screen app, an install, or one of Flow's apps: nothing to add to the desktop
+    const days = st ? (st.habit ? st.habit.done : st.week.filter(d => d.active).length) : 0;
+    const app = appSettings();
+    const settings = [grow('#/welcome/edit', '学习目标和水平', [goalNames.length && esc(goalNames.join('、')), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level', 'target'),
+      u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam', 'cap') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit', 'calok') : '',
+      grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice', 'voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound', 'book') : '',
+      grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know', 'stack'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text', 'sliders'),
+      u ? grow('meRemind', '提醒和每周邮件', weeklyMailLabel(), 'meMailV', 'me-remind', 'bell') : grow('meRemind', '每天提醒', '', '', 'me-remind', 'bell'),
+      u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class', 'people') : '',
+      u ? grow('meAi', 'AI 用量', '<span class="spin"></span>', 'meAiV', 'me-ai', 'gauge') : '',
+      installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install', 'layers'),
+      app ? grow('meApp', app[0], app[1], '', 'me-app-settings', 'spark') : '',
+      // 按我的学习记录推荐: the switch on its row and the grey line under it (the user's pick, 2026-11-26; 81-privacy.js)
+      u && S.home && S.home.profile ? personalizeRow() + `<p class="tiny muted me-pfoot">${PERSONALIZE_FOOT}</p>` : ''];
     const groups = [
-      u && ['进步', [grow('#/growth', '我的进步', '', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
-      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goalNames.length && esc(goalNames.join('、')), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
-        u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
-        u ? grow('meAi', 'AI 用量', '<span class="spin"></span>', 'meAiV', 'me-ai') : '',
-        installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
-        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '',
-        u && S.home && S.home.profile ? personalizeRow() : ''],  // last in the group: the grey line under it is about it (81-privacy.js)
-        u && S.home && S.home.profile ? PERSONALIZE_FOOT : ''],
-      u && ['账号', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
-        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
-        '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
       // 内测版 (flow.jasa.hk) only: what the line under the top bar said, kept here (the line can be closed): the
       // version and what changed in it (/api/deploy-status, /api/next/updates), 去正式版 (not in Flow's apps: it would
       // open the system browser), feedback
@@ -87,17 +116,28 @@
       // and the two lists the stores ask for (隐私和数据, #342), a tap from 我的
       appPrivacy() && ['隐私', [grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list'), grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list'),
         grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
-        '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号 → 数据存放」里撤回；要删除，请注销账号。'],
-      ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
+        '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号和隐私 → 数据存放」里撤回；要删除，请注销账号。'],
     ].filter(Boolean);
-    view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
-        <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div>
-        ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : ''}</div>
-        ${st ? `<div class="me-nums">${[[st.habit ? st.habit.done : st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
-          : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
+    const sec = (h, body, foot) => `<section class="me-sec" aria-label="${h}"><h2 class="me-h">${h}</h2>${body}${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`;
+    view.innerHTML = `<section class="me-card me-head">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
+        <div class="t"><h1 class="me-name">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1>
+          <span class="me-line">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span>
+          ${st ? `<span class="me-line">这周学了 ${days} 天 · 学完 ${st.materials_done} 篇 · ${st.cards} 个词</span>` : u ? '' : '<span class="me-line">登录后才能保存进度、收藏表达和使用 AI。</span>'}</div>
+        ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
       ${u ? '<div id="meTeach"></div>' : ''}
-      ${groups.map(([h, rows, foot]) => `<section class="gsec" aria-label="${h}"><h2 class="ghead">${h}</h2><div class="glist">${rows.join('')}</div>${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`).join('')}
-      ${u ? '<div class="gsec me-out"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
+      ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', `这周 ${days} 天`, '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
+      ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
+      ${groups.map(([h, rows, foot]) => sec(h, `<div class="glist">${rows.join('')}</div>`, foot)).join('')}
+      <div class="me-folds">${u ? meFold('account', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'),
+        grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
+        '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。') : ''}
+      ${meFold('help', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'), grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')])}</div>
+      ${appPrivacy() ? '<p class="tiny muted me-beian"><span id="meBeian" hidden></span></p>' : ''}
+      ${u ? '<div class="me-out"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
+    view.querySelectorAll('details.me-fold').forEach(d => d.addEventListener('toggle', () => { ME_OPEN[d.dataset.fold] = d.open; }));
+    const opened = ME_FOLDS[fold] && document.getElementById('meFold-' + fold);
+    if (opened) requestAnimationFrame(() => opened.scrollIntoView({ block: 'start', behavior: 'auto' }));
     const lg = document.getElementById('lg'); if (lg) lg.onclick = () => openLogin();
     document.getElementById('meVoice').onclick = voiceSheet;
     if (document.getElementById('meSound')) document.getElementById('meSound').onclick = soundSheet;
@@ -105,8 +145,8 @@
     document.getElementById('meText').onclick = textSheet;
     const mh = document.getElementById('meHabit'); if (mh) mh.onclick = habitSheet;
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
-    document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
-    const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
+    document.getElementById('meRemind').onclick = () => (u ? remindMailSheet : remindSheet)(p.minutes || 10);
+    if (u) fillMailRow();  // 11-progress.js
     const mai = document.getElementById('meAi'); if (mai) { mai.onclick = aiUsageSheet; fillAiRow(); }
     personalizeWire();  // the switch and 「了解更多」 (81-privacy.js)
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
@@ -117,6 +157,7 @@
     document.getElementById('meMore').onclick = moreSheet;
     if (BETA) betaInfo();
     if (u) {
+      fillMistakeTile();
       const mc = document.getElementById('meClass'); if (mc) mc.onclick = () => classSheet();  // a 老师账号 has no 班级 row
       meClass();
       const b = document.getElementById('bindMail'); b.disabled = true;
