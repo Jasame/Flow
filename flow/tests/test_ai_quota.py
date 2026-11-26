@@ -146,6 +146,16 @@ class QuotaTests(unittest.TestCase):
             one = q.report(self.c, uid=1, now=now)[0]
         self.assertEqual(one['override_until'], now + 86400)
 
+    def test_the_export_keeps_the_reason_but_not_who_set_it(self):  # B6: who is a staff member's mail
+        q.set(self.c, 1, 'staff@school.example', '期末前多练', limit=8); self.c.commit()
+        self.use(1, 1)
+        out = __import__('account_data').records(self.c, {'id': 1}).decode('utf-8')
+        self.assertNotIn('staff@school.example', out)
+        self.assertIn('期末前多练', out)
+        data = json.loads(out)['tables']
+        self.assertIn('ai_quota', data); self.assertIn('ai_usage_kind', data)
+        self.assertNotIn('changed_by', data['ai_quota'][0])
+
     def test_the_consoles_see_each_persons_use(self):
         self.use(1, 4); self.use(2, 1, 'chat')
         q.set(self.c, 3, 'owner', '观察', limit=2); self.c.commit()  # an account with an override is listed even unused
