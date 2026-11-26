@@ -168,7 +168,8 @@
       const v = SYS_VOICE();
       const line = this.lines[code] || { offline: `离线中，这句还没存到本机，先用${v}`, net: `网络不好，这句先用${v}`, slow: `自然人声这次生成得太慢，先用${v}`,
         guest: `登录后能听 AI 朗读（自然人声），现在先用${v}`, off: `AI 朗读（自然人声）暂时没开，先用${v}`,
-        ai_day_full: `今天的 AI 用量已满，北京时间早上 8 点恢复；新的句子先用${v}，已经生成过的照常放` }[code]
+        ai_day_full: `今天的 AI 用量已满，北京时间早上 8 点恢复；新的句子先用${v}，已经生成过的照常放`,
+        ai_paused: `你的 AI 功能暂停中，新的句子先用${v}，已经生成过的照常放` }[code]
         || (e && e.server) || `AI 朗读（自然人声）这次没生成出来，先用${v}`;
       this.lines[code] = line;
       if (!this.told.has(code)) { this.told.add(code); toast(line); noteIssue('audio', '服务器朗读退回浏览器声音', code); }
