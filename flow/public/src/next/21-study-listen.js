@@ -238,13 +238,13 @@
     }
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
-      // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
+      // Every sentence keeps its ▶; the recording tools (the record key, 对比, AI 点评) show under the sentence being practised only,
       // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
-      pane.innerHTML = `${listenHead()}<p class="muted small">${nm || SV.on() ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : ''}点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
+      pane.innerHTML = `${listenHead()}<p class="muted small">${nm || SV.on() ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : ''}点一句开始练：先点 ▶ 听原声，再点录音键跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
         ${shAvgHTML()}
         <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
-            <button class="icon-btn rec" data-r="${i}" aria-label="录音"><span class="dot"></span></button>
+            <button class="icon-btn rec" data-r="${i}" aria-label="录音" aria-pressed="false">${REC_MARK}</button>
             <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button>${shScores[i] != null ? `<span class="pron-chip" data-sc="${i}" title="这一句的发音分（AI 估计）">${shScores[i]}</span>` : `<span class="pron-chip" data-sc="${i}" hidden></span>`}</div>
           <div class="sh-out"></div></div>`).join('')}</div>
         <div class="section row between"><span></span><button class="btn" id="toRead">去读 →</button></div>`;
