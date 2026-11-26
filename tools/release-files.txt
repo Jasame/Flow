@@ -360,6 +360,7 @@ flow/tests/test_class_signup.py
 flow/tests/test_classes.py
 flow/tests/test_coach.py
 flow/tests/test_console_ai_quota.py
+flow/tests/test_console_overview_model.py
 flow/tests/test_content_fallback.py
 flow/tests/test_continuity.py
 flow/tests/test_corpus.py

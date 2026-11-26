@@ -311,7 +311,7 @@ def overview(c):
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
                                if chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT') else 0),
-            'model': os.getenv('FLOW_AI_MODEL', ''),
+            'model': ai_model_text(),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
         'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
@@ -328,6 +328,22 @@ def overview(c):
         'server': server_label(),
         'generated_at': now,
     }
+
+
+def ai_model_text():
+    """The models the tasks use, for the overview (B7's routes, ai_routes.routes: console over server over the default;
+    FLOW_AI_MODEL is gone from both sites since 2026-11-26): the one most tasks use, and how many use another."""
+    try:
+        import ai_routes
+        names = [v.get('route') or ai_routes.default_model() for v in ai_routes.routes().values()]
+    except Exception:  # noqa: BLE001 - the overview shows the rest without it
+        names = []
+    names = [x for x in names if x] or [x for x in [os.getenv('FLOW_AI_MODEL', '').strip()] if x]
+    if not names:
+        return ''
+    top = max(sorted(set(names)), key=names.count)
+    others = len(set(names)) - 1
+    return top + (f'（另有 {others} 种模型用在个别任务上，见「AI 用量、费用和质量」）' if others else '（各项任务都用它）')
 
 
 def _class_numbers(c):
