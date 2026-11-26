@@ -195,6 +195,8 @@ with app.db() as c:
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):
             nx.save_card(c, uid, {'text': w, 'context': ctx, 'pack': PID})
         nx.save_card(c, uid, {'text': 'not A so much as B', 'meaning': '句型｜例：It is not talent so much as practice.', 'context': 'It is not talent so much as practice.'})
+        # saved some time ago: due now, as on the day after saving (a word saved today waits for tomorrow, next_service.save_card)
+        c.execute("UPDATE next_cards SET due=created WHERE user_id=? AND source='saved'", (uid,)); c.commit()
         sk.add_mistake(c, uid, 'fix', 'would have arrived', 'fix:would arrive > would have arrived', '说过去没发生的事', 'If I had left earlier, I would arrive on time. Then I went home.',
                        'writing', None, PID, {'from': 'would arrive'})
         q = json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (PID,)).fetchone()[0])['questions'][0]

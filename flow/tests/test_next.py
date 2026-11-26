@@ -1,4 +1,4 @@
-import unittest, tempfile, sys, json, os, threading, time, urllib.request, urllib.error
+import datetime, unittest, tempfile, sys, json, os, threading, time, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -80,6 +80,18 @@ class NextServiceTests(unittest.TestCase):
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM learning_events WHERE user_id=1 AND kind='next-check'").fetchone()[0], 1)
         self.assertIn('check', nx.material(self.c, 1, pid)[0]['steps'])
         self.assertEqual(nx.check(self.c, 1, {'pack': pid, 'index': 99, 'choice': 0})[1], 400)
+
+    def test_a_word_saved_today_is_first_reviewed_tomorrow(self):
+        # the owner, 2026-11-26 (语流 B1): from tomorrow 00:00 Beijing time; saving it again keeps the card's schedule
+        at = datetime.datetime(2026, 11, 26, 23, 30, tzinfo=nx.TZ).timestamp()
+        with patch('next_service.time.time', return_value=at):
+            card = nx.save_card(self.c, 1, {'text': 'ponder'})[0]['card']
+        due = self.c.execute('SELECT due FROM next_cards WHERE id=?', (card['id'],)).fetchone()[0]
+        self.assertEqual(due, datetime.datetime(2026, 11, 27, tzinfo=nx.TZ).timestamp())
+        self.c.execute('UPDATE next_cards SET due=? WHERE id=?', (at - 60, card['id'])); self.c.commit()  # due again later on
+        with patch('next_service.time.time', return_value=at + 3600):
+            nx.save_card(self.c, 1, {'text': 'Ponder', 'meaning': '沉思'})
+        self.assertEqual(self.c.execute('SELECT due FROM next_cards WHERE id=?', (card['id'],)).fetchone()[0], at - 60)
 
     def test_cards_save_dedupe_scope_and_delete(self):
         out, s = nx.save_card(self.c, 1, {'text': 'decisions', 'context': 'We need to explain our decisions.', 'pack': 'x'})
@@ -163,7 +175,7 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'})[0], 403)
         self.assertEqual(self.call('/api/next/profile', {'level': 'B2', 'themes': ['science']}, csrf)[0], 200)
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'}, csrf)[0], 200)
-        q = json.loads(self.call('/api/next/review')[1]); self.assertEqual((q['due'], q['new'], len(q['items'])), (0, 1, 1))
+        q = json.loads(self.call('/api/next/review')[1]); self.assertEqual((q['due'], q['new'], len(q['items'])), (0, 0, 0))  # saved today, reviewed from tomorrow
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
 
