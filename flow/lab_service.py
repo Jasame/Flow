@@ -138,7 +138,7 @@ def validate_feedback(raw,audio=False):
 def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
  """Reserve a shared daily call before releasing the write lock for the network.
  mark_replay: a retry of a finished request says so ('replayed'), so the caller can skip its side effects."""
- identifier(rid);fp=fingerprint(spec);now=time.time();c.execute('BEGIN IMMEDIATE')
+ identifier(rid);fp=fingerprint(__import__('ai_lang').spec(spec));now=time.time();c.execute('BEGIN IMMEDIATE')  # an English page's request is another request (ai_lang)
  old=c.execute('SELECT * FROM lab_jobs WHERE user_id=? AND request_id=?',(uid,rid)).fetchone()
  if old:
   if old['fingerprint']!=fp or old['kind']!=kind:c.rollback();return {'error':'请求标识已用于其他内容'},409
@@ -162,7 +162,7 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
     with (__import__('chat_service').main_only() if n==2 else contextlib.nullcontext()):reply,reason=invoke()
     try:
      if reason in ('length','max_tokens','content_filter'):raise Shape('truncated')
-     result=convert(parse(reply));break
+     result=__import__('ai_lang').mark(convert(parse(reply)));break  # an English page's result says 'lang': 'en' (「看中文」)
     except ValueError as exc:  # only a shape is asked for again; a converter's own content check (仿写: another sentence) stands
      shape=isinstance(exc,Shape)
      ai_routes.mark_shape(exc.code if shape else 'content')

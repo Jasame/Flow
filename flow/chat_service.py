@@ -175,6 +175,7 @@ def request_model(messages,audio=None,grounding=False):
  any reason, Gemini searches instead (the main service), so a bad day at one vendor costs no news.
  A recording goes first to the task's audio route when FLOW_AUDIO_ROUTES names one (ai_routes.audio_route: Qwen-Omni on
  百炼 through the gateway, _request_audio_service); if that fails for any reason, Gemini hears it, as before."""
+ messages=__import__('ai_lang').last(messages)  # an English page: the explanations asked in English, last (ai_lang.LAST)
  import ai_routes
  text_model=ai_routes.route()
  search=search_provider() if grounding and not audio else None

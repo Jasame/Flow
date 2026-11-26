@@ -15,10 +15,9 @@
 .sp-pace.st-behind,.sp-pace.st-other_book,.sp-pace.st-no_plan,.sp-pace.st-past{border-left-color:var(--amber)}
 .sp-others summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;list-style:none}
 .sp-others summary::-webkit-details-marker{display:none}
+.sp-others .ex-list{margin-top:8px}
 .sp-others summary::after{content:'展开 ›';color:var(--green-ink)}
 .sp-others[open] summary::after{content:'收起'}
-.sp-others .exam-pick{margin-top:8px}
-.sp-invite{padding:14px}
 .h2 .tiny{font-weight:400;margin-left:6px}
 
 /* 成绩走势: the total, then three small lines */

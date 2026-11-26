@@ -175,13 +175,13 @@
     /* listen modes: 精听 (sentence list) · 跟读 (record, compare, AI feedback) · 听写 (type what you hear) */
     const MODES = { listen: '精听', shadow: '跟读', dictate: '听写' };
     if (!st.mode) st.mode = MODES[load('flow-next-listen-mode')] ? load('flow-next-listen-mode') : 'listen';
-    const stripLabel = s => s.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/, '');
+    const stripLabel = s => s.replace(/^(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|[A-Z]):\s+/, '');  // speaker labels and Q:/A: are shown, not read
     // The words worth knowing before listening, folded into one line (open it for the meaning, the sound, review).
     function prereadHTML() {
       const pr = m._prHidden ? [] : (m.preread || []);
       return pr.length ? `<details class="fold preread"><summary data-tap="listen-preread"><b class="small">读前先认识这 ${pr.length} 个词</b><span class="tiny muted">${pr.map(w => esc(w.word)).join(' · ')}</span></summary>
           <div class="stack-s"><div class="pr-list">${pr.map((w, k) => `<div class="pr"><button class="icon-btn" data-prsay="${k}" aria-label="朗读 ${esc(w.word)}">${ICON.speak}</button>
-            <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted">${esc(w.meaning)}</div></div></div>`).join('')}</div>
+            <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted" data-zh>${esc(w.meaning)}</div></div></div>`).join('')}</div>
           <div class="row"><button class="btn small primary" id="prAdd">全部加入复习</button><span class="muted tiny">加入后会在文章里标出来</span></div></div></details>` : '';
     }
     function modeTabs() {
@@ -238,13 +238,13 @@
     }
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
-      // Every sentence keeps its ▶; the recording tools (●, 对比, AI 点评) show under the sentence being practised only,
+      // Every sentence keeps its ▶; the recording tools (the record key, 对比, AI 点评) show under the sentence being practised only,
       // so eleven rows of four buttons do not bury the text. A tap anywhere on a sentence makes it the one.
-      pane.innerHTML = `${listenHead()}<p class="muted small">${nm || SV.on() ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : ''}点一句开始练：先点 ▶ 听原声，再点 ● 跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
+      pane.innerHTML = `${listenHead()}<p class="muted small">${nm || SV.on() ? aiVoiceNote('朗读由 AI 合成。', 'span', 'in') : ''}点一句开始练：先点 ▶ 听原声，再点录音键跟着读一遍（再点一次停止）。「对比」先放原声再放你的录音；${S.user ? '「AI 点评」给一个发音分（AI 估计），写出它听到的内容和要练的音。' : '登录后可以让 AI 点评、给发音分。'}</p>
         ${shAvgHTML()}
         <div class="lines">${ls.map((s, i) => `<div class="line sh${i === 0 ? ' cur' : ''}" data-i="${i}"><div class="txt">${esc(s)}</div>
           <div class="sh-ctl"><button class="icon-btn" data-o="${i}" aria-label="听原声">${ICON.play.replace('<svg', '<svg fill="currentColor"')}</button>
-            <button class="icon-btn rec" data-r="${i}" aria-label="录音"><span class="dot"></span></button>
+            <button class="icon-btn rec" data-r="${i}" aria-label="录音" aria-pressed="false">${REC_MARK}</button>
             <button class="btn small" data-c="${i}" disabled>对比</button><button class="btn small" data-ai="${i}" disabled>✦ AI 点评</button>${shScores[i] != null ? `<span class="pron-chip" data-sc="${i}" title="这一句的发音分（AI 估计）">${shScores[i]}</span>` : `<span class="pron-chip" data-sc="${i}" hidden></span>`}</div>
           <div class="sh-out"></div></div>`).join('')}</div>
         <div class="section row between"><span></span><button class="btn" id="toRead">去读 →</button></div>`;

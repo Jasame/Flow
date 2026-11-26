@@ -1,0 +1,188 @@
+  /* ---------- English: the Me and Practice tabs, the guide's frame, What's new (81-me.js 49-practice.js 49-guide.js 83-updates.js); docs/english-ui.md has the terms ---------- */
+  enTable({
+    // 49-guide.js (the frame only: the guide itself stays Chinese)
+    '指南目录': 'Guide contents', '下载 PDF 版': 'Download PDF', '去练习': 'Go to Practice', '回到目录': 'Back to contents',
+    '在指南里搜索': 'Search the guide', '搜一搜：比如 复习、录音、提醒': 'Search (the guide is in Chinese)',
+    '没有找到，换个词试试，或者看看「常见问题」。': 'Nothing found. Try another word, or see the FAQ chapter.',
+    '更新于 {n}-{n}-{n}': 'Updated {1}-{2}-{3}',
+
+    // 49-practice.js
+    '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed drill', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
+    '{n} 个生活和校园情景，和 AI 对话': '{1} scenes with AI',
+    '做错的题、句型和整句': 'Missed questions, patterns and sentences', '都复习完了': 'All reviewed',
+    '第一次用？看操作指南 ›': 'New here? Read the guide ›',
+    '需要留意：{x}': 'Needs work: {1}', '该复习：{x}': 'Due for review: {1}', '已点亮 {n} / {n}': '{1} / {2} lit',
+    '今天建议': 'Suggested for today',
+    '{x}离目标最远（{n} 分）': '{1} is furthest from your goal ({2} points)',
+    '去练听力': 'Practice listening', '去练阅读': 'Practice reading', '去练词汇': 'Practice vocabulary',
+    '去练语法': 'Practice grammar', '去练口语': 'Practice speaking', '去练写作': 'Practice writing',
+    '有 {n} 个词等你复习': '{1} {1|word|words} to review', '先复习再学新的，记得最牢。': 'Review first, then learn new ones: it sticks best.',
+    '先做今天的计划': "Start with today's plan", '今日页已经按你的水平排好了顺序。': 'Today is already set up for your level.', '打开今日': 'Open Today',
+
+    // 83-updates.js (the entries themselves are content: they stay as written)
+    '语流每一次更新改了什么，新的在上面。标着「用法变了」的，是要换个方式用的地方。': 'What changed in each Flow update, newest first. Items marked “Works differently” are used in a new way.',
+    '用法变了': 'Works differently', '新功能': 'New features', '改进': 'Improvements', '修好的问题': 'Fixes', '内测中': 'In beta', '只在内测版': 'Beta only', '已经能在这里试，还没上正式版。': 'You can try these here; they are not on the main site yet.',
+    '还没有更新记录。': 'No updates yet.',
+    // 「发现哪里不对，可以在<a>问题反馈</a>里告诉我们。」
+    '发现哪里不对，可以在': 'Something not right? Tell us in ', '里告诉我们。': '.',
+    '语流更新了': 'Flow has been updated', '查看全部变化': 'See all changes',
+
+    // 81-me.js: the page
+    '进步': 'Progress', '目标': 'Goal', '现在': 'Now', '未设置': 'Not set',
+    '目标 A2': 'Goal A2', '目标 B1': 'Goal B1', '目标 B2': 'Goal B2', '目标 C1': 'Goal C1',
+    '现在 A2': 'Now A2', '现在 B1': 'Now B1', '现在 B2': 'Now B2', '现在 C1': 'Now C1',
+    '我的考试': 'My exam', '每周目标': 'Weekly goal', '每周 {n} 天': '{1} {1|day|days} a week', '每周进度邮件': 'Weekly progress email',
+    '单词读音方式': 'Word playback', '背词': 'Learn words', '外观': 'Appearance', '每天提醒': 'Daily reminder',
+    '添加到桌面': 'Add to home screen',
+    'iOS 专属功能': 'iOS features', '锁屏、小组件、Siri 等': 'Lock Screen, widgets, Siri and more', '安卓专属功能': 'Android features',
+    'Windows 专属功能': 'Windows features', 'Mac 专属功能': 'Mac features', 'App 专属功能': 'App features',
+    "打不开 App 的设置页，把语流 App 更新到最新版再试": "Can't open the app's settings. Update the Flow app and try again",
+    '修改密码': 'Change password', '退出所有设备': 'Sign out everywhere', '导出我的数据': 'Export my data', '注销账号': 'Delete account',
+    '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。': "With an email added, you can sign in with a code and reset a forgotten password yourself. You stay signed in if you come back within 30 days; on someone else's phone or computer, sign out when you're done.",
+    '还没有绑定': 'None yet', '还没有绑定（邮件服务暂未开启）': 'None yet (email is not available yet)', '（邮件服务暂未开启）': '(email is not available yet)',
+    '邮箱：{x}，点这里更换': 'Email: {1}. Tap to change', '绑定邮箱': 'Add email', '更换邮箱': 'Change email',
+    '系统权限': 'System permissions', '麦克风、通知': 'Microphone, notifications',
+    '更多': 'More', '认识语流、匿名问卷、新手引导': 'About Flow, survey, tour',
+    '还没有设置水平': 'Level not set', '每天 {n} 分钟': '{1} min a day',
+    '入门（A2）': 'Elementary (A2)', '中级（B1）': 'Intermediate (B1)', '中高级（B2）': 'Upper intermediate (B2)', '高级（C1）': 'Advanced (C1)',
+    '本周学习天数': 'Days this week', '学完的材料': 'Texts done', '单词与表达': 'Words and expressions',
+    '登录后才能保存进度、收藏表达和使用 AI。': 'Sign in to save progress and expressions, and to use AI.',
+    '已退出': 'Signed out',
+    // 内测版
+    '去正式版': 'Go to the main site',
+    '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。': 'This is the Flow beta (flow.jasa.hk), where new features are tried first. Accounts and data are separate from the main site and may be cleared during the beta.',
+    '现在是 {x}（{n} 月 {n} 日 {n}:{n} 更新）。': 'This is {1} (updated {2}/{3} {4}:{5}).', '现在是 {x}。': 'This is {1}.',
+    '这一版内测改了什么': 'What changed in this beta', '用法变了：': 'Works differently:',
+    // 更多
+    '认识语流': 'About Flow', '一页看完语流能帮你做什么': 'What Flow can do for you, on one page',
+    '匿名问卷': 'Anonymous survey', '你想要什么样的英语学习网站': 'What kind of English site do you want?',
+    '再看一遍新手引导': 'Replay the tour', '今日的几个主要按钮在哪': 'Where the main buttons on Today are',
+    '重新显示使用提示': 'Show tips again', '比如「点词查词」，用到时再说一次': 'Like “Tap a word to look it up”, shown again when it applies',
+    '使用提示会在用到时再出现一次': 'Tips will show again when they apply',
+
+    // 81-me.js: AI 用量
+    'AI 用量': 'AI use', '暂停中': 'Paused', '今天已满': 'Full for today', '不限次数': 'Unlimited', '还能用 {n} 次': '{1} left', '今天已用完': 'Used up for today',
+    '今天': 'Today', '/ {n} 次': '/ {1}', '次': 'times', '{n} 次': '{1} {1|time|times}', '今天用了 {n} 次，共 {n} 次': '{1} of {2} used today',
+    '预计 {n} 月 {n} 日恢复。': 'Back around {1}/{2}.', '{x}预计 {n} 月 {n} 日恢复。': '{1} Back around {2}/{3}.', '去问题反馈': 'Go to Feedback',
+    '用到 AI 的批改、讲解、出题和对话，每次算一次；大家共用的讲解和例句、没有成功的那次不算。AI 朗读另有字数上限，不算在这里。': "Each AI check, explanation, question set or dialogue counts once. Shared explanations and examples, and tries that failed, don't count. AI voice has its own character limit and isn't counted here.",
+    '用到 AI 的批改、讲解、出题和对话，每次算一次；大家共用的讲解和例句、没有成功的那次不算。AI 朗读另有字数上限，不算在这里。{x}': "Each AI check, explanation, question set or dialogue counts once. Shared explanations and examples, and tries that failed, don't count. AI voice has its own character limit and isn't counted here. {1}",
+    '你的额度由管理员调整过。': 'Your limit was adjusted by an admin.',
+
+    // 81-me.js: 外观 (字号、行距、主题色)
+    '标准': 'Standard', '大': 'Large', '特大': 'Extra large', '宽松': 'Wide', '行距宽松': 'Wide spacing',
+    '主题色': 'Accent', '字号': 'Text size', '行距': 'Spacing',
+    '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone.',
+    '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。{x}': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone. {1}',
+    '登录后会记在账号上。': 'Sign in to keep it with your account.',
+    '课文、听力句子、讲解和释义的字会变大，菜单和按钮不变。': 'Texts, listening lines, explanations and meanings get bigger; menus and buttons stay the same.',
+
+    // 81-me.js: 单词读音方式 (iPhone and iPad)
+    '连续': 'Continuous',
+    '从第一个音开始放；连着点单词时，灵动岛会一直显示「语流 · 单词」，停下 20 秒后收起。（默认）': 'Plays from the very first sound. While you tap word after word, the Dynamic Island keeps showing Flow and hides 20 s after you stop. (Default)',
+    '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「连续」没有声音时选这个。': 'Each word is a short clip with a little silence in front, so most words do not show on the Dynamic Island. Choose this if “Continuous” plays no sound.',
+    '前面 {n} 秒': '{1} s lead-in', '{n} 秒': '{1} s', '{n} 秒（默认）': '{1} s (default)', '（默认）': '(default)',
+    '「标准」时单词前面留的静音': 'Silence before a word in “Standard”',
+    '开头还被吞，就选长一点；开头都全，可以选短一点，出现在灵动岛上的单词会更少。': 'If the start of a word still gets cut off, choose longer; if starts are complete, you can choose shorter, and fewer words show on the Dynamic Island.',
+    '两种方式在静音键打开时都能听到。只影响这台手机。': 'Both play even with the silent switch on. Only on this phone.',
+    '单词读音方式：{x}': 'Word playback: {1}', '「标准」时单词前面留 {n} 秒静音': '{1} s of silence before words in “Standard”',
+
+    // 81-me.js: 背词 (the row's value 「认识在右 · 新词简洁 · 复习简洁」 and the toasts are put together in code: their parts)
+    '背词设置': 'Learn words', '「认识」放在': '“Know it” side',
+    '认识在右': 'Know it: right', '认识在左': 'Know it: left', '「认识」放在认识在右': 'Know it: right', '「认识」放在认识在左': 'Know it: left',
+    '新词简洁': 'New: simple', '新词详细': 'New: detailed', '复习简洁': 'Review: simple', '复习详细': 'Review: detailed',
+    '右边（默认）': 'Right (default)', '左边': 'Left',
+    '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。': "Like most word apps; easy for the right hand. Swipe right if you know it, left if you don't.",
+    '往左滑是认识，往右滑是不认识。': "Swipe left if you know it, right if you don't.",
+    '复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。': 'Review and the vocabulary test both follow it: button positions, swipe directions, and on a computer the keys (1 2 3 and ← →) match the buttons on screen. Only on this device.',
+    '点卡片作答': 'Tap the card to answer', '开': 'On', '关': 'Off',
+    '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。': 'The left, middle and right of a review card work like the three buttons below (the “Know it” side is Know it). A tap only flips the card; after flipping, rate it with the buttons. Tapped by mistake? Use “Undo”.',
+    '只用下面的按钮、滑动和按键。': 'Use only the buttons below, swipes and keys.',
+    '手机和平板默认开，用鼠标的电脑默认关。': 'On by default on phones and tablets; off on computers with a mouse.',
+    '下次复习再看一次说明': 'Show the how-to at the next review', '下次复习时再看一次': "You'll see it again at the next review",
+    '复习卡：简洁还是详细': 'Review card: simple or detailed', '背新词': 'New words',
+    '详细：翻面后多给释义的词性、第 3 个例句、易混词和记忆情况，正面只多一行灰字，不提示答案。详细每张多花一点时间，每天单词的时间不变，能复习的词会少一些。复习时顶上的「简 / 详」也能随时换。': 'Detailed: after you flip, you also get the part of speech, a 3rd example, easily confused words and how well you remember it; the front only adds one gray line and gives no hint. Detailed cards take a little longer each, so with the same daily word time you review a few fewer words. You can switch any time at the top of the review.',
+    '背新词用详细的卡片': 'New words: detailed cards', '背新词用简洁的卡片': 'New words: simple cards',
+    '复习用详细的卡片': 'Review: detailed cards', '复习用简洁的卡片': 'Review: simple cards',
+    '点卡片的左、中、右也能作答了': 'You can now answer by tapping the left, middle or right of the card',
+    '点卡片作答关了，只用按钮和滑动': 'Card tapping is off. Use the buttons and swipes',
+
+    // 81-me.js: 朗读声音, 每天提醒
+    '语流里的读音和朗读都是 AI 合成的，不是真人录的：精选材料和单词用 Kokoro，其余（AI 的回复、口语情景、没有录音的句子）用 CosyVoice，都是自然人声。放声音的地方写着一行小灰字「读音由 AI 合成」或「朗读由 AI 合成」，喇叭多的列表里每个喇叭右上角有一个淡淡的「AI」。学一篇材料时，也可以在「听」这一步随时切换声音。': 'All audio in Flow is made by AI, not recorded by people: featured texts and words use Kokoro; the rest (AI replies, speaking scenes, lines with no recording) uses CosyVoice. Both are natural voices. Where audio plays, a small gray line says “AI voice”; in lists with many speakers, each has a faint “AI” at its top right. When you study a text, you can switch the voice any time in the Listen step.',
+    '朗读声音：{x}': 'Voice: {1}',
+    '加到手机日历：每天到点提醒你打开今天的计划。不用装 App、不用邮箱，iPhone 和安卓都能用。': "Add it to your phone's calendar: a daily reminder to open today's plan. No app or email needed; works on iPhone and Android.",
+    '打开下载的文件，选「添加到日历」即可；不想要了就在日历里删掉这个日程。': 'Open the downloaded file and choose “Add to Calendar”. To stop, delete the event in your calendar.',
+
+    // 81-me.js: 把语流放到桌面 (the steps are split by <b> and the share icon: each piece reads on into the next)
+    '把语流放到桌面': 'Put Flow on your home screen',
+    '像 App 一样从桌面一点就开，界面全屏；听过的音频会缓存下来，网络差的时候也能复习。': 'Opens with one tap, full screen, like an app. Audio you have played is saved, so you can review on a weak connection.',
+    '分享按钮': 'Share button', '点屏幕': 'Tap the ', '点': 'Tap the ', '底部中间': 'bottom-center', '右上角': 'top-right', '的分享按钮': ' share button',
+    '往下滑，点「': 'Scroll down, tap “', '添加到主屏幕': 'Add to Home Screen',
+    '」，再点右上角的「添加」': '”, then tap “Add” at the top right', '」，再点「添加」': '”, then tap “Add”',
+    '苹果手机要用': 'On an iPhone, only',
+    '才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往': 'can add Flow to the home screen. Tap “Copy link” below, open Safari, then paste and go',
+    '在 Safari 里点底部中间的分享按钮': 'In Safari, tap the bottom-center share button', '，选「': ', then choose “',
+    '微信里不能放到桌面：点右上角「': "WeChat can't add to the home screen: tap “", '」，选「': '” at the top right, then choose “',
+    '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做': 'In the browser, open “Me → Add to home screen” and follow the two steps there',
+    '点浏览器右上角的': "Tap the browser's top-right", '（有的浏览器在底部，是': ' (some browsers have it at the bottom:',
+    '选「': 'Choose “', '」或「': '” or “', '安装应用': 'Install app', '」（有的手机叫「添加到桌面」）': '” (on some phones, “Add to desktop”)',
+    '点浏览器的菜单按钮（华为浏览器在底部，是': 'Tap the browser menu button (in Huawei Browser it is at the bottom:',
+    '找到「': 'Find “', '」点一下（有的版本叫「添加至桌面」）': '” and tap it (some versions say “Add to desktop”)',
+    '用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标': 'Open Flow in Chrome or Edge and click the “Install” icon at the right of the address bar',
+    '装好以后，可以从开始菜单或程序坞打开': 'Once installed, open it from the Start menu or the Dock',
+    '安装到桌面': 'Install', '放好了，在桌面上找「语流」': 'Done. Look for Flow on your home screen',
+    '网址已复制，去 Safari 粘贴打开': 'Link copied. Paste it in Safari', '复制这个网址，到 Safari 里打开': 'Copy this link and open it in Safari',
+
+    // 81-me.js: 邮箱, 修改密码
+    '当前密码': 'Current password', '完成绑定': 'Confirm', '验证码已发送': 'Code sent',
+    '先输入当前密码确认是你本人，再把发到新邮箱的 6 位验证码填回来。': "Enter your current password to confirm it's you, then enter the 6-digit code sent to the new email.",
+    '请先发送验证码，再填邮件里的 6 位数字': 'Send the code first, then enter the 6 digits from the email',
+    '邮箱已绑定，忘记密码时可以自己找回了': 'Email added. You can now reset a forgotten password yourself',
+    '改好以后，所有手机和电脑上的登录都会退出，用新密码重新登录就行。': "After the change you'll be signed out on every phone and computer. Just sign in again with the new password.",
+    '原密码': 'Old password', '再输一次新密码': 'New password again', '新密码至少 {n} 位': 'The new password needs at least {1} characters',
+    '两次输入的新密码不一样': "The two new passwords don't match", '密码已修改，请用新密码登录。': 'Password changed. Sign in with the new password.',
+
+    // 81-me.js: 导出我的数据, 注销账号, 退出所有设备
+    '单词本 · Excel 表格': 'Word list · Excel sheet', '单词本 · 导入 Anki': 'Word list · for Anki', '全部学习记录': 'All learning records',
+    '{n} 条 · .csv': '{1} {1|entry|entries} · .csv', '{n} 条 · .txt': '{1} {1|entry|entries} · .txt',
+    '微信里不能保存文件：点右上角「…」，选「在浏览器打开」，再到「我的 → 导出我的数据」。': "WeChat can't save files: tap “…” at the top right, choose “Open in browser”, then go to “Me → Export my data”.",
+    '表格用 Excel、WPS 或 Numbers 直接打开：英文、中文意思、原文例句、来源和复习情况各占一列。Anki：在电脑上「文件 → 导入」选这个文件，正面是英文，背面是中文意思和原文例句。全部学习记录是一个 JSON 文件，有单词本、每次复习、学过的材料、测评和设置，留底或换地方用。': 'Open the sheet in Excel, WPS or Numbers: English, Chinese meaning, the example from the text, source and review state each have a column. Anki: on a computer, use “File → Import” and pick this file; the front is English, the back the Chinese meaning and the example. All learning records is a JSON file with your word list, every review, texts studied, tests and settings, to keep or take elsewhere.',
+    // 「注销后，这个账号和它的全部学习记录都会删除，<b>不能恢复</b>：单词本和……但会从头开始。」
+    '注销后，这个账号和它的全部学习记录都会删除，': 'This deletes the account and all its learning records, and ', '不能恢复': 'they cannot be recovered',
+    '：单词本和复习安排、学过的材料、测评和能力雷达、写作和口语的批改记录、发过的问题反馈和截图。同样的用户名和邮箱以后可以重新注册，但会从头开始。': ': your word list and review schedule, texts studied, tests and the skills radar, writing and speaking corrections, and the feedback and screenshots you sent. The same username and email can sign up again later, but start from zero.',
+    '想留一份？': 'Want a copy?', '先导出单词本和学习记录': 'Export your word list and records first',
+    '输入密码确认': 'Enter your password to confirm', '永久注销这个账号': 'Delete this account for good', '请输入密码': 'Enter your password',
+    '账号已注销，学习记录已全部删除': 'Account deleted, with all its learning records',
+    '退出所有设备？': 'Sign out everywhere?', '已在所有设备上退出': 'Signed out everywhere',
+    '所有手机、平板和电脑上的语流都会退出登录，包括这一台。学习记录不会丢，重新登录就回来了。': "Flow will sign out on every phone, tablet and computer, this one too. Your learning records stay; sign in again and they're back.",
+    // seen on the pages (english_run)
+    '错题和句型复习': 'Review mistakes and patterns', '写一段短文，让 AI 批改': 'Write a short piece', '未加入': 'Not joined',
+    // 49-practice.js after the 练习 page's new look (#449)
+    '几个语法点打乱一起练，记得更牢': 'Mix several grammar points for better recall',
+    '读比你低一级的短文，练速度、攒阅读量': 'Short texts a level below yours, for speed and volume',
+    '按话题和级别挑一篇来学': 'Pick a text by topic and level', '贴一段任何英文，变成可以学的材料': 'Paste any English and study it',
+    '中国学习者容易混的音，听辨再跟读': 'Sounds Chinese speakers mix up: hear the difference, then shadow',
+    '到期的单词和短语，一张张过': 'Due words and phrases, one card at a time', '最容易混的词放在一起练': 'Practice the words most often confused',
+    '换词书、改每天学多少': 'Change your word book or daily amount', '{n} 分钟估一估你认识多少词': 'Estimate your vocabulary in {1} min',
+    '考试和测评': 'Exams and tests', '中考高考、四六级、考研、专四专八、雅思，限时做': 'Timed sets: Zhongkao, Gaokao, CET-4/6, Kaoyan, TEM-4/8, IELTS',
+    '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes',
+    '{x}离你的目标最远，先练它': '{1} is furthest from your goal', '去练{x}': 'Practice {1}',
+    '{x}，有 {n} 项到期': '{1}, {2} due',
+    // 81-privacy.js: 按我的学习记录推荐 (a description of the feature; D2 2026-11-26: English is fine, the name matches the privacy notes)
+    '按我的学习记录推荐': 'Recommend from my learning records',
+    '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。': "Turn off “Recommend from my learning records” and suggestions follow only the level you picked and what's new, not your records.",
+    '了解更多': 'Learn more',
+    '打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。':
+      "When it's on, Flow picks content from your learning records: “Today's text” and “More to read” on Today (what you've studied, grammar to work on, the words you saved and are learning), the line of the day, what today's plan practices, and the level and weekly report suggestions.",
+    '关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。':
+      "Turning it off works at once: suggestions follow only the level you picked, featured and newest first, without your records. Word and mistake reviews, listening again and “Continue” still follow what you've studied, since they go over your own work.",
+    '用到了哪些记录（隐私说明）': 'Which records are used (privacy notes, in Chinese)',
+    '错题和句型，有 {n} 项到期': 'Mistakes: {1} due',
+    // ability_radar.TIPS: the head of 今天建议 on 练习, one line (B9)
+    '逐句听写和精听': 'Dictation drills', '轻松读，读得多一点': 'Read more easy texts', '提高每天新词数': 'More new words a day',
+    '语法混合复习': 'Mixed grammar review', '口语路线的情景对话': 'Speaking scenes',
+    // 81-me.js after 我的's new look (tiles, folds)
+    '这周学了 {n} 天 · 学完 {n} 篇 · {n} 个词': 'This week: {1} {1|day|days} · {2} {2|text|texts} · {3} {3|word|words}',
+    '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '这周 {n} 天': '{1} {1|day|days} this week', '{n} 道': '{1}', '还没有': 'None yet',
+    '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
+    '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
+  });

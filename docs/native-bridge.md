@@ -230,6 +230,13 @@ speaking、pending 照实；2.5 秒内一定发 start；getVoices() 有带 lang 
   - `siri` 快捷指令和 Siri（默认开）：App Intents 的三句话「语流开始复习」（打开 `#/review`）、「语流还有多少词要复习」（不打开 App，说出提醒用的那几个数；手机要解锁）、「用语流打开今天这篇」（今日「读」那篇的 `#/m/<id>`，没有就 `#/`）。快捷指令 App 里也有这三个。不用 Apple Intelligence 的实体索引和助手模式，学员的内容不交给 Siri 的大模型。网页不用改。
   - `word-search` 在系统搜索里找生词（默认关）：App 回到前台时问 `GET /api/next/cards/index?v=<上次的 v>`（语流 B2，#366），变了才重建 Core Spotlight 的本机索引（每张卡：词或表达、释义第一段）；学员在 iPhone 的搜索里点了，就打开 `#/cards/find/<encodeURIComponent(词)>`。没登录、没同意存放、关掉开关：索引清空。不用带大模型的搜索。网页不用改。
   - 专注模式过滤（不设开关，学员在系统设置里加）：「设置 → 专注模式 → 某个模式 → 添加过滤条件 → 语流」，选都提醒 / 只提醒复习单词 / 都不提醒。复习提醒和每天计划提醒的通知各带 `filterCriteria`（`review` / `plan`），过滤由系统做。
+- **切换账号 `account.changed`**（第 5 节；切换、添加账号、退出登录、注销账号以后网页调）：回答之前先清掉上一个账号的东西，网页马上走开也算数：
+  - 「在系统搜索里找生词」的索引马上清空（不管开关开没开）；正在拿上一个账号清单的那次重建作废，不会放回去；
+  - 复习进度的实时活动结束；小组件的数字卡删掉（显示「打开语流 App…」直到新账号的数字到）；
+  - 正在放的朗读停下，本机各篇的朗读进度清掉；
+  - 上一个账号排好的提醒和通知中心里已经弹出的撤掉，忘掉它的「这次什么时候复习」；提醒开关和每天计划提醒是这台手机的，不跟账号走。
+  - 回答 `{ok: true}` 以后在后台照「回到前台」那样按新账号重新取：提醒、小组件和 Siri 的数字、生词索引（开关开着才建）、离线朗读包。
+  - 登录凭证仍在 WebView 的 cookie 里；App 在钥匙串里另存一份（只在这台设备，不进备份），`flow_session` 和 `flow_more` 都存，网站清掉了就删。App 不存用户名。
 - WKAppBoundDomains 只有本站：服务工作线程、桥、cookie 只在本站有效。
 - audio：AVPlayer，AVAudioSession `.playback` + `.spokenAudio` + 后台音频，MPNowPlayingInfoCenter / MPRemoteCommandCenter；系统声音 AVSpeechSynthesizer。
 - rec：AVAudioRecorder；notify：UNUserNotificationCenter + BGAppRefreshTask。
@@ -289,6 +296,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
   - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。
   - 内测版有 `call('notify.test', 计数)`。
+  - `account.changed`（1.0.5 起，第 5 节）：停掉朗读、清掉本机各篇的朗读进度；撤掉上一个账号的提醒和已经弹出的复习通知，忘掉它的钟点和 `once`，同意过的话马上按现在的账号拉 `/api/next/vocab` 重排；cookie 立刻写盘。App 提醒的开关和「每天的学习」跟手机走，不跟账号走。App 不存用户名。→ `{ok, scheduled}`。
 - **speech**（第 7 节）：
   - 用 TextToSpeech 换掉 WebView 里没有声音的 speechSynthesis 和 SpeechSynthesisUtterance；引擎在 App 打开时就初始化好。
   - `getVoices()` 只给已经装好的英语声音。谷歌语音引擎默认只装美音，英音要用户在系统的「文字转语音」里下载；手机上没有英音时，网页按原来的做法选第一个英语声音。
@@ -328,6 +336,9 @@ Tauri 2，一套代码出 Windows（WebView2）、macOS（WKWebView）和 Linux�
   - permission() 照第 5 节说的，是 App 的提醒开没开：系统允许并且开着是 `'granted'`，没开或关了是 `'undetermined'`，系统里关了是 `'denied'`。Windows 在第一次弹通知之前读不到系统设置，这时只看开关；ask() 不弹框。
     Linux 没有通知权限可问：桌面有通知服务（`org.freedesktop.Notifications`）就看开关，没有就是 `'denied'`。
   - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
+  - `account.changed`（切换账号、添加账号、退出登录，第 5 节）：先撤掉上一个账号排好的提醒，和通知中心里已经弹出来的（Windows、macOS；Linux 的通知服务各管各的），
+    忘掉它的「这次什么时候复习」，再马上按现在这个账号的 `/api/next/vocab` 重排；网页要是先走开了，下次打开或回到前台就排，不等 30 分钟。
+    提醒开关是这台电脑的，不跟账号走。登录凭证全在 WebView 自己的 cookie 里（`flow_session`、`flow_more` 一样存），桥不读也不挑。
 - 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站（WebKitGTK 默认关着 media stream，Linux 上 App 把它打开）。
   Linux 的网页引擎靠 GStreamer 解码：AAC 要 libav 插件，AppImage 自带，deb 依赖它；别的装法缺的话，网页对 AAC 放不了的情况改用 AI 朗读（B3）。
 - 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
@@ -374,6 +385,11 @@ product `default`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）�
   - 「不同意」再确认一次，进入基本模式：页面顶上一行说明和「同意」；登录、注册的请求由 `onInterceptRequest` 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次；录音（桥的 `rec` 和网页自己的 getUserMedia）先问同意。
   - 能力 `privacy` 的命令和安卓一样。`privacy.state().store` 是 true（鸿蒙只从华为的渠道装）；`privacy.settings({what: 'mic'})` 打开「设置 → 应用和元服务 → 语流」。
   - 撤回同意：停掉朗读和录音，清掉 cookie、网页存储、缓存、朗读进度和提醒，再回到第一次打开的弹窗。
+- **切换账号 `account.changed`**（第 5 节；切到另一个账号、添加账号登录成功、退出登录、注销账号）：
+  - 停掉朗读，清掉本机各篇的朗读进度（是上一个账号的）；
+  - 按现在这个账号的 `/api/next/vocab` 重排提醒，403 `storage` 就不排（`notify` 还没开，所以眼下只是清空）；
+  - 马上把 cookie 写进磁盘。`flow_session` 和 `flow_more` 都是 HttpOnly、带 Max-Age，ArkWeb 一样长期保存；切到后台时也写一次，免得刚登录或刚切换就划掉 App 时丢了；
+  - App 不存用户名；「加到手机日历」用系统自己的新建日程页保存，App 里不留东西。
 - **静音开关**：`hdc shell aa start -a EntryAbility -b cn.flowlang.app.beta --pb flow.mute true`（调试包和内测包）。打开以后：AVPlayer 音量 0，网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 不出声。
 - **测试**：
   - 本地单元测试（hypium）：排期、句子、WAV、.ics 解析、第一次打开的规则；

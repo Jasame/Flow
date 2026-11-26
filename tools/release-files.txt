@@ -38,6 +38,7 @@ flow/ai_check.py
 flow/ai_eval.py
 flow/ai_help_service.py
 flow/ai_jobs.py
+flow/ai_lang.py
 flow/ai_quota.py
 flow/ai_routes.py
 flow/ai_stream.py
@@ -340,6 +341,7 @@ flow/tests/test_adaptive.py
 flow/tests/test_admin_roles.py
 flow/tests/test_ai_cost.py
 flow/tests/test_ai_eval.py
+flow/tests/test_ai_lang.py
 flow/tests/test_ai_mark.py
 flow/tests/test_ai_quota.py
 flow/tests/test_ai_routing.py

@@ -31,6 +31,8 @@ enum BridgeTestPage {
     <div class="row"><button id="card">小组件数据</button><button id="act">实时活动 3/10</button><button id="actend">结束活动</button></div>
     <div class="row"><button id="acton">打开实时活动</button><button id="sample">小组件样例</button></div>
     <p class="out" id="glance">glance: -</p>
+    <div class="row"><button id="ssample">搜索样例</button><button id="acct">切换账号</button></div>
+    <p class="out" id="acctOut">acct: -</p>
     <p class="out" id="hash">hash: -</p>
     <p class="out" id="feat">features: -</p>
     <p class="out" id="note">note: -</p>
@@ -92,6 +94,13 @@ enum BridgeTestPage {
     $('act').onclick = async () => {
       const r = await A.call('activity.review', { done: 3, total: 10 });
       $('glance').textContent = `glance: activity ${r.ok} ${r.why || ''} count ${await A.call('activity.count')}`;
+    };
+    // 「切换账号」 (account.changed): what is left of the last account right after — the phone's search, the Live Activity, the widgets' card
+    $('ssample').onclick = () => A.call('app.search-sample').then(r => { $('acctOut').textContent = `acct: search ${r.count}`; }, fail);
+    $('acct').onclick = async () => {
+      const r = await A.call('account.changed');
+      const s = await A.call('app.search-count'), n = await A.call('activity.count'), c = await A.call('app.today-card');
+      $('acctOut').textContent = `acct: changed ${r.ok} search ${s.count} activity ${n} card ${c ? c.state : 'none'}`;
     };
     $('sample').onclick = () => A.call('app.today-card-sample').then(() => { $('glance').textContent = 'glance: sample'; }, fail);
     $('acton').onclick = () => A.call('app.feature', { id: 'review-activity', on: true }).then(feats, fail);

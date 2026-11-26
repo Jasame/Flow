@@ -45,6 +45,8 @@ pub const PAGE_CHECK: &str = r#"(async () => {
     const off = F.on('smoke', () => {}); r.onReturnsOff = typeof off === 'function'; off();
     r.hello = await F.call('hello');
     r.callUnknownRejects = await F.call('no-such-thing').then(() => false, () => true);
+    // 切换账号 (§5): resolves with the new plan (signed out here: no word reminders)
+    r.accountChanged = await F.call('account.changed').then(x => x, e => ({ rejected: String(e) }));
   } catch (e) { r.shapeError = String(e); }
   // the reminders: a made-up /api/next/vocab answer, planned only where the reminders are on (FLOW_SMOKE_NOTIFY)
   try {

@@ -824,3 +824,29 @@ final class WordSearchTests: XCTestCase {
         XCTAssertEqual(Feature.wordSearch.group, .ask)
     }
 }
+
+/// 「切换账号」 (account.changed, docs/native-bridge.md §5): nothing of the last account stays on the phone.
+final class AccountChangeTests: XCTestCase {
+    @MainActor func testPlacesKeptGo() {
+        let s = ProgressStore()
+        s.set("acct-test", i: 3, t: 12)
+        XCTAssertNotNil(s.get("acct-test"))
+        s.clearAll()
+        XCTAssertNil(s.get("acct-test"), "where the last account had read to")
+    }
+
+    func testBothCookiesKeptApart() {
+        XCTAssertEqual(CookieKeeper.names, ["flow_session", "flow_more"], "the session and the other remembered accounts")
+        XCTAssertEqual(CookieKeeper.account("flow.jasa.hk", "flow_session"), "flow.jasa.hk", "the session's item keeps its old name")
+        XCTAssertEqual(CookieKeeper.account("flow.jasa.hk", "flow_more"), "flow.jasa.hk/flow_more")
+    }
+
+    @MainActor func testTheLastAccountGoesBeforeTheAnswer() async {
+        SharedStore.save(TodayCard.sample)
+        let r = await Shell.shared.bridge.handle("account.changed", [:]) as? [String: Any]
+        XCTAssertEqual(r?["ok"] as? Bool, true)
+        XCTAssertNil(SharedStore.load(), "the widgets' card goes at once (the new account's comes after)")
+        XCTAssertEqual(Shell.shared.reminders.input.due, 0, "nobody's words until the site says whose")
+        XCTAssertEqual(Shell.shared.player.progress("acct-test") == nil, true)
+    }
+}

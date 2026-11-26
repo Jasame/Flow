@@ -26,6 +26,9 @@ def problems(d, os_name):
     h = p.get('hello') or {}
     if h.get('v') != 1 or h.get('platform') != os_name or sorted(h.get('features') or []) != ['media', 'notify']:
         out.append(f"FlowApp.call('hello') = {h!r}")
+    ac = p.get('accountChanged')
+    if not isinstance(ac, dict) or not isinstance(ac.get('ok'), bool):
+        out.append(f"FlowApp.call('account.changed') = {ac!r}")
     if not isinstance(p.get('beta'), bool) or not p.get('build'):
         out.append(f"FlowApp.beta / build missing: {p.get('beta')!r} {p.get('build')!r}")
     if p.get('syncOk') is False:

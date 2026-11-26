@@ -99,6 +99,9 @@ class Bridge(private val activity: MainActivity) : WebViewCompat.WebMessageListe
             "privacy.permissions" -> activity.permissions()
             "privacy.settings" -> { activity.openPermissionSettings(o.optString("what")); true }
 
+            // 切换账号, 添加账号, 退出登录, 注销账号 (docs/native-bridge.md §5): nothing of the last account stays on the phone
+            "account.changed" -> activity.accountChanged()
+
             "audio.play" -> FlowAudio.play(o)
             "audio.pause" -> FlowAudio.pause(if (o.optString("why") == "other") "other" else "user")
             "audio.resume" -> FlowAudio.resume()

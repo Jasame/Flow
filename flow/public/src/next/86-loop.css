@@ -12,12 +12,6 @@
 .pl-band span{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
 details>summary{cursor:pointer;padding:8px 0;color:var(--ink2)}
 details[open]>summary{margin-bottom:8px}
-/* exam practice */
-.exam-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.exam-pick .opt{display:grid;gap:4px;align-content:start;text-align:left;text-decoration:none;color:inherit}
-.exam-pick .opt .l{font-weight:700;font-size:16px}
-.exam-pick .opt .d{font-size:13px;color:var(--ink2);line-height:1.5}
-.exam-cur{padding:14px;background:var(--paper);border-radius:var(--r)}  /* the chosen exam, between the two halves of the list */
 /* the series link in an episode's header is a real tap target */
 .study-head .kicker a.link{display:inline-flex;align-items:center;min-height:32px}
 .exam-bar{position:sticky;top:64px;z-index:15;display:flex;justify-content:space-between;align-items:center;gap:12px;
@@ -42,7 +36,7 @@ details[open]>summary{margin-bottom:8px}
 .serial .ep.done .n{background:var(--fill);color:var(--on-fill)}
 .serial .ep.next .n{box-shadow:0 0 0 2px var(--green)}
 .serial .ep .t{display:grid;gap:2px;min-width:0}
-@media (max-width:420px){.exam-pick{grid-template-columns:minmax(0,1fr)}.pl-bands{gap:6px}.pl-band span{font-size:16px}}
+@media (max-width:420px){.pl-bands{gap:6px}.pl-band span{font-size:16px}}
 @media (hover:none){.serial .ep:hover{background:none}}
 /* 起点小测's first page on a short screen (Safari's toolbars showing: 375×553): 「开始」 above the tab bar (B8 audit) */
 @media (max-height:620px){

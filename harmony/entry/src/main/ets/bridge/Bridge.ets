@@ -183,6 +183,10 @@ export class Bridge {
         await Recorder.cancel();
         return true;
 
+      // 切换账号, 添加账号, 退出登录 (the page's 81-switch.js): what this phone kept for the account before goes
+      case 'account.changed':
+        return Bridge.accountChanged();
+
       case 'notify.permission':
         return Reminders.permission();
       case 'notify.ask':
@@ -212,6 +216,22 @@ export class Bridge {
       default:
         throw new Error('unknown command ' + cmd);
     }
+  }
+
+  /**
+   * Another account is in use on this phone, or none (docs/native-bridge.md §5, account.changed): reading stops and the
+   * places kept in each text go (they were the other account's), the reminders are planned again from what the site
+   * says for this one (a 403 `storage` plans none; no 'notify' yet, so today this only clears), and the new sign-in
+   * cookies (flow_session, flow_more) are written to disk at once. Nothing else here belongs to an account: the app
+   * keeps no name, and 「加到手机日历」 leaves nothing in it (the system's own 新建日程 page saves the event).
+   */
+  private static async accountChanged(): Promise<boolean> {
+    await FlowAudio.forget();
+    if (ConsentGate.current() === Consent.AGREED) {
+      await Reminders.refresh(true);
+    }
+    AppState.saveCookies();
+    return true;
   }
 
   private static num(raw: Object | undefined, field: string, def: number): number {

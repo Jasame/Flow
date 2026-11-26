@@ -66,6 +66,22 @@ export class AppState {
         AppState.warn('background: ' + JSON.stringify(e));
       }
     });
+    AppState.saveCookies();
+  }
+
+  /**
+   * The web view's cookies to disk now: the engine writes them only now and then by itself, so a sign-in or a switch
+   * just before the app is swiped away would be lost. Only once a page is there (before, there is no web engine).
+   */
+  static saveCookies(): void {
+    if (!AppState.web) {
+      return;
+    }
+    try {
+      webview.WebCookieManager.saveCookieAsync().catch(() => {});
+    } catch (e) {
+      AppState.warn('save cookies: ' + JSON.stringify(e));
+    }
   }
 
   /** A reminder was tapped: open its page in the web view that is there, or when it comes. */
