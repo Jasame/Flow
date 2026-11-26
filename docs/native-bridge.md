@@ -175,7 +175,7 @@ window.__flowAppTransport = {
     App 不用分开处理。
   - App 自己也会拿 `/api/next/vocab` 重排（iOS、安卓用 WebView 的 cookie；桌面在页面里 fetch 再 sync）。
 - **切换账号以后 `account.changed`**（语流 B6，2026-11-26，网页 81-switch.js）：
-  - 网页在这几种时候调用一次 `FlowApp.call('account.changed')`：在「切换账号」里点了另一个账号；「添加账号」登录成功（之前那个账号留在设备上）；退出登录。
+  - 网页在这几种时候调用一次 `FlowApp.call('account.changed')`：在「切换账号」里点了另一个账号；「添加账号」登录成功（之前那个账号留在设备上）；退出登录（包括「退出所有设备」、隐私页上的退出登录）；注销账号。
   - 登录凭证还在 WebView 的 cookie 里：服务器多发一个 HttpOnly 的 `flow_more`，App 照样保存、带上，不用读它。
   - App 收到以后，把跟账号绑定的本机东西换成现在这个账号的：
     - 按新账号的 `/api/next/vocab` 重排复习提醒；没同意的账号回 403 `storage`，就什么都不排。

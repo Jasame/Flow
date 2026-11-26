@@ -375,7 +375,7 @@
         const b = form.querySelector('[type=submit]'); b.disabled = true;
         try {
           await api('/api/account/delete', { password: form.password.value });
-          forgetAccountHere(); S.user = null; S.csrf = ''; closeSheet(); await refreshHome();
+          forgetAccountHere(); S.user = null; S.csrf = ''; accountChanged(); closeSheet(); await refreshHome();
           location.hash = '#/'; route(); toast('账号已注销，学习记录已全部删除');
         } catch (x) { fieldError(form, err, { message: x.message, field: 'password' }); b.disabled = false; }
       };
@@ -397,7 +397,7 @@
       <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
       card.querySelector('#soAll').onclick = async e => {
         e.currentTarget.disabled = true;
-        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
+        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear(); accountChanged();
         S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
       };
     });

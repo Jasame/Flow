@@ -184,7 +184,7 @@
     const no = document.getElementById('stoNo');
     if (no) no.onclick = async () => { no.disabled = true; try { await storageAnswer(false); route(); } catch (x) { err.textContent = x.message; no.disabled = false; } };
     document.getElementById('stoDel').onclick = deleteAccountSheet;
-    document.getElementById('stoOut').onclick = async () => { try { await api('/api/logout', {}); } catch (x) { /* signed out already */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); route(); };
+    document.getElementById('stoOut').onclick = async () => { try { await api('/api/logout', {}); } catch (x) { /* signed out already */ } snapClear(); S.user = null; S.csrf = ''; accountChanged(); await refreshHome(); route(); };
   }
   // 安卓 App 1.0.4 and later (语流 C2, #332; docs/native-bridge.md §10, for the Chinese app stores): the app asks the
   // 用户协议 and 隐私和数据 itself on first opening. 我的 shows a 「隐私」 group only where the app has 'privacy':
