@@ -1048,3 +1048,10 @@
   - #439 后台「单词搭配反馈」：学员标「这条不对」的条目，按人数排、不带名字；下架（写原因）和放回（后台和班级）
 - 自检：DEPLOYED，装了 5 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45777362341
+
+### b129 · 2026-11-26 15:59
+- main `48d65fb`，构建 `09739fe`
+- 新合并的 PR（自 b128 起）：
+  - #441 图标零件：语流自己的一套图标，fi('名字') 和 fiTile('名字')（开局和考试）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45779264596
