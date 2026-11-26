@@ -53,8 +53,6 @@
       <g class="ip d2"><rect class="fr" x="44" y="138" width="192" height="58" rx="14"/><path class="lns" d="M62 154h40"/><path class="axis" d="M70 178h140"/>
         <circle class="hl knob" cx="80" cy="178" r="9"/></g></svg>`,
   };
-  // 等合并 (A0, 19:5x): a step whose page is still in a pull request keeps its place, said plainly, until it is merged
-  const introWait = pr => `<div class="intro-wait"><span>等 ${esc(pr)} 合并后补上</span></div>`;
   // the steps; setup: only when there is no profile yet; tab: which place of the tab bar (今日 练习 能力 单词 我的), -1 all
   function introSteps(setup) {
     const left = typeof KNOW === 'object' && KNOW.side() === 'left';
@@ -373,7 +371,7 @@
         <div class="chips intro-days" role="radiogroup" aria-labelledby="introDaysH">${[2, 3, 4, 5, 6, 7].map(d => `<button class="chip" type="button" role="radio" data-id="${d}" aria-checked="false">${d} 天</button>`).join('')}</div>
 </div>`;
     }
-    return `<div class="intro-body">${s.wait ? introWait(s.wait) : `<div class="intro-art" aria-hidden="true">${s.art}</div>`}
+    return `<div class="intro-body"><div class="intro-art" aria-hidden="true">${s.art}</div>
       <h2 class="intro-t">${esc(s.t)}</h2><p class="intro-d">${esc(s.d)}</p></div>`;
   }
   // the steps that ask: the same choices and rules as the one-page form (09-start.js welcome)
