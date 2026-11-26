@@ -620,7 +620,7 @@
         '<section class="card"><h2>发一个邀请码</h2><form id="invNew" class="stack-s">' +
           '<label class="field">能用几次<input class="input" name="uses" type="number" min="1" max="' + d.max_uses + '" value="' + d.uses + '"></label>' +
           '<label class="field">有效几天<input class="input" name="days" type="number" min="1" max="' + d.max_days + '" value="' + d.days + '"></label>' +
-          '<label class="field">备注（发给谁，自己看）<input class="input" name="note" maxlength="40" placeholder="比如 小林、周三口语课"></label>' +
+          '<label class="field">备注（发给谁，自己看）<input class="input" name="note" maxlength="40" placeholder="比如 第二批内测、周三口语课（不写真名）"></label>' +
           '<div class="row"><button class="btn primary">生成</button></div></form><div id="invOut"></div></section>' +
         '<section class="card"><h2>开邀请码以前注册的账号</h2><p><b>' + n(d.before) + '</b> 个，照常能用。</p>' +
           '<p class="muted small">想停用哪一个：到「学员」里筛「没用邀请码注册的」，点开账号，用「停用账号」。停用以后马上退出登录，也登不进来；随时可以恢复。</p>' +

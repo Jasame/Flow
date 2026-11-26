@@ -34,7 +34,8 @@ def schema(c):
       note TEXT NOT NULL DEFAULT '', by TEXT NOT NULL DEFAULT '', created REAL NOT NULL, expires REAL NOT NULL,
       uses INTEGER NOT NULL DEFAULT 1, used INTEGER NOT NULL DEFAULT 0, revoked_at REAL)''')
     c.execute('''CREATE TABLE IF NOT EXISTS beta_invite_uses(id INTEGER PRIMARY KEY,
-      invite_id INTEGER NOT NULL REFERENCES beta_invites(id), user_id INTEGER NOT NULL REFERENCES users(id), used_at REAL NOT NULL)''')
+      invite_id INTEGER NOT NULL REFERENCES beta_invites(id), user_id INTEGER NOT NULL REFERENCES users(id), used_at REAL NOT NULL,
+      code TEXT NOT NULL DEFAULT '')''')  # the code as typed, so 导出我的数据 shows it (D2)
 
 
 def norm(code):
@@ -168,7 +169,8 @@ def claim(c, invite_id, now=None):
 
 
 def record(c, invite_id, uid, now=None):
-    c.execute('INSERT INTO beta_invite_uses(invite_id, user_id, used_at) VALUES(?,?,?)', (invite_id, uid, now or time.time()))
+    code = (c.execute('SELECT code FROM beta_invites WHERE id=?', (invite_id,)).fetchone() or [''])[0]
+    c.execute('INSERT INTO beta_invite_uses(invite_id, user_id, used_at, code) VALUES(?,?,?,?)', (invite_id, uid, now or time.time(), shown(code)))
 
 
 def main(argv=None):

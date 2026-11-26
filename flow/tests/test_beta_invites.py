@@ -131,7 +131,11 @@ class InviteTests(unittest.TestCase):
         self.assertEqual([r['username'] for r in d['items']], ['old'])
         self.assertEqual(self.console('/beta-invites')[1]['before'], 1)
         with app.db() as c:
-            uid = c.execute("SELECT id FROM users WHERE username='newone'").fetchone()[0]
+            uid = c.execute("SELECT id FROM users WHERE username='newone'").fetchone()
+            got = json.loads(__import__('account_data').records(c, uid))  # 导出我的数据 carries the code and when (D2)
+            self.assertEqual(got['tables']['beta_invite_uses'][0]['code'], inv['code'])
+            self.assertIn('beta_invite_uses', got['目录'])
+            uid = uid[0]
             __import__('account_data').forget(c, uid)
             self.assertIsNone(c.execute('SELECT 1 FROM beta_invite_uses WHERE user_id=?', (uid,)).fetchone())
 
