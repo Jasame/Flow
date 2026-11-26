@@ -561,8 +561,22 @@ document.documentElement.classList.add('js');
     }), { threshold: [0, 0.45, 0.8] }).observe(stage);
   }
 
+  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this button. The page never carries the AppTest link: the button
+     asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学). Signed in
+     with a link: 「加入内测」 opens it; signed in, no link yet: 即将开放 stays; not signed in: 「登录内测版后显示」 goes to
+     the site to sign in. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
+  function harmony() {
+    const b = $('[data-harmony]'); if (!b || !window.fetch) return;
+    fetch('/api/next/harmony-test', { credentials: 'same-origin', cache: 'no-store' }).then(r => r.json().then(j => [r.status, j], () => [r.status, {}])).then(([st, j]) => {
+      if (st === 401) { b.href = '/'; b.removeAttribute('aria-disabled'); b.textContent = '登录内测版后显示'; return; }
+      const u = (st === 200 && j && typeof j.url === 'string') ? j.url : '';
+      if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
+      b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+    }).catch(() => { /* 即将开放 stays */ });
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

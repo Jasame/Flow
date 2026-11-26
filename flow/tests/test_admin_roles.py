@@ -109,7 +109,7 @@ class ClassicArchivedTests(Servers):
         import hashlib, re
         body = self.call(self.site, '/about', raw=True)[1].decode()
         sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
-        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'ios'])
+        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'harmony', 'ios'])
         self.assertEqual(re.findall(r'data-dl="([\w-]+)"', sec),  # iPhone and iPad: 开发中, no button
                          ['android', 'windows', 'mac', 'linux-appimage', 'linux-deb'])
         self.assertEqual(re.findall(r'aria-disabled="true">([^<]*)</a>', sec),
@@ -133,6 +133,51 @@ class ClassicArchivedTests(Servers):
             for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
                          '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
                 self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+
+    def test_the_harmony_card_shows_each_site_its_own_part(self):
+        """鸿蒙 (/about#download), the owner 2026-11-26: 语流 says the app is in 内测 and how to ask to join (问题反馈), with no
+        AppTest link anywhere; the 内测版 has the two install steps, and its button asks /api/next/harmony-test for the link
+        saved in its console (「鸿蒙内测链接」, console-settings.json: a whole https link). The page itself never carries
+        the link, and the endpoint gives it only to someone signed in to the 内测版 (只发同学); 语流 has no such endpoint."""
+        import console_ops, time
+        link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=1&invitationCode=ab'
+        with tempfile.TemporaryDirectory() as d, patch.object(console_ops, 'data_dir', return_value=Path(d)):
+            def card(channel):
+                with patch.object(app, 'CHANNEL', channel):
+                    body = self.call(self.site, '/about', raw=True)[1].decode()
+                self.assertNotIn('<!--channel', body); self.assertNotIn('__HARMONY_TEST__', body)
+                return body[body.index('data-app="harmony"'):body.index('data-app="ios"')]
+            def ask(channel, signed_in):
+                h = {'Cookie': 'flow_session=tok-harmony'} if signed_in else {}
+                with patch.object(app, 'CHANNEL', channel):
+                    return self.call(self.site, '/api/next/harmony-test', headers=h)[:2]
+            with app.db() as c:
+                uid = c.execute("INSERT INTO users(username,password,admin,created) VALUES('hm-learner','x',0,?)", (time.time(),)).lastrowid
+                c.execute("INSERT INTO sessions VALUES('tok-harmony',?,'csrf',?)", (uid, time.time() + 3600)); c.commit()
+            beta = card('beta')
+            self.assertIn('AppTest', beta); self.assertNotIn('申请鸿蒙内测', beta)
+            self.assertIn('data-harmony data-tap="about-harmony-join" aria-disabled="true">即将开放</a>', beta)
+            self.assertEqual(ask('beta', True), (200, {'url': ''}))  # signed in, no link yet: 即将开放 stays
+            console_ops.set_harmony_test_url(' ' + link + ' ', 'op')
+            self.assertEqual(console_ops.settings()['harmony_test_url'], link)
+            self.assertEqual(console_ops.harmony_test_host(), 'appgallery.huawei.com')  # shown next to the link in the console
+            self.assertNotIn('huawei.com', card('beta'))  # never in the page, even with the link saved
+            self.assertEqual(ask('beta', True), (200, {'url': link}))
+            self.assertEqual(ask('beta', False)[0], 401)  # whoever opens /about without signing in gets 「登录内测版后显示」
+            self.assertEqual(ask('prod', True)[0], 404)  # 语流: no such endpoint, whatever is saved
+            prod = card('prod')
+            self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
+            for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
+                self.assertNotIn(word, prod)
+            for bad in ('http://appgallery.huawei.com/x', 'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)',
+                        'https://a.huawei.com/x y', 'https:///x', 'appgallery.huawei.com/x'):
+                with self.assertRaises(ValueError):
+                    console_ops.set_harmony_test_url(bad, 'op')
+            self.assertEqual(console_ops.harmony_test_url(), link)  # a refused one leaves the saved link as it was
+            console_ops.save_settings({'harmony_test_url': 'javascript:alert(1)'}, 'op')  # even if the file is edited by hand
+            self.assertEqual(ask('beta', True), (200, {'url': ''}))
+            console_ops.set_harmony_test_url('', 'op')  # emptied: back to 即将开放
+            self.assertNotIn('harmony_test_url', console_ops.settings()); self.assertEqual(ask('beta', True), (200, {'url': ''}))
 
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into

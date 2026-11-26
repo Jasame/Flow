@@ -36,6 +36,27 @@
   // 2026-11-25): one row in 设置 opens it (FlowApp.call('app.settings')). Shown only where the app says it has one.
   const APP_SETTINGS = { ios: ['iOS 专属功能', '锁屏、小组件、Siri 等'], android: ['安卓专属功能', ''], windows: ['Windows 专属功能', ''], macos: ['Mac 专属功能', ''] };
   const appSettings = () => { try { return window.FlowApp && FlowApp.has && FlowApp.has('settings') ? APP_SETTINGS[FlowApp.platform] || ['App 专属功能', ''] : null; } catch (e) { return null; } };
+  // 「AI 用量」 (2026-11-26, the owner in A0: a learner sees their own AI use of the day): ai_quota.today (语流 B7 #405),
+  // read fresh each time (not the data layer's copy: an AI answer a moment ago changed it).
+  const aiRowLabel = a => a.stopped === 'paused' ? '暂停中' : a.stopped === 'day_full' || a.stopped === 'site' ? '今天已满'
+    : a.limit == null ? '不限次数' : a.remaining > 0 ? `还能用 ${a.remaining} 次` : '今天已用完';
+  function fillAiRow() {
+    const put = t => { const v = document.getElementById('meAiV'); if (v) v.textContent = t; };
+    request('/api/account/ai', undefined, true).then(r => put(aiRowLabel(r.j))).catch(() => put(''));
+  }
+  async function aiUsageSheet() {
+    let a;
+    try { a = (await request('/api/account/ai')).j; } catch (e) { toast(e.message); return; }
+    const until = a.paused_until ? new Date(a.paused_until * 1000) : null;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">AI 用量</h2>
+      <div class="aiq-num"><b>${a.used}</b><span class="muted">${a.limit != null ? ` / ${a.limit} 次` : ' 次'}</span><span class="small muted">今天</span></div>
+      ${a.limit ? `<progress class="aiq-bar${a.level !== 'ok' ? ' low' : ''}" max="${a.limit}" value="${Math.min(a.used, a.limit)}" aria-label="今天用了 ${a.used} 次，共 ${a.limit} 次"></progress>` : ''}
+      <p class="small">${esc(a.note)}${until ? `预计 ${until.getMonth() + 1} 月 ${until.getDate()} 日恢复。` : ''}${a.stopped === 'paused' ? ' <a class="link" href="#/feedback" data-close>去问题反馈</a>' : ''}</p>
+      ${a.by_kind && a.by_kind.length ? `<ul class="aiq-kinds">${a.by_kind.map(k => `<li><span>${esc(k.label)}</span><span class="muted">${k.count} 次</span></li>`).join('')}</ul>` : ''}
+      <p class="tiny muted">用到 AI 的批改、讲解、出题和对话，每次算一次；大家共用的讲解和例句、没有成功的那次不算。AI 朗读另有字数上限，不算在这里。${a.adjusted ? '你的额度由管理员调整过。' : ''}</p>
+      <button class="btn ghost" data-close type="button">完成</button></div>`);
+    const v = document.getElementById('meAiV'); if (v) v.textContent = aiRowLabel(a);
+  }
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
     const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
@@ -46,6 +67,7 @@
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
+        u ? grow('meAi', 'AI 用量', '<span class="spin"></span>', 'meAiV', 'me-ai') : '',
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
         appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '',
         u && S.home && S.home.profile ? personalizeRow() : ''],  // last in the group: the grey line under it is about it (81-privacy.js)
@@ -82,6 +104,7 @@
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
+    const mai = document.getElementById('meAi'); if (mai) { mai.onclick = aiUsageSheet; fillAiRow(); }
     personalizeWire();  // the switch and 「了解更多」 (81-privacy.js)
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     const mw = document.getElementById('meWithdraw'); if (mw) mw.onclick = withdrawInApp;  // 81-privacy.js
@@ -168,9 +191,9 @@
         card.querySelectorAll('[data-zones]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
         toast(KNOW.tap() ? '点卡片的左、中、右也能作答了' : '点卡片作答关了，只用按钮和滑动');
       });
-      document.getElementById('zonesGuide').onclick = () => { try { localStorage.removeItem('flow-tap-guide'); } catch (e) { /* private mode */ } toast('下次复习时再看一次'); };
+      document.getElementById('zonesGuide').onclick = () => { try { localStorage.removeItem('flow-tap-guide'); } catch (e) { /* private mode */ } TIPS.unmark('review-zones'); toast('下次复习时再看一次'); };
       card.querySelectorAll('[data-know]').forEach(b => b.onclick = () => {
-        KNOW.set(b.dataset.know); save('flow-know-tip', 1);  // chosen here: the one-time tip of the move is not needed
+        KNOW.set(b.dataset.know); TIPS.mark('know-side');  // chosen here: the one-time tip of the move is not needed
         card.querySelectorAll('[data-know]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
         const v = document.getElementById('meKnowV'); if (v) v.textContent = knowLabel();
         toast('「认识」放在' + knowLabel());

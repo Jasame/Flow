@@ -156,7 +156,8 @@
     const mail = mailNudgeHTML(); if (mail) return mail;
     if (installNudgeDue(h)) return `<div class="card sunk section notice stack-s" id="installNudge"><b>把语流放到手机桌面</b><span class="small">像 App 一样一点就开，全屏；听过的音频网络差的时候也能复习。</span>
       <div class="row"><button class="btn small primary" id="inGo" type="button" data-tap="notice-install">怎么放</button><button class="btn small ghost" id="inLater" type="button">以后再说</button></div></div>`;
-    if (!h.stats || (h.stats.materials_done || 0) < 3) return `<a class="card sunk section notice guide-hint" href="#/guide" data-tap="notice-guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
+    // 一次性 (08-tips.js): gone for good once tapped, the 操作指南 opened, or the 新手引导 seen through (also on another device)
+    if ((!h.stats || (h.stats.materials_done || 0) < 3) && tipSeen('guide') === false) return `<a class="card sunk section notice guide-hint" href="#/guide" data-tap="notice-guide" data-tip-seen="guide"><span class="stack-s"><b>第一次用？看操作指南</b><span class="small muted">每个页面怎么用、按哪里，一步一步讲清楚。</span></span><span class="go" aria-hidden="true">›</span></a>`;
     return '';
   }
   function fillNotice(h) {

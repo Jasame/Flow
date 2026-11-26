@@ -125,9 +125,13 @@ SESSION_DAYS=30
 # r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
-OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/next/'),
+OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/account/ai','/api/next/'),
  'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/teacher/check','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 SIGN_IN_ROUTES=('/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/recovery/request','/api/recovery/reset','/api/teacher/check')
+def ai_path(path):
+ """A route that may call an AI model for the learner (and so counts in ai_quota): its answer says what is left."""
+ import next_service,ai_stream
+ return path in next_service.AI_PATHS or path in ai_stream.PATHS or path.startswith('/api/next/two/')
 def api_open(method,path):return any(path==p or (p.endswith('/') and path.startswith(p)) for p in OPEN_API[method])
 def session_cookie(token):
  return 'flow_session='+token+'; HttpOnly; SameSite=Lax; Path=/; Max-Age='+str(SESSION_DAYS*86400)+('; Secure' if SECURE else '')
@@ -159,10 +163,18 @@ def shell_file(name):
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测')
   for i in m.get('icons',[])+[x for c in m.get('shortcuts',[]) for x in c.get('icons',[])]:i['src']=i['src'].replace('.png','-beta.png')
   return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return beta_icons(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode()))
+ if name=='about.html':return beta_icons(about_parts(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())))
  if name not in ('next.html','sw.js'):return body
  body=body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  return beta_icons(body) if name=='next.html' else body
+def about_parts(page):
+ """认识语流 is one page for both sites; a part between <!--channel:beta--> and <!--/channel:beta--> goes to the 内测版 only
+ and one in <!--channel:prod--> to 语流 only, the other site never gets it (not even hidden). So far the 鸿蒙 card:
+ 语流 says the app is in 内测 and how to ask to join; the 内测版 has the AppTest steps, and its button asks
+ /api/next/harmony-test for the link, which only someone signed in to the 内测版 gets (the owner: 只发同学, 2026-11-26)."""
+ other=b'prod' if CHANNEL=='beta' else b'beta'
+ page=__import__('re').sub(rb'<!--channel:'+other+rb'-->.*?<!--/channel:'+other+rb'-->\n?',b'',page,flags=__import__('re').S)
+ return __import__('re').sub(rb'<!--/?channel:(?:beta|prod)-->\n?',b'',page)
 def beta_icons(page):
  """On the 内测版: the home-screen icon and the tab's icon (the inline SVG's fill) in its orange; 语流's page as it is."""
  if CHANNEL!='beta':return page
@@ -257,10 +269,20 @@ class Handler(BaseHTTPRequestHandler):
  def send(self,obj,status=200,cookie=None):
   if getattr(self,'ai_transport',None):return self.ai_transport.finish(obj,status)
   body=public_text(json.dumps(obj,ensure_ascii=False)).encode(); self.send_response(status);self.headers_common('application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
+  quota=self.ai_quota_now()
+  if quota:self.send_header('X-Flow-AI-Quota',quota)  # 00-head.js: once a day, a line when little or none is left
   renew,self.renew=getattr(self,'renew',None),None
   if cookie:self.send_header('Set-Cookie',cookie)
   elif renew:self.send_header('Set-Cookie',session_cookie(renew))  # a session in use stays signed in (user())
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+ def ai_quota_now(self):
+  # An AI request's answer carries the account's AI calls left today (ai_quota.header: "<remaining>/<limit>/<level>",
+  # 语流 B7 #405): the page says once a day when little or none is left (「我的 → 设置 → AI 用量」 has the rest).
+  uid=getattr(self,'ai_quota_uid',None)
+  if not uid:return ''
+  try:
+   with db() as c:return __import__('ai_quota').header(c,uid)
+  except Exception:return ''  # never in the way of the answer itself
  def headers_common(self,mime):
   self.send_header('Permissions-Policy','camera=(), geolocation=(), microphone=(self)')
   self.send_header('Content-Type',mime);self.send_header('X-Content-Type-Options','nosniff');self.send_header('X-Frame-Options','DENY');self.send_header('Referrer-Policy','same-origin');self.send_header('Content-Security-Policy',csp())
@@ -382,6 +404,12 @@ class Handler(BaseHTTPRequestHandler):
    with db() as c:
     u=self.user(c)
     if path=='/api/session':return self.send(session_info(u))
+    if path=='/api/next/harmony-test':
+     # 鸿蒙 内测 (认识语流 on the 内测版): the AppTest link from the 内测版's console (「鸿蒙内测链接」), only for someone
+     # signed in to the 内测版, so it reaches invited people only, not whoever opens /about (the owner, 2026-11-26)
+     if CHANNEL!='beta':return self.send({'error':'接口不存在'},404)
+     if not u:return self.send({'error':'登录内测版后显示'},401)
+     return self.send({'url':__import__('console_ops').harmony_test_url()})
     if path.startswith('/api/next/export/'):
      # 我的 → 我的数据: the word book for Excel or Anki, or every record of the account (account_data.py)
      if not u:return self.send({'error':'请先登录'},401)
@@ -454,6 +482,7 @@ class Handler(BaseHTTPRequestHandler):
     if result is not None:return self.send(*result)
     if path=='/api/account':
      result=account.private(c,u,path,{},verify);return self.send(*result)
+    if path=='/api/account/ai':return self.send(__import__('ai_quota').today(c,u['id']))  # 我的 → 设置 → AI 用量
     if path=='/api/dashboard':return self.send(report(c,u['id']))
     if path=='/api/chat/history':
      topic=parse_qs(urlsplit(self.path).query).get('topic',[''])[0];out,status=chat_history(c,u['id'],topic);return self.send(out,status)
@@ -588,6 +617,7 @@ class Handler(BaseHTTPRequestHandler):
     # not agreed to 数据存放在香港: nothing; under 14 without a guardian's agreement: no AI on the learner's own words
     held=__import__('privacy_service').storage_held(u,path) or __import__('privacy_service').gate(u,path)
     if held:return self.send(*held)
+    if ai_path(path):self.ai_quota_uid=u['id']
     if path in next_service.AI_PATHS:
      import ai_jobs
      try:self.ai_ticket=ai_jobs.enter(u['id'])
@@ -658,6 +688,7 @@ class Handler(BaseHTTPRequestHandler):
    if result is not None:
     c.commit();return self.send(*result)
    import ai_stream
+   if ai_path(path):self.ai_quota_uid=u['id']
    if path in ai_stream.PATHS and self.headers.get('Accept')=='text/event-stream':
     self.ai_transport=ai_stream.Transport(self,path)
     ai_stream.LOCAL.callback=self.ai_transport.write
@@ -794,6 +825,9 @@ if __name__=='__main__':
   def remind_loop():
    # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai), and the Sunday progress mail.
    while True:
+    try:
+     with db() as c:__import__('progress_service').count_returns(c)  # 没人提醒自己回来: yesterday's counts (no account), before today's mails
+    except Exception as exc:print('return counts failed:',type(exc).__name__,flush=True)
     try:
      with db() as c:
       __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too

@@ -382,6 +382,44 @@ class WeekDaysTests(Db):
         self.assertTrue('考试 5 天，其他 4 天' in guide and '目标太高时会建议你调' in guide)
 
 
+class ReturnTests(Db):
+    """没人提醒自己回来 (r29 第 1 项的量法): counts a day for the console, nothing about who (D2)."""
+    def learner(self, c, name, made):
+        c.execute('INSERT INTO users(username,password) VALUES(?,?)', (name, 'x'))
+        uid = c.execute('SELECT id FROM users WHERE username=?', (name,)).fetchone()[0]
+        nx.save_profile(c, uid, {'level': 'B1', 'goal': 'daily', 'themes': [], 'minutes': 15})
+        c.execute('UPDATE next_profiles SET created=? WHERE user_id=?', (made, uid))
+        return uid
+
+    def test_yesterday_counted_early_next_morning_who_came_back_and_who_was_reminded(self):
+        early = at(2026, 11, 25, 3, 0)
+        with app.db() as c:
+            long_ago = at(2026, 10, 1)
+            a, b, k = self.learner(c, 'a', long_ago), self.learner(c, 'b', long_ago), self.learner(c, 'k', long_ago)
+            new = self.learner(c, 'new', at(2026, 11, 24, 9))
+            for uid, t in ((a, at(2026, 11, 24, 20)), (b, at(2026, 11, 24, 21)), (k, at(2026, 11, 23, 20)), (k, at(2026, 11, 24, 20)), (new, at(2026, 11, 24, 10))):
+                c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,'read',?)", (uid, f'p{t}', t))
+            c.execute('INSERT INTO next_reminders(user_id,enabled,hour,updated,last_mailed) VALUES(?,1,20,?,?)', (a, early, '2026-11-24'))
+            c.commit()
+            self.assertIsNone(ps.count_returns(c, at(2026, 11, 25, 8, 0)))  # too late: today's mails may have changed the dates
+            row = ps.count_returns(c, early)
+            self.assertEqual(row, {'day': '2026-11-24', 'active': 4, 'returned': 2, 'reminded': 1})  # k studied the day before; new is new
+            self.assertIsNone(ps.count_returns(c, early + 600))  # once a day
+            self.assertEqual(ps.return_stats(c), [{'day': '2026-11-24', 'active': None, 'returned': None, 'reminded': None, 'unprompted': None}])  # under 5: not shown
+            c.execute("INSERT INTO daily_returns VALUES('2026-11-25', 40, 12, 5)"); c.commit()
+            self.assertEqual(ps.return_stats(c)[0], {'day': '2026-11-25', 'active': 40, 'returned': 12, 'reminded': 5, 'unprompted': 7})
+            self.assertEqual({r[1] for r in c.execute('PRAGMA table_info(daily_returns)')}, {'day', 'active', 'returned', 'reminded'})  # no account
+
+    def test_the_link_is_counted_without_an_account_and_taken_off_the_address(self):
+        for s in ('function remindOpen()', "q.get('from') !== 'remind'", "'remind-review'", "'remind-other'", 'history.replaceState(null', 'remindOpen();'):
+            self.assertTrue(s in JS, s)
+        import flow_admin
+        for k in ('remind-review', 'remind-once', 'remind-weekly', 'remind-other'):
+            self.assertIn(k, flow_admin.TAP_LABEL)
+        loop = (Path(app.ROOT) / 'app.py').read_text(encoding='utf-8')
+        self.assertLess(loop.index("count_returns(c)"), loop.index("send_weekly(c)"))  # before the day's mails
+
+
 class PageTests(unittest.TestCase):
     def test_the_page_has_the_card_the_summary_and_the_unsubscribe_page(self):
         for s in ('function weekCardHTML', 'id="weekCard"', 'data-tap="home-week"', 'function weekSheet', "api('/api/next/week')",

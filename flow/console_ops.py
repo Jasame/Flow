@@ -244,6 +244,45 @@ def save_settings(update, by, drop_none=False):
     _CACHE.update(path=None)  # read again at once (two writes within one mtime tick)
 
 
+# 鸿蒙内测链接 (the owner, 2026-11-26): the public link of the 鸿蒙 内测 in Huawei's AppTest. Set in the 内测版's console
+# only (语流's console never shows it); 认识语流 on the 内测版 (app.about_parts) shows 「加入内测」 with it and 「即将开放」
+# without, at once, no release. Any whole https link is kept for now: Huawei's docs show the public link only as
+# http://xx.xx.xx?taskId=… (C4, 2026-11-26), so the console shows the link's domain (harmony_test_host) for the
+# operator to check; once the real link is known, check its domain here too. Huawei's new console gives an invite
+# link that lasts 30 days (C4, 2026-11-26), so expect to paste a new one about once a month.
+HARMONY_TEST_KEY = 'harmony_test_url'
+
+
+def harmony_test_ok(u):
+    if not isinstance(u, str) or not u or len(u) > 500 or any(c in u for c in ' \t\r\n"\'<>\\`'):
+        return False
+    from urllib.parse import urlsplit
+    parts = urlsplit(u)
+    return parts.scheme == 'https' and bool(parts.hostname) and '.' in parts.hostname
+
+
+def harmony_test_host(u=None):
+    """The domain of the saved (or given) 鸿蒙 内测 link, for the console to show next to it ('' if none)."""
+    from urllib.parse import urlsplit
+    u = harmony_test_url() if u is None else u
+    return (urlsplit(u).hostname or '') if harmony_test_ok(u) else ''
+
+
+def harmony_test_url():
+    """The 鸿蒙 内测 link saved in the console, or '' (none, or not a link we accept)."""
+    v = settings().get(HARMONY_TEST_KEY)
+    return v if harmony_test_ok(v) else ''
+
+
+def set_harmony_test_url(u, by):
+    """Save the 鸿蒙 内测 link (empty: remove it, the button goes back to 即将开放). Raises ValueError for anything that is
+    not an https link on huawei.com / hicloud.com, so the console can say so."""
+    u = (u or '').strip()
+    if u and not harmony_test_ok(u):
+        raise ValueError('请粘贴华为 AppTest 的公开链接：https 开头的完整地址')
+    save_settings({HARMONY_TEST_KEY: u or None}, by, drop_none=True)
+
+
 def set_ai_budget(data, by):
     """The daily AI budget in yuan (0 or empty: none), the nightly marking check on or off, platform discounts
     ({'bailian': 0.65}: the share of the list price actually paid) and prices set by hand ({model: {in, cached, out,

@@ -34,7 +34,7 @@ deployed, from the copy kept by the last release that ran it, and writes data/e2
 /api/deploy-status, which the GitHub monitor checks).
 
 With --beta it does the same for the 内测版 (flow.jasa.hk: /www/wwwroot/flow-beta, its own data, service flow-beta
-on port 8092, no console files): tags b<N>, its own state in /root/claude-ops/autodeploy-beta, its own copies of these
+on port 8092, its console at xmc.hk/flow-beta on admin port 8093): tags b<N>, its own state in /root/claude-ops/autodeploy-beta, its own copies of these
 tools in /root/claude-ops/beta (a version on trial never replaces the ones 语流's releases run with), no daily run.
 """
 import base64, datetime, fcntl, fnmatch, hashlib, json, os, re, shutil, subprocess, sys, tempfile, time, urllib.error, urllib.request
@@ -49,7 +49,7 @@ SITE = {  # where each site lives on the server; flow-pull.sh and qa_e2e.py read
             'signer': 'flow-release', 'name': '语流', 'url': 'https://flowlang.cn'},
     True: {'prefix': 'b', 'ad': OPS / 'autodeploy-beta', 'home': OPS / 'beta', 'data': Path('/www/wwwroot/flow-beta/data'),
            'env': {'FLOW_DIR': '/www/wwwroot/flow-beta', 'FLOW_SERVICE': 'flow-beta', 'FLOW_URL': 'http://127.0.0.1:8092',
-                   'FLOW_XMC': '', 'FLOW_ADMIN_URL': '', 'QA_BASE': 'http://127.0.0.1:8092', 'QA_DB': '/www/wwwroot/flow-beta/data/flow.sqlite3'},
+                   'FLOW_XMC': '/www/wwwroot/xmc.hk/flow-beta', 'FLOW_ADMIN_URL': 'http://127.0.0.1:8093', 'QA_BASE': 'http://127.0.0.1:8092', 'QA_DB': '/www/wwwroot/flow-beta/data/flow.sqlite3'},
            'signer': 'flow-beta-release', 'name': '内测版', 'url': 'https://flow.jasa.hk'},
 }[BETA]
 AD = SITE['ad']

@@ -30,6 +30,64 @@
 
 ## 2026-11-26
 
+### 14:21 · 杭州：内测版后台接到香港（隧道、页面同步、nginx）
+
+- **改了什么**：
+  - 新服务 `flow-admin-hk-beta.service`：SSH 隧道，把杭州本机的 8093 接到香港本机的 8093；
+  - 新服务 `flow-admin-beta-ui-sync.service` 和它的 `.timer`：每 10 分钟从香港拉 `/www/wwwroot/xmc.hk/flow-beta` 的三个页面文件；
+  - 新目录 `/www/wwwroot/xmc.hk/flow-beta`；
+  - nginx 新文件 `/www/server/panel/vhost/nginx/extension/xmc.hk/flow-beta-admin.conf`：`/flow-beta/api/` 转到 8093，`nginx -t` 通过后 reload。
+
+  正式版的 `flow-admin-hk`、`flow-admin-ui-sync` 和 `flow-admin.conf` 都没动。
+- **谁、为什么**：语流 A1·发版和服务器，接着 13:15 开端口，给语流 B6 的内测版后台用。用户在 A1 的原话按顺序是「新建一个应用（推荐）」「你来做」「可以（推荐）」。
+- **撤回**：停用并删掉这两个服务和定时器，删掉那个 nginx 文件，再 reload。
+
+### 14:14 · 内测版：后台按 Cloudflare Access 认人（`/etc/flow-beta.env` 加三行）
+
+- **改了什么**：`/etc/flow-beta.env` 加了三行：一行注释、`FLOW_ACCESS_TEAM`（照抄正式版那一行）、`FLOW_ACCESS_AUD`（新应用的），55 行变 58 行，
+  然后重启 flow-beta。值不写在这里。
+- **谁、为什么**：语流 A1，给语流 B6 的内测版后台用。用户的原话见 14:21 那条。
+- **撤回**：按行删掉这三行，重启 flow-beta。
+
+### 14:1x · Cloudflare：给内测版后台新建一个 Access 应用
+
+- **改了什么**：Cloudflare Access 新建应用「flow-beta console」，只管 `xmc.hk/flow-beta`；策略用 panel-admins-otp，和 xmc.hk 整站那个应用同一条；
+  会话 24 小时。
+- **谁、为什么**：语流 A1，给内测版后台用，用户选了「新建一个应用（推荐）」。
+- **撤回**：在 Cloudflare 上删掉这个应用。
+
+### 13:46 · 语流：单词搭配计划里改正放行时间
+
+- **改了什么**：`/www/wwwroot/flow/data/word-extras/plan.json` 里 `approved` 那一栏，用户放行的时间原来误写成 14:0x，改成
+  「13:4x（写文件前）「可以，今晚开始」」。其他数值没动，文件仍是 www:www 644。
+- **谁**：语流 B7。
+- **备份**：`/root/claude-ops/word-extras-plan.json.bak-20261126-134653`。
+- **撤回**：不用撤，只改了一行说明。
+
+### 13:42 · 语流：单词搭配半量的夜间计划
+
+- **改了什么**：用 www 用户新建了 `/www/wwwroot/flow/data/word-extras/plan.json`（数据目录，不是设置文件）：
+  - 词书：中考、高考、四级、六级、雅思；
+  - 花费：第一晚最多 ¥2，之后每晚最多 ¥8，总共最多 ¥10，最多 4 晚；2026-11-27 起，12-03 以后不再跑；第一晚跑完自动停下等看结果
+    （`hold_after_first`）；用它自己的上限（`own_cap`）。
+  - 网站每晚 02:00–05:00 照它跑 word_extras（#334，r37 上线）。计划生效期间，这次跑的花费不算进每天的总预算和每晚的批量上限，
+    计划结束后自动恢复。
+- **谁、为什么**：语流 B7。写之前先用 www 试跑过，不调 AI：8,061 个词，走批量线路，提示词 v5。
+- **用户的原话**：
+  - 11-25（经 A0）：半量，每晚批量照原来的上限，不超过 ¥3；
+  - 11-26 00:3x 在 B7：「暂时放行预算上限，跑完收紧」；
+  - 11-26 13:4x 在 B7 的选项卡上，具体数字写明以后：「可以，今晚开始」，在写文件之前。
+- **撤回**：删掉这个 `plan.json`，或者在里面加 `"paused": "原因"`，当晚就不会再跑。已经生成的内容在 `vocab_extras` 表里，
+  `hidden` 列可以整批藏起。单词页面上线以前，学员看不到这些内容。
+
+### 13:15 · 内测版：给内测版的后台开端口
+
+- **改了什么**：`/etc/flow-beta.env` 里原来空着的 `FLOW_ADMIN_PORT=` 改成 8093，只听 127.0.0.1；另加一行 `FLOW_ADMIN_EMAILS`，照抄正式版那一行
+  （值不写在这里）。然后重启 flow-beta。正式版没动。
+- **谁、为什么**：语流 A1·发版和服务器，语流 B6 内测版后台的第 1 步。用户在 A1 那边选了「新建一个应用（推荐）」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-console-20261126-131557`。
+- **撤回**：把 `FLOW_ADMIN_PORT=` 改回空的，删掉 `FLOW_ADMIN_EMAILS` 那一行，重启 flow-beta。按行撤回，不要拷回整份备份。
+
 ### 11:35 · 语流：删掉关着的 Gemini 主模型名
 
 - **改了什么**：`/etc/flow.env` 删掉 `FLOW_AI_MODEL=` 那一行（第 15 行，54 → 53 行），只删这一行；`FLOW_AI_URL`、`FLOW_AI_KEY`（网关，

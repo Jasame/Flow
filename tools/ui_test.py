@@ -90,6 +90,13 @@ def settle(pg, sel='#view h1, #view .review, #view .empty, #view .done-card', ti
     pg.wait_for_timeout(350)  # entrance animations
 
 
+# a one-time entry this account has put away (08-tips.js), brought back on the account and on this phone (the page
+# keeps its own copy until it loads again: reload after it)
+TIP_BACK = """async name => { const s = await (await fetch('/api/session')).json(); if (!s.user) return;
+  await fetch('/api/next/tips', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ tip: name, seen: false }) });
+  Object.keys(localStorage).filter(k => k.startsWith('flow-tips-')).forEach(k => { try { localStorage.setItem(k, JSON.stringify((JSON.parse(localStorage.getItem(k)) || []).filter(n => n !== name))); } catch (e) {} }); }"""
+
+
 def go(pg, hash_):
     pg.evaluate("h => { location.hash = h; }", hash_)
     pg.wait_for_timeout(50)
@@ -1919,6 +1926,18 @@ def learner_run(pw):
         retell = pg.evaluate("() => [!!document.querySelector('#pane #rtText') && !document.querySelector('#pane .result'), (document.querySelector('#toast.show') || {}).textContent || '']")
         check(dev, '输出练习: a late AI answer (汉译英 source after 换一句 or 写作; essay grading after 复述) is dropped, no script error',
               a and b and c and d and same and essay and retell[0] and not retell[1] and graded == 200 and len(errs) == n0, (a, b, c, d, same, essay, retell, graded, errs[n0:][:2]))
+        # 一次性入口 (the user, 2026-11-26): 「第一次用？看操作指南」 under 练习 is there until used once; then it is gone, also
+        # after a reload and on another device of the same account (08-tips.js: kept with the account's tips)
+        pg.evaluate(TIP_BACK, 'guide'); pg.reload(wait_until='load'); settle(pg); go(pg, '#/practice')
+        before = pg.locator('#view .guide-cta').count()
+        if before:
+            pg.click('#view .guide-cta'); pg.wait_for_selector('#gtoc', timeout=8000)
+        go(pg, '#/practice'); after = pg.locator('#view .guide-cta').count()
+        c2 = browser.new_context(**phone); c2.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['exam']['token'], 'url': BASE}])
+        p2 = c2.new_page(); p2.goto(BASE + '/#/practice', wait_until='networkidle'); settle(p2); go(p2, '#/'); go(p2, '#/practice')
+        other = p2.locator('#view .guide-cta').count(); kept = p2.evaluate("Object.keys(localStorage).some(k => k.startsWith('flow-tips-') && (localStorage.getItem(k) || '').includes('guide'))"); c2.close()
+        check(dev, '一次性入口: 练习「第一次用？看操作指南」 shows until used once, then not again here or on another device',
+              before == 1 and after == 0 and other == 0 and kept, (before, after, other, kept))
         check(dev, 'no script errors on these pages', not errs, errs[:3])
         ctx.close()
         # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
@@ -3717,6 +3736,8 @@ def review_side_run(pw):
             pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
             pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
             pg.evaluate("localStorage.setItem('flow-next-review-cache', JSON.stringify({at: Date.now(), q: {items: []}})); localStorage.removeItem('flow-know-tip')")
+            pg.evaluate(TIP_BACK, 'know-side')  # put away above, and kept on the account since 2026-11-26 (08-tips.js)
+            pg.reload(wait_until='load'); settle(pg)  # the page's own copy of the list is read once
             go(pg, '#/review'); pg.wait_for_selector('#knowTipOk', timeout=8000)
             ok = pg.evaluate("(() => { const b = document.getElementById('knowTipOk'), g = document.createRange(); g.selectNodeContents(b); return { lines: new Set([...g.getClientRects()].map(x => Math.round(x.top))).size, h: Math.round(b.getBoundingClientRect().height), text: b.textContent }; })()")
             check(dev, f'{w}px: 知道了 on one line, not 知道 / 了', ok['lines'] <= 1, ok)
@@ -3912,20 +3933,21 @@ def review_side_run(pw):
         pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
         home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
         stt = home.get('stats') or {}
-        badge = pg.text_content('#dueBadge') or ''
+        # 底栏: a small ink dot, no number (the user, 2026-11-26); the count is in the tab's name for a screen reader
+        badge = pg.evaluate("(b => ({ label: b.closest('a').getAttribute('aria-label'), text: b.textContent, shown: !b.hidden, w: Math.round(b.getBoundingClientRect().width) }))(document.getElementById('dueBadge'))")
         extra = [x for x in (home.get('path') or {}).get('steps', []) if x.get('group') == 'extra']
         check(dev, '单词 counts words only (2), 其他复习 apart (2): the 单词 badge, home.stats.other_due, and 错题和句型复习 first in 还有时间的话',
-              stt.get('due') == 2 and stt.get('other_due') == 2 and badge.strip() == '2' and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
+              stt.get('due') == 2 and stt.get('other_due') == 2 and badge['label'] == '单词，有 2 项' and badge['text'] == '' and badge['shown'] and badge['w'] == 8 and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
               [stt.get('due'), stt.get('other_due'), badge, extra[:1]])
         # 练习 → 复习 (语流 B9): a block of its own on top, 错题和句型复习 with its number, 错题本 beside it (moved from 单词:
         # one way in, not two); the 「练习」 tab carries the same number
         go(pg, '#/practice'); pg.wait_for_selector('#view .review-block', timeout=6000)
         rb = pg.evaluate("""() => { const b = document.querySelector('#view .review-block'), rows = [...b.querySelectorAll('.px-row')], first = b === document.querySelector('#view .pgroup');
           return { first, rows: rows.map(r => [r.getAttribute('href'), (r.querySelector('b') || {}).textContent.replace(/\\s+/g, ' ').trim()]),
-                   mistake: document.querySelectorAll('#view a[href="#/cards/mistake"]').length, tab: (document.getElementById('otherBadge') || {}).textContent || '',
+                   mistake: document.querySelectorAll('#view a[href="#/cards/mistake"]').length, tab: document.getElementById('otherBadge').closest('a').getAttribute('aria-label') || '', dotText: document.getElementById('otherBadge').textContent,
                    tabShown: !document.getElementById('otherBadge').hidden }; }""")
-        check(dev, '练习 → 复习 on top: 错题和句型复习 2 (#/review/other) and 错题本 (only there); the 「练习」 tab says 2',
-              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型复习 2'], ['#/cards/mistake', '错题本']] and rb['mistake'] == 1 and rb['tab'] == '2' and rb['tabShown'], rb)
+        check(dev, '练习 → 复习 on top: 错题和句型复习 2 (#/review/other) and 错题本 (only there); the 「练习」 tab has a dot, and says 2 to a screen reader',
+              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型复习 2'], ['#/cards/mistake', '错题本']] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         seen = set()
         for k in range(6):
@@ -4780,6 +4802,7 @@ def home_app_run(pw):
                 ctx.add_init_script("window.FlowApp = { platform: 'android' }")
             ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
             pg = ctx.new_page()
+            pg.goto(BASE + '/api/session'); pg.evaluate(TIP_BACK, 'beta-note'); pg.evaluate(TIP_BACK, 'beta-hello')  # one device each: start fresh
             # the ledger's beta entry as the 内测版 server gives it (this test server is 语流's: it answers beta: null)
             pg.route('**/api/next/updates', lambda r: r.fulfill(status=200, content_type='application/json', body=json.dumps({'released': [], 'beta': {
                 'date': '2026-11-25', 'changed': [{'text': '「认识」可以放在右边', 'link': '#/me'}], 'new': ['今日的计划按时间排'], 'better': [{'text': '复习卡正好一屏'}], 'fixed': []}}, ensure_ascii=False)))
@@ -4794,6 +4817,13 @@ def home_app_run(pw):
             pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)  # 我的 keeps asking (no network idle)
             seen[label]['after ✕ and a reload'] = pg.evaluate(LINE)
             ctx.close()
+        # closed in the browser above: another device of the same account shows neither the line nor the sheet (08-tips.js)
+        ctx = browser.new_context(viewport={'width': 393, 'height': 852}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+        ctx.add_init_script(BETA); ctx.add_cookies([{'name': 'flow_session', 'value': tok, 'url': BASE}])
+        pg = ctx.new_page(); pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg); pg.wait_for_timeout(1500)
+        other = pg.evaluate("() => ({ bar: !!document.getElementById('betaBar'), sheet: !document.getElementById('sheet').hidden })"); ctx.close()
+        check(dev, 'the 内测版: closed on one device, the line and the once-only sheet do not come back on another (kept on the account)',
+              not other['bar'] and not other['sheet'], other)
         a, b = seen['in an app'], seen['in a browser']
         check(dev, 'the 内测版: one thin line (no link: 去正式版 is in 我的), 「内测」 by the logo, ✕ closes it for good on this device',
               a['bar'] and b['bar'] and not a['link'] and not b['link'] and a['pill'] and b['pill'] and b['h'] <= 34

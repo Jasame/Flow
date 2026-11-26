@@ -186,7 +186,7 @@
       const draft = load(key) || '';
       pane.innerHTML = `${outTabs('model')}<div class="stack"><div class="card flat task"><b>${esc(m.task.prompt)}</b>
           ${m.task.model ? `<div class="model">${esc(m.task.model)} <button class="icon-btn" id="sayModel" type="button" aria-label="朗读参考句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</div>` : ''}
-          ${m.task.hint ? `<div class="muted small">${esc(m.task.hint)}</div>` : ''}
+          ${m.task.hint ? `<div class="muted small">${esc(m.task.hint)}</div>` : ''}${tryHintHTML(id)}
           ${(m.mine || []).length ? `<div class="muted small">可以试着用上你在背的词：${[...new Set(m.mine.map(x => x.form))].slice(0, 5).map(w => `<b>${esc(w)}</b>`).join('、')}（用对了算一次成功复习）</div>` : ''}</div>
         <label class="field">你的英文<textarea id="ans" maxlength="600" lang="en" data-submit="#go" placeholder="写一两句就好，写错没关系。">${esc(draft)}</textarea></label>
         <div class="row between"><span class="counter" id="cnt">${draft.length} / 600</span><button class="btn primary" id="go">让 AI 帮我改</button></div>
@@ -199,7 +199,7 @@
         if (!/[A-Za-z]{2,}.*\s+.*[A-Za-z]/.test(text)) { err.textContent = '先用英文写一个短句。'; return; }
         if (!S.user) return needLogin('登录后 AI 会帮你改写，并给出三种更好的说法。');
         const btn = pane.querySelector('#go'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span> 正在看你写的…';
-        try { const r = await api('/api/next/rewrite', { pack: id, text, request_id: rid('nr') }); markStep('output'); if (!err.isConnected) return; renderResult(r.result, text, r.remaining); }
+        try { const r = await api('/api/next/rewrite', { pack: id, text, request_id: rid('nr') }); markStep('output'); S.tryNode = null; if (!err.isConnected) return; renderResult(r.result, text, r.remaining); }
         catch (e) { err.textContent = e.message; }
         btn.disabled = false; btn.textContent = '再改一次';
       };
