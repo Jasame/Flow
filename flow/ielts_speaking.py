@@ -287,7 +287,7 @@ def _record(c, uid, result, status, pack):
     r = result['result']
     if r.get('overall') is not None:
         sk.log(c, uid, 'speaking', 'ielts', r['overall'] / 9, cefr(r['overall']), pack, commit=False)
-    sk.mistakes_from_changes(c, uid, r['fixes'], r.get('transcript') or '', 'speaking', pack)
+    sk.mistakes_from_changes(c, uid, r['fixes'], r.get('transcript') or '', 'speaking', pack, request_id=str(result.get('request_id') or ''), kind='ielts')
     c.commit()
     return result, status
 

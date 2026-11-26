@@ -27,7 +27,12 @@ def schema(c):
 CREATE TABLE IF NOT EXISTS next_skill_events(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), skill TEXT NOT NULL,
  kind TEXT NOT NULL, score REAL NOT NULL, level TEXT, pack TEXT, created REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS next_skill_events_user ON next_skill_events(user_id, skill, created);
-CREATE TABLE IF NOT EXISTS next_weekly(user_id INTEGER PRIMARY KEY REFERENCES users(id), last_sent TEXT);''')
+CREATE TABLE IF NOT EXISTS next_weekly(user_id INTEGER PRIMARY KEY REFERENCES users(id), last_sent TEXT);
+-- 每次 AI 改错 (r29 周报的「反复出现」): one row per output and grammar point, so repeats count by output and by day
+-- (a fix card keeps one row per mistake and its first date only). Not learning evidence: kept out of learning_events.
+CREATE TABLE IF NOT EXISTS next_corrections(user_id INTEGER NOT NULL REFERENCES users(id), node TEXT NOT NULL, source TEXT NOT NULL,
+ kind TEXT NOT NULL DEFAULT '', skill TEXT NOT NULL DEFAULT '', pack TEXT, assisted INTEGER, created REAL NOT NULL, PRIMARY KEY(user_id, node, source));
+CREATE INDEX IF NOT EXISTS next_corrections_time ON next_corrections(user_id, created);''')
     cols = {r[1] for r in c.execute('PRAGMA table_info(next_cards)')}
     for name, decl in (('skill', 'TEXT'), ('node', 'TEXT'), ('extra', 'TEXT')):
         if name not in cols:
@@ -70,8 +75,11 @@ def add_mistake(c, uid, kind, text, norm, meaning='', context='', skill=None, no
     return cid
 
 
-def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3):
-    """Corrections from AI feedback ({from, to, why, node}) become fix cards."""
+def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3, request_id='', kind='', assisted=None):
+    """Corrections from AI feedback ({from, to, why, node}) become fix cards. Each one on a grammar point is also noted
+    once per output (request_id; one made up when there is none) in next_corrections, for 反复出现 (progress_service.
+    recurring): a card keeps one row per mistake, so it cannot tell whether the same point came back in other outputs."""
+    source = 'fix:' + (str(request_id or '') or __import__('uuid').uuid4().hex)
     for ch in (changes or [])[:limit]:
         frm, to = (ch.get('from') or '').strip(), (ch.get('to') or '').strip()
         if not to or frm in ('', '—') or frm.lower() == to.lower() or len(frm) > 160:
@@ -79,7 +87,10 @@ def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3):
         # keep the sentence the mistake was in, not the whole essay or retelling
         ctx = next((x for x in nx.sentences(sentence or '') if frm.lower() in x.lower()), sentence or '')[:600]
         add_mistake(c, uid, 'fix', to, 'fix:' + nx._norm(frm + ' > ' + to), ch.get('why') or '', ctx, skill,
-                    ch.get('node'), pack, {'from': frm}, commit=False)
+                    ch.get('node'), pack, {'from': frm, 'kind': kind} if kind else {'from': frm}, commit=False)
+        if ch.get('node') and uid:
+            c.execute('INSERT OR IGNORE INTO next_corrections(user_id,node,source,kind,skill,pack,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
+                      (uid, ch['node'], source, kind or '', skill or '', pack, None if assisted is None else int(bool(assisted)), time.time()))
     c.commit()
 
 

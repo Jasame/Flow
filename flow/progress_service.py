@@ -11,7 +11,7 @@
 Every number comes from the learner's own records. Where there is too little to say anything (a few questions only),
 it says how many there were instead of a percentage.
 """
-import datetime, json, os, secrets, time
+import datetime, json, os, re, secrets, time, uuid
 from collections import Counter
 
 import next_service as nx
@@ -39,6 +39,13 @@ def schema(c):
     c.execute('CREATE TABLE IF NOT EXISTS next_step_log(user_id INTEGER NOT NULL REFERENCES users(id), pack TEXT NOT NULL, step TEXT NOT NULL, '
               'day TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(user_id, pack, step, day))')
     c.execute('CREATE INDEX IF NOT EXISTS next_step_log_time ON next_step_log(user_id, created)')
+    # 周报「这周的一次进步」(r29): a sentence the learner wrote later that uses a form AI once corrected for them (card:
+    # the fix card), right and not corrected this time. Written only: spoken words are never kept. At most EVIDENCE_KEEP
+    # a grammar point, EVIDENCE_DAYS at most; only the learner sees them.
+    c.execute('CREATE TABLE IF NOT EXISTS next_evidence(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), node TEXT NOT NULL, '
+              'card INTEGER NOT NULL, kind TEXT NOT NULL, sentence TEXT NOT NULL, source TEXT NOT NULL, assisted INTEGER, created REAL NOT NULL, '
+              'UNIQUE(user_id, card, source))')
+    c.execute('CREATE INDEX IF NOT EXISTS next_evidence_user ON next_evidence(user_id, node, created)')
 
 
 # ---------- days and weeks ----------
@@ -99,6 +106,80 @@ def weeks_reached(c, uid, goal, days, monday):
     """Weeks (Monday to Sunday) that reached the weekly goal, this one included once it does. Only counts up."""
     history, per = _history(c, uid), Counter(d - D(days=d.weekday()) for d in days)
     return sum(1 for mon, n in per.items() if mon <= monday and n >= (goal if mon == monday else _goal_for(history, mon.isoformat(), goal)))
+
+
+# ---------- 这周的一次进步 (r29): written evidence and points that keep coming back ----------
+
+EVIDENCE_KEEP, EVIDENCE_DAYS = 2, 90
+# 反复出现 (the user's rule, 2026-11-26, with B7): the same grammar point corrected in at least RECUR_OUTPUTS different
+# outputs on at least RECUR_DAYS days within RECUR_WINDOW days. Once or twice is pointed out there and then, and stops.
+RECUR_WINDOW, RECUR_DAYS, RECUR_OUTPUTS = 14, 2, 3
+
+
+def note_evidence(c, uid, text, changes, kind, request_id='', assisted=None, now=None):
+    """After a written output is marked: for each fix card on a grammar point whose corrected form (to) the learner now
+    wrote, and that point not corrected this time, keep that sentence (next_evidence). Forms too short to mean anything
+    (a, the, in…) are left out. Returns how many were kept. The caller commits."""
+    if not uid or not (text or '').strip():
+        return 0
+    now = now or time.time()
+    fixed = {ch.get('node') for ch in (changes or []) if ch.get('node')}
+    source, low, kept = 'ev:' + (str(request_id or '') or uuid.uuid4().hex), text.lower(), 0
+    for r in c.execute("SELECT id, text, node FROM next_cards WHERE user_id=? AND kind='fix' AND source='mistake' AND node IS NOT NULL AND created<?",
+                       (uid, now)).fetchall():
+        to = (r['text'] or '').strip()
+        if r['node'] in fixed or not to or len(to) > 60 or (len(to) < 4 and ' ' not in to):
+            continue
+        if not re.search(r'(?<![a-z])' + re.escape(to.lower()) + r'(?![a-z])', low):
+            continue
+        sent = next((s for s in nx.sentences(text) if to.lower() in s.lower()), '')[:300]
+        if not sent:
+            continue
+        c.execute('INSERT OR IGNORE INTO next_evidence(user_id,node,card,kind,sentence,source,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
+                  (uid, r['node'], r['id'], kind, sent, source, None if assisted is None else int(bool(assisted)), now))
+        c.execute('DELETE FROM next_evidence WHERE user_id=? AND node=? AND id NOT IN '
+                  '(SELECT id FROM next_evidence WHERE user_id=? AND node=? ORDER BY created DESC, id DESC LIMIT ?)', (uid, r['node'], uid, r['node'], EVIDENCE_KEEP))
+        kept += 1
+    c.execute('DELETE FROM next_evidence WHERE user_id=? AND created<?', (uid, now - EVIDENCE_DAYS * 86400))
+    return kept
+
+
+def recurring(c, uid, now=None):
+    """Grammar points that keep coming back (RECUR_*), most outputs first: [{node, outputs, days, last}]. A point the
+    learner has since answered right without help in a rule-marked question no longer counts (B7)."""
+    now = now or time.time()
+    by = {}
+    for r in c.execute('SELECT node, source, created FROM next_corrections WHERE user_id=? AND created>=?', (uid, now - RECUR_WINDOW * 86400)):
+        d = by.setdefault(r['node'], {'outputs': set(), 'days': set(), 'last': 0})
+        d['outputs'].add(r['source']); d['days'].add(_local(r['created']).date()); d['last'] = max(d['last'], r['created'])
+    out = []
+    for node, d in by.items():
+        if len(d['outputs']) < RECUR_OUTPUTS or len(d['days']) < RECUR_DAYS:
+            continue
+        if c.execute("SELECT 1 FROM learning_events WHERE user_id=? AND node=? AND evaluator='rule' AND correct=1 AND assisted=0 AND created>? LIMIT 1",
+                     (uid, node, d['last'])).fetchone():
+            continue
+        out.append({'node': node, 'outputs': len(d['outputs']), 'days': len(d['days']), 'last': d['last']})
+    return sorted(out, key=lambda x: (-x['outputs'], -x['last']))
+
+
+def pairs(c, uid, now=None, days=7):
+    """「之前 / 这周」 for the weekly report, newest first, one a grammar point: before = the fix card (the learner's own
+    sentence, from → to, when, which practice); after = the sentence they wrote right later (when, which practice,
+    assisted: 1 with help, 0 without, None not known)."""
+    now = now or time.time()
+    out, seen = [], set()
+    for e in c.execute('SELECT e.node, e.kind, e.sentence, e.assisted, e.created, k.text AS fix_to, k.context, k.extra, k.created AS before_at, k.skill '
+                       'FROM next_evidence e JOIN next_cards k ON k.id=e.card AND k.user_id=e.user_id WHERE e.user_id=? AND e.created>=? '
+                       'ORDER BY e.created DESC, e.id DESC', (uid, now - days * 86400)):
+        if e['node'] in seen:
+            continue
+        seen.add(e['node'])
+        extra = json.loads(e['extra'] or '{}')
+        out.append({'node': e['node'],
+                    'before': {'sentence': e['context'], 'from': extra.get('from', ''), 'to': e['fix_to'], 'at': e['before_at'], 'kind': extra.get('kind') or e['skill'] or ''},
+                    'after': {'sentence': e['sentence'], 'at': e['created'], 'kind': e['kind'], 'assisted': e['assisted']}})
+    return out
 
 
 # ---------- this week ----------
