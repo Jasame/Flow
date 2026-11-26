@@ -56,17 +56,20 @@
     ];
     return setup ? all : all.filter(s => !s.setup);
   }
-  const INTRO = { el: null, steps: [], i: 0, dir: 1, done: null, prev: null, st: null, again: false, busy: false };
+  const INTRO = { el: null, steps: [], i: 0, done: null, prev: null, st: null, again: false, busy: false, tab: null, demo: 0, res: 0 };
+  // how it moves (B9 and A0, 2026-11-26: 「新手引导是要有流畅的动画的哦」): both steps at once, fast then slow
+  const INTRO_EASE = 'cubic-bezier(.2,.8,.2,1)', INTRO_MS = 300;
   // where it was left (this browser): the step's id and whose it was
   const introWho = () => (S.user ? 'u' + S.user.id : 'guest');
   function introLeftAt() { const a = load('flow-intro-at'); return a && a.who === introWho() ? a.id : ''; }
+  const introTour = s => !s.setup;  // a step of the places: picture, title, sentence, and the one shared button
 
   // opts: { setup: from 欢迎, again: 我的 → 帮助, from: a step's id to go on from }; done(result, step, again)
   function introStart(opts, done) {
     if (INTRO.el) return;
     const steps = INTRO.steps = introSteps(!!opts.setup);
     INTRO.done = done; INTRO.again = !!opts.again; INTRO.prev = document.activeElement;
-    INTRO.i = Math.max(0, steps.findIndex(s => s.id === opts.from));
+    INTRO.i = Math.max(0, steps.findIndex(s => s.id === opts.from)); INTRO.tab = null; INTRO.busy = false;
     INTRO.st = INTRO.st || { goals: [], exam: '', target: '', days: 0, picked: false, dayPicked: false };
     const el = INTRO.el = document.createElement('div');
     el.className = 'intro'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'introT'); el.tabIndex = -1;
@@ -75,28 +78,24 @@
     el.innerHTML = `<div class="intro-top"><button class="intro-back" type="button" data-intro="back" aria-label="上一步" data-tap="intro-back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <span class="intro-prog" aria-hidden="true"><i></i></span>
         <button class="intro-skip" type="button" data-intro="skip" data-tap="intro-skip">跳过</button></div>
-      <div class="intro-stage"></div>
+      <div class="intro-stage"><div class="intro-go"><button class="btn primary block intro-next" type="button" data-intro="next" data-tap="intro-next">下一步</button></div></div>
       <div class="intro-tabs" aria-hidden="true"><span class="intro-pill"></span>${tabs}</div>`;
     document.body.appendChild(el); document.body.classList.add('introing');
     el.addEventListener('click', introClick);
     el.addEventListener('keydown', introKey);
-    // a swipe sideways goes on or back (not on the steps that ask something: a list there scrolls)
-    let t0 = null;
-    const stage = el.querySelector('.intro-stage');
-    stage.addEventListener('touchstart', e => { const p = e.touches[0]; t0 = { x: p.clientX, y: p.clientY }; }, { passive: true });
-    stage.addEventListener('touchend', e => {
-      if (!t0) return; const p = e.changedTouches[0], dx = p.clientX - t0.x, dy = p.clientY - t0.y; t0 = null;
-      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.6 || INTRO.steps[INTRO.i].ask) return;
-      if (dx < 0) introNext(); else introGo(INTRO.i - 1);
-    }, { passive: true });
-    introShow(true);
+    introDragWire(el.querySelector('.intro-stage'));
+    addEventListener('resize', introLayout);
+    introLayout();
+    const page = introMake(INTRO.i);
+    el.querySelector('.intro-stage').insertBefore(page, el.querySelector('.intro-go'));
+    introSettle(page, true);
     requestAnimationFrame(() => requestAnimationFrame(() => { if (INTRO.el === el) el.classList.add('in'); }));
   }
   function introClick(e) {
     const b = e.target.closest('[data-intro]'); if (!b || b.disabled) return;
     const a = b.dataset.intro;
     if (a === 'skip') introEnd('skip');
-    else if (a === 'back') introGo(INTRO.i - 1);
+    else if (a === 'back') introBack();
     else if (a === 'next') introNext();
     else if (a === 'login' || a === 'reg') { introEnd('later'); openLogin('', a === 'reg' ? 'reg' : ''); }
   }
@@ -104,86 +103,237 @@
     const el = INTRO.el; if (!el) return;
     if (e.key === 'Escape') { e.preventDefault(); introEnd('skip'); return; }
     const ask = INTRO.steps[INTRO.i].ask;
-    if (!ask && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); if (e.key === 'ArrowRight') introNext(); else introGo(INTRO.i - 1); return; }
+    if (!ask && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); if (e.key === 'ArrowRight') introNext(); else introBack(); return; }
     if (e.key !== 'Tab') return;  // the focus stays in it while it is open
-    const bs = [...el.querySelectorAll('.intro-top button, .intro-step:not(.out) button')].filter(b => !b.hidden && !b.disabled && b.offsetParent !== null);
+    const bs = [...el.querySelectorAll('.intro-top button, .intro-step.cur button, .intro-go.show button')].filter(b => !b.hidden && !b.disabled && b.offsetParent !== null);
     if (!bs.length) return;
     const k = bs.indexOf(document.activeElement);
     e.preventDefault(); bs[(k + (e.shiftKey ? bs.length - 1 : 1) + bs.length) % bs.length].focus();
   }
 
-  // one step: its page drawn, the one before slid out (forward: to the left), the tab bar's mark moved under its place
-  function introShow(first) {
+  // The places' steps keep their picture, title and sentence in one block from the same height, and share one button
+  // under it, so the button never moves from step to step (the user: where the eye and the thumb already are): the
+  // block's height is the tallest of them on this screen, the block and the button together in the middle.
+  function introLayout() {
+    const el = INTRO.el; if (!el) return;
+    const stage = el.querySelector('.intro-stage'), probe = document.createElement('div');
+    probe.className = 'intro-step intro-place intro-probe'; probe.setAttribute('aria-hidden', 'true');
+    probe.innerHTML = INTRO.steps.filter(introTour).map(s => introStepHTML(s)).join('');
+    stage.appendChild(probe);
+    INTRO.res = Math.max(...[...probe.querySelectorAll('.intro-body')].map(b => b.offsetHeight), 0);
+    probe.remove();
+    const top = Math.max(12, Math.round((stage.clientHeight - (INTRO.res + 24 + 52)) / 2 - innerHeight * 0.04));
+    stage.style.setProperty('--gtop', top + 'px');
+    el.querySelector('.intro-go').style.top = top + INTRO.res + 24 + 'px';
+  }
+  // one step's page (not yet the current one: no ids, not wired)
+  function introMake(i) {
+    const s = INTRO.steps[i], page = document.createElement('section');
+    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (introTour(s) ? ' intro-place' : '');
+    page.dataset.k = String(i);
+    page.innerHTML = introStepHTML(s);
+    introArtPrep(page);
+    return page;
+  }
+  // the lines of a picture are drawn: each stroke from nothing to its whole length (stroke-dashoffset, on this small
+  // picture only; B9), its group's delay after the one before
+  function introArtPrep(page) {
+    if (REDUCED) return;
+    page.querySelectorAll('.intro-art .fr, .intro-art .hl, .intro-art .lns, .intro-art .axis, .intro-art .arr').forEach(x => {
+      let len = 0; try { len = Math.ceil(x.getTotalLength()); } catch (e) { len = 0; }
+      if (!len) return;
+      const g = x.closest('.d1, .d2, .d3'), k = g ? Number(g.className.baseVal.match(/\bd(\d)\b/)[1]) : 0;
+      x.style.strokeDasharray = `${len} ${len + 40}`; x.style.strokeDashoffset = String(len + 20);
+      x.style.setProperty('--dl', 60 + k * 70 + 'ms'); x.classList.add('draw');
+    });
+  }
+  // the step now on screen: its ids and wiring, the top bar, the tab bar's mark, the shared button, the focus
+  function introSettle(page, first) {
     const el = INTRO.el, steps = INTRO.steps, s = steps[INTRO.i], n = steps.length, last = INTRO.i === n - 1;
     save('flow-intro-at', { id: s.id, who: introWho() });  // closed here, the next opening goes on from this step
-    const stage = el.querySelector('.intro-stage'), old = stage.querySelector('.intro-step:not(.out)');
-    // between two steps of the same kind (picture, title, sentence, button) only the picture and the words move: the
-    // button stays where it is, its label changing (08-intro.css .same)
-    stage.classList.toggle('same', !!old && !s.setup && !old.classList.contains('ask') && !old.querySelector('.intro-mark'));
-    const page = document.createElement('section');
-    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (first ? '' : ' enter');
-    page.style.setProperty('--dir', String(INTRO.dir));
-    page.innerHTML = introStepHTML(s, last);
-    stage.appendChild(page);
-    if (s.ask) introWire(page, s);
-    if (old) {
-      old.style.setProperty('--dir', String(INTRO.dir)); old.classList.add('out'); old.setAttribute('aria-hidden', 'true');
-      old.querySelectorAll('button').forEach(b => b.setAttribute('tabindex', '-1'));
-      setTimeout(() => old.remove(), REDUCED ? 0 : 280);
+    el.querySelectorAll('.intro-step').forEach(p => { if (p !== page) p.remove(); });
+    page.classList.add('cur', 'seen'); page.removeAttribute('aria-hidden');
+    page.style.transition = page.style.transform = page.style.opacity = '';
+    el.querySelectorAll('#introT, #introD').forEach(x => x.removeAttribute('id'));
+    const t = page.querySelector('.intro-t'), d = page.querySelector('.intro-d');
+    if (t) t.id = 'introT'; if (d) d.id = 'introD';
+    if (s.ask && !page.dataset.wired) { introWire(page, s); page.dataset.wired = '1'; }
+    // the top: back from the second step on (not back into the choices once they are saved: 我的 → 学习目标 changes
+    // them); how far along, a bar (no numbers to count down)
+    el.querySelector('.intro-back').hidden = INTRO.i === 0 || !introCanGo(INTRO.i - 1);
+    introBars(INTRO.i, null, 0);
+    // the shared button: on the places' steps; its label on the last
+    const go = el.querySelector('.intro-go'), tour = introTour(s);
+    go.classList.toggle('show', tour);
+    go.querySelector('button').textContent = last ? (INTRO.again ? '看完了' : '开始学习') : '下一步';
+    go.querySelector('button').tabIndex = tour ? 0 : -1;
+    // the focus: on the dialog when it opens (a screen reader hears its name; no ring drawn on a button), then on the
+    // step's button, so 下一步 is one Enter away
+    const b = tour ? go.querySelector('button') : page.querySelector('.intro-next');
+    if (first) el.focus({ preventScroll: true }); else if (b) b.focus({ preventScroll: true });
+    if (!first || INTRO.i) announce(`第 ${INTRO.i + 1} 步，共 ${n} 步：${t ? t.textContent : ''}。${d ? d.textContent : ''}`);
+    introDemo(page);
+  }
+  // the progress bar and the tab bar's mark: at step i, or part of the way (p, 0–1) to step j while a finger drags
+  function introBars(i, j, p) {
+    const el = INTRO.el, steps = INTRO.steps, n = steps.length;
+    const prog = el.querySelector('.intro-prog i'), pill = el.querySelector('.intro-pill'), tabs = el.querySelector('.intro-tabs');
+    const dragging = j != null;
+    prog.style.transition = pill.style.transition = dragging ? 'none' : '';
+    prog.style.transform = `scaleX(${(i + 1 + (dragging ? (j - i) * p : 0)) / n})`;
+    const on = steps[i].tab == null ? null : steps[i].tab, to = dragging && steps[j].tab != null ? steps[j].tab : null;
+    if (dragging) {  // the mark between two places follows the finger
+      if (on != null && on >= 0 && to != null && to >= 0) pill.style.transform = `translateX(${(on + (to - on) * p) * 100}%)`;
+      return;
     }
-    requestAnimationFrame(() => requestAnimationFrame(() => { page.classList.remove('enter'); page.classList.add('seen'); }));
-    // the top: back from the second step on; how far along, a bar (no numbers to count down)
-    // (back into the steps that ask is not offered once the profile is saved: 我的 → 学习目标 changes it)
-    el.querySelector('.intro-back').hidden = INTRO.i === 0 || (!s.setup && steps[INTRO.i - 1].setup && hasProfile());
-    el.querySelector('.intro-prog i').style.transform = `scaleX(${(INTRO.i + 1) / n})`;
-    // the tab bar: shown from the first place on; its mark under this step's place (all of them in turn on 底下五个地方)
-    const tabs = el.querySelector('.intro-tabs'), pill = el.querySelector('.intro-pill'), on = s.tab == null ? null : s.tab;
     tabs.classList.toggle('show', on != null);
     tabs.classList.toggle('sweep', on === -1);
+    tabs.classList.toggle('reveal', INTRO.tab === -1 && on != null && on >= 0); INTRO.tab = on;
     pill.style.transform = `translateX(${Math.max(0, on || 0) * 100}%)`;
-    tabs.querySelectorAll('.intro-tab').forEach((t, k) => t.classList.toggle('on', on === k));
-    // the focus: on the dialog when it opens (a screen reader hears its name; no ring drawn on the button), then on each
-    // step's button, so 下一步 is one Enter away
-    const go = page.querySelector('.intro-next');
-    if (first) el.focus({ preventScroll: true }); else if (go) go.focus({ preventScroll: true });
-    if (!first || INTRO.i) announce(`第 ${INTRO.i + 1} 步，共 ${n} 步：${page.querySelector('.intro-t').textContent}。${(page.querySelector('.intro-d') || {}).textContent || ''}`);
+    tabs.querySelectorAll('.intro-tab').forEach((x, k) => x.classList.toggle('on', on === k));
   }
-  function introStepHTML(s, last) {
+  // what a picture shows (单词's card swiped, 能力's shape growing, a row opening, a bar growing): once after it is
+  // drawn, then gently again every few seconds while the step stays
+  const INTRO_DEMO = {
+    swipe: l => [{ transform: 'none' }, { transform: `translateX(${l ? -14 : 14}px) rotate(${l ? -4 : 4}deg)`, offset: 0.4 }, { transform: `translateX(${l ? -14 : 14}px) rotate(${l ? -4 : 4}deg)`, offset: 0.6 }, { transform: 'none' }],
+    'grow-in': () => [{ transform: 'scale(.82)' }, { transform: 'none' }],
+    'grow-x': () => [{ transform: 'scaleX(.55)' }, { transform: 'none' }],
+    open: () => [{ transform: 'scaleY(.7)', opacity: 0.6 }, { transform: 'none', opacity: 1 }],
+  };
+  function introDemo(page) {
+    clearInterval(INTRO.demo); INTRO.demo = 0;
+    if (REDUCED || !page.querySelector('.intro-art')) return;
+    const parts = Object.keys(INTRO_DEMO).map(k => [k, page.querySelector('.intro-art .' + k)]).filter(x => x[1] && x[1].animate);
+    if (!parts.length) return;
+    const play = () => parts.forEach(([k, x]) => x.animate(INTRO_DEMO[k](x.classList.contains('l')), { duration: k === 'swipe' ? 1300 : 700, easing: INTRO_EASE }));
+    INTRO.demo = setInterval(() => { if (INTRO.el && page.isConnected) play(); else clearInterval(INTRO.demo); }, 4000);
+  }
+  // can a step be reached from this one: not past the choices before they are made (下一步 saves them), not back into
+  // them once saved
+  function introGoalsOk() { const st = INTRO.st; return st.goals.length > 0 && (!st.goals.includes('exam') || !!st.exam); }
+  function introCanGo(j) {
+    const steps = INTRO.steps, s = steps[INTRO.i], t = steps[j];
+    if (!t || j === INTRO.i) return false;
+    if (j > INTRO.i) return s.id === 'goals' ? introGoalsOk() : s.id !== 'aim';
+    return !(t.setup && !s.setup && hasProfile());
+  }
+
+  // to step j: both at once, the one on screen out to one side and the new one in from the other, sliding and fading
+  // (300 ms, fast then slow); from where a finger left them (from: the offset in px), or from the start
+  function introGo(j, from) {
+    if (!INTRO.el || INTRO.busy || j < 0 || j >= INTRO.steps.length || j === INTRO.i) return;
+    const stage = INTRO.el.querySelector('.intro-stage'), cur = stage.querySelector('.intro-step.cur'), dir = j > INTRO.i ? 1 : -1, W = stage.clientWidth;
+    let nb = from && from.nb;
+    if (!nb) {
+      nb = introMake(j); nb.setAttribute('aria-hidden', 'true');
+      stage.insertBefore(nb, stage.querySelector('.intro-go'));
+      introPlace(nb, dir * W, 0);
+      nb.offsetWidth;  // eslint-disable-line no-unused-expressions -- its start position drawn before it moves
+      nb.classList.add('seen');
+    }
+    const moved = from ? Math.abs(from.dx) : 0, v = from ? Math.abs(from.v) : 0;
+    const ms = REDUCED ? 0 : Math.round(Math.max(160, Math.min(INTRO_MS, v > 0.5 ? (W - moved) / v : INTRO_MS * (1 - moved / W) + 80)));
+    const go = INTRO.el.querySelector('.intro-go'), keep = introTour(INTRO.steps[INTRO.i]) && introTour(INTRO.steps[j]);
+    if (!keep) go.classList.remove('show');  // (the shared button stays put between two places' steps)
+    INTRO.busy = true;
+    introPlace(cur, -dir * W, 0, ms); introPlace(nb, 0, 1, ms);
+    INTRO.i = j; introBars(j, null, 0);
+    setTimeout(() => { INTRO.busy = false; if (INTRO.el) introSettle(nb, false); }, ms + 20);
+  }
+  function introPlace(x, px, o, ms) {
+    x.style.transition = ms ? `transform ${ms}ms ${INTRO_EASE}, opacity ${ms}ms ${INTRO_EASE}` : 'none';
+    x.style.transform = `translateX(${Math.round(px)}px)`; x.style.opacity = String(o);
+  }
+  function introBack() { if (introCanGo(INTRO.i - 1)) introGo(INTRO.i - 1); }
+
+  // a finger: sideways (past 8 px; up and down still scrolls a list), the step follows it 1:1 with the next one beside
+  // it; let go past a third of the screen, or with speed, and it turns, else it springs back. Nothing to turn to (the
+  // first, the last, the choices not made): it gives a third of the way, then springs back.
+  function introDragWire(stage) {
+    let d = null;
+    const W = () => stage.clientWidth;
+    stage.addEventListener('touchstart', e => {
+      if (INTRO.busy || e.touches.length > 1) { d = null; return; }
+      const p = e.touches[0]; d = { x0: p.clientX, y0: p.clientY, lock: '', dx: 0, dir: 0, nb: null, can: false, pts: [[p.clientX, performance.now()]] };
+    }, { passive: true });
+    stage.addEventListener('touchmove', e => {
+      if (!d || INTRO.busy) return;
+      const p = e.touches[0], dx = p.clientX - d.x0, dy = p.clientY - d.y0;
+      if (!d.lock) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; d.lock = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; }
+      if (d.lock !== 'x') return;
+      if (e.cancelable) e.preventDefault();
+      d.pts.push([p.clientX, performance.now()]); if (d.pts.length > 6) d.pts.shift();
+      const dir = dx < 0 ? 1 : -1;
+      if (dir !== d.dir) {  // which side: the step it would turn to, drawn beside this one
+        if (d.nb) d.nb.remove();
+        d.dir = dir; d.j = INTRO.i + dir; d.can = introCanGo(d.j); d.nb = null;
+        if (d.can) {
+          d.nb = introMake(d.j); d.nb.setAttribute('aria-hidden', 'true'); d.nb.classList.add('seen');
+          stage.insertBefore(d.nb, stage.querySelector('.intro-go'));
+        }
+      }
+      const cur = stage.querySelector('.intro-step.cur'), w = W(), p01 = Math.min(1, Math.abs(dx) / w);
+      d.dx = d.can ? dx : dx / 3;
+      introPlace(cur, d.dx, d.can ? 1 - 0.7 * p01 : 1);
+      if (d.nb) introPlace(d.nb, d.dir * w + dx, 0.3 + 0.7 * p01);
+      if (d.can) introBars(INTRO.i, d.j, p01);
+    }, { passive: false });
+    const end = cancel => {
+      if (!d || d.lock !== 'x') { d = null; return; }
+      const a = d.pts[0], b = d.pts[d.pts.length - 1], v = b[1] > a[1] ? (b[0] - a[0]) / (b[1] - a[1]) : 0, w = W();
+      const turn = !cancel && d.can && (Math.abs(d.dx) > w * 0.3 || (Math.abs(v) > 0.5 && Math.sign(v) === -d.dir));
+      const cur = stage.querySelector('.intro-step.cur'), x = d;
+      d = null;
+      if (turn) { introGo(x.j, { nb: x.nb, dx: x.dx, v }); return; }
+      // back to where it was (a little give past it from the edge)
+      const ms = REDUCED ? 0 : 280;
+      cur.style.transition = `transform ${ms}ms cubic-bezier(.34,1.3,.64,1), opacity ${ms}ms ${INTRO_EASE}`;
+      cur.style.transform = 'translateX(0px)'; cur.style.opacity = '1';
+      if (x.nb) { introPlace(x.nb, x.dir * w, 0, ms); setTimeout(() => x.nb.remove(), ms + 20); }
+      introBars(INTRO.i, null, 0);
+    };
+    stage.addEventListener('touchend', () => end(false));
+    stage.addEventListener('touchcancel', () => end(true));
+  }
+  function introStepHTML(s) {
     const next = (label, dis) => `<button class="btn primary block intro-next" type="button" data-intro="next" data-tap="intro-next"${dis ? ' disabled' : ''}>${label}</button>`;
     if (s.id === 'hello') {
       return `<div class="intro-body"><div class="intro-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-        <h2 class="intro-t intro-big" id="introT">欢迎来到语流</h2>
-        <p class="intro-d" id="introD">每天十来分钟，听、读、说、背单词，跟着计划一点点往前走。先用半分钟定个目标。</p>
+        <h2 class="intro-t intro-big">欢迎来到语流</h2>
+        <p class="intro-d">每天十来分钟，听、读、说、背单词，跟着计划一点点往前走。先用半分钟定个目标。</p>
         ${next('开始')}
         ${S.user ? '' : `<div class="intro-acct"><button type="button" data-intro="reg" data-tap="intro-reg">注册账号</button><button type="button" data-intro="login" data-tap="intro-login">已有账号？登录</button></div>`}</div>`;
     }
     const M = S.meta || {}, st = INTRO.st;
     if (s.id === 'goals') {
       const goals = [...(M.goals || [])].sort((a, b) => (b.id === 'exam') - (a.id === 'exam'));
-      return `<div class="intro-body wg"><h2 class="intro-t" id="introT">你学英语主要为了什么？</h2>
-        <p class="intro-d" id="introD">可以多选，最多 3 个，第一个选的算主要目标。</p>
-        <div class="intro-opts wg-goals" role="group" aria-labelledby="introT">${goals.map(g => `<button class="opt" type="button" data-ig="${esc(g.id)}" aria-pressed="${st.goals.includes(g.id)}">
-          <span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span><span class="main" hidden>主要</span></button>`).join('')}</div>
+      return `<div class="intro-body wg"><h2 class="intro-t">你学英语主要为了什么？</h2>
+        <p class="intro-d">可以多选，最多 3 个，第一个选的算主要目标。</p>
+        <div class="intro-opts wg-goals" role="group" aria-label="学英语为了什么，可以多选">${goals.map(g => `<button class="opt" type="button" data-ig="${esc(g.id)}" aria-pressed="${st.goals.includes(g.id)}">
+          <span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span><span class="main" hidden>主要</span><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6.5"/></svg></button>`).join('')}</div>
         <div class="intro-exam" id="introExam" hidden><h3 class="intro-h" id="introExamH">准备哪个考试？</h3>
           <div class="chips" role="radiogroup" aria-labelledby="introExamH">${(M.exams || []).map(x => `<button class="chip" type="button" role="radio" data-ie="${esc(x.id)}" aria-checked="${x.id === st.exam}">${esc(x.short)}</button>`).join('')}</div></div>
         ${next('下一步', !st.goals.length)}<p class="intro-need" id="introNeed" aria-live="polite">${st.goals.length ? '' : '先选一个'}</p></div>`;
     }
     if (s.id === 'aim') {
-      return `<div class="intro-body wg"><h2 class="intro-t" id="introT">想达到什么水平？</h2>
-        <p class="intro-d" id="introD">按你的目标推荐了一档，可以改。现在的水平不用先测，以后在「能力」里测一下更准。</p>
-        <div class="intro-opts wg-targets" role="radiogroup" aria-labelledby="introT">${(M.targets || []).map(x => `<button class="opt" type="button" role="radio" data-it="${esc(x.id)}" aria-checked="false">
+      return `<div class="intro-body wg"><h2 class="intro-t">想达到什么水平？</h2>
+        <p class="intro-d">按你的目标推荐了一档，可以改。现在的水平不用先测，以后在「能力」里测一下更准。</p>
+        <div class="intro-opts wg-targets" role="radiogroup" aria-label="想达到什么水平">${(M.targets || []).map(x => `<button class="opt" type="button" role="radio" data-it="${esc(x.id)}" aria-checked="false">
           <b>${esc(x.id)}</b><span class="d">${esc(x.label)}</span><span class="rec" hidden>推荐</span></button>`).join('')}</div>
         <h3 class="intro-h" id="introDaysH">一周大概能学几天？</h3>
         <div class="chips intro-days" role="radiogroup" aria-labelledby="introDaysH">${[2, 3, 4, 5, 6, 7].map(d => `<button class="chip" type="button" role="radio" data-id="${d}" aria-checked="false">${d} 天</button>`).join('')}</div>
         ${next('下一步')}</div>`;
     }
     return `<div class="intro-body">${s.wait ? introWait(s.wait) : `<div class="intro-art" aria-hidden="true">${s.art}</div>`}
-      <h2 class="intro-t" id="introT">${esc(s.t)}</h2><p class="intro-d" id="introD">${esc(s.d)}</p>
-      ${next(last ? (INTRO.again ? '看完了' : '开始学习') : '下一步')}</div>`;
+      <h2 class="intro-t">${esc(s.t)}</h2><p class="intro-d">${esc(s.d)}</p></div>`;
   }
   // the steps that ask: the same choices and rules as the one-page form (09-start.js welcome)
   function introWire(page, s) {
     const M = S.meta || {}, st = INTRO.st;
+    page.addEventListener('click', e => {
+      const b = e.target.closest('.opt, .chip');
+      if (b && !REDUCED && b.animate) b.animate([{ transform: 'none' }, { transform: 'scale(.95)', offset: 0.35 }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.34,1.4,.64,1)' });
+    });
     const hasExam = () => st.goals.includes('exam');
     if (s.id === 'goals') {
       const sync = () => {
@@ -219,19 +369,16 @@
       sync();
     }
   }
-  function introGo(i) {
-    if (!INTRO.el || INTRO.busy || i < 0 || i >= INTRO.steps.length || i === INTRO.i) return;
-    if (i < INTRO.i && INTRO.steps[i].setup && !INTRO.steps[INTRO.i].setup && hasProfile()) return;
-    INTRO.dir = i > INTRO.i ? 1 : -1; INTRO.i = i; introShow(false);
-  }
   async function introNext() {
     const s = INTRO.steps[INTRO.i];
+    if (!INTRO.el || INTRO.busy) return;
     if (INTRO.i === INTRO.steps.length - 1) { introEnd('done'); return; }
+    if (s.id === 'goals' && !introGoalsOk()) return;
     if (s.id === 'aim') {  // the profile, as the one-page form saves it; then 今日 is drawn under the steps still to come
       const st = INTRO.st, exam = st.goals.includes('exam') ? st.exam : '';
       const prof = { goal: st.goals[0], goals: st.goals, target: st.target, level: S.placed || below(st.target), level_source: S.placed ? 'placed' : 'guess',
                      themes: [], minutes: 10, exam, exam_date: '', weekly_goal: st.days };
-      const b = INTRO.el.querySelector('.intro-step:not(.out) .intro-next'); INTRO.busy = true; if (b) b.disabled = true;
+      const b = INTRO.el.querySelector('.intro-step.cur .intro-next'); INTRO.busy = true; if (b) b.disabled = true;
       try { await welcomeSave(prof, false); } catch (x) { INTRO.busy = false; if (b) b.disabled = false; toast(x.message); return; }
       INTRO.busy = false;
       if (location.hash !== '#/') location.hash = '#/';
@@ -243,6 +390,7 @@
     const el = INTRO.el; if (!el) return;
     const s = INTRO.steps[INTRO.i], step = INTRO.i + 1;
     INTRO.el = null; el.classList.remove('in'); document.body.classList.remove('introing');
+    clearInterval(INTRO.demo); INTRO.demo = 0; INTRO.busy = false; removeEventListener('resize', introLayout);
     setTimeout(() => el.remove(), REDUCED ? 0 : 300);
     if (result !== 'later') save('flow-intro-at', null);
     if (INTRO.prev && INTRO.prev.isConnected && result !== 'done') { try { INTRO.prev.focus({ preventScroll: true }); } catch (e) { /* gone */ } }
@@ -261,7 +409,9 @@
     if (!fixed) at.scrollIntoView({ block: 'center', behavior: 'auto' });
     const el = COACH.el = document.createElement('div');
     el.className = 'coach';
-    el.innerHTML = `<div class="coach-ring" aria-hidden="true"></div><div class="coach-tip" role="note"><b>${esc(title)}</b><p>${esc(text)}</p><button class="coach-x" type="button" data-tap="coach-ok">知道了</button></div>`;
+    // (placed by the outer two, coachPlace; the ring breathes and the card grows inside them)
+    el.innerHTML = `<div class="coach-at" aria-hidden="true"><div class="coach-ring"></div></div>
+      <div class="coach-tipat"><div class="coach-tip" role="note"><b>${esc(title)}</b><p>${esc(text)}</p><button class="coach-x" type="button" data-tap="coach-ok">知道了</button></div></div>`;
     document.body.appendChild(el); document.body.classList.add('coaching'); COACH.at = at;
     el.querySelector('.coach-x').onclick = () => { COACH.then = ''; coachEnd(); };
     at.addEventListener('click', coachEnd, { once: true });
@@ -271,17 +421,19 @@
     announce(`${title}。${text}`);
     return true;
   }
-  // the ring follows the button with transform only (08-intro.css): its size once, its place as the page scrolls
+  // the ring follows the button with transform only (08-intro.css): its size once, its place as the page scrolls; the
+  // card grows from the side of the button (its transform-origin there)
   function coachPlace() {
     const el = COACH.el; if (!el) return;
     if (!COACH.at.isConnected) { coachEnd(); return; }
-    const ring = el.querySelector('.coach-ring'), tip = el.querySelector('.coach-tip'), r = COACH.at.getBoundingClientRect();
+    const at = el.querySelector('.coach-at'), tipat = el.querySelector('.coach-tipat'), tip = el.querySelector('.coach-tip'), r = COACH.at.getBoundingClientRect();
     const pad = 6, gap = 14, W = innerWidth, H = innerHeight, w = tip.offsetWidth, h = tip.offsetHeight;
-    ring.style.width = r.width + 2 * pad + 'px'; ring.style.height = r.height + 2 * pad + 'px';
-    ring.style.transform = `translate(${Math.round(r.left - pad)}px,${Math.round(r.top - pad)}px)`;
-    const left = Math.min(Math.max(16, r.left + r.width / 2 - w / 2), W - w - 16);
-    const top = r.bottom + pad + gap + h <= H - 8 ? r.bottom + pad + gap : Math.max(8, r.top - pad - gap - h);
-    tip.style.transform = `translate(${Math.round(left)}px,${Math.round(top)}px)`;
+    at.style.width = r.width + 2 * pad + 'px'; at.style.height = r.height + 2 * pad + 'px';
+    at.style.transform = `translate(${Math.round(r.left - pad)}px,${Math.round(r.top - pad)}px)`;
+    const left = Math.min(Math.max(16, r.left + r.width / 2 - w / 2), W - w - 16), below = r.bottom + pad + gap + h <= H - 8;
+    const top = below ? r.bottom + pad + gap : Math.max(8, r.top - pad - gap - h);
+    tipat.style.transform = `translate(${Math.round(left)}px,${Math.round(top)}px)`;
+    tip.style.transformOrigin = `${Math.round(Math.min(w - 16, Math.max(16, r.left + r.width / 2 - left)))}px ${below ? '0' : '100%'}`;
   }
   function coachEnd() {
     const el = COACH.el; if (!el) return;

@@ -1863,14 +1863,18 @@ def ux_run(pw):
         again = pg.text_content('#view .review') or ''
         check(dev, '撤销: the latest rating is taken back and the same card comes up again', has and again[:40] == first[:40], (has, first[:40], again[:40]))
         ctx.close()
-        # a first visit: the one start page (goal, level to reach), then 今日; a shared material still opens without it
+        # a first visit: the start page with 新手引导 v2 over it (欢迎, 日常交流, the level suggested; tour_run checks the
+        # rest), then 今日; a shared material still opens without it
         ctx = browser.new_context(**phone); pg = ctx.new_page()
         pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
         start = pg.evaluate('location.hash')
-        pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
+        nx = INTRO_NEXT
+        pg.wait_for_selector('.intro.in', timeout=8000); pg.click(nx); pg.wait_for_timeout(450)
+        pg.click('[data-ig="daily"]'); pg.click(nx); pg.wait_for_timeout(450); pg.click(nx)
+        pg.wait_for_function("() => location.hash === '#/'", timeout=6000); pg.click('.intro [data-intro=skip]'); settle(pg)
         today = pg.query_selector('#view .hello') is not None
         pg.goto(BASE + f'/#/m/{PID}/read'); settle(pg)
-        check(dev, 'first visit: the start page, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
+        check(dev, 'first visit: the start page and its choices, then 今日 for the level chosen; a link to a material opens it directly', start == '#/welcome' and today and pg.query_selector('#view .steps') is not None,
               (start, today))
         ctx.close()
         # 语法混合 and 辨析练习 while answering (43-mix.js, body.reviewing): no tabs, the question and its four answers on one
@@ -2825,29 +2829,41 @@ def updates_run(pw):
         browser.close()
 
 
-# ---- 新手引导 (08-tour.js, tour_service.py): the first time a new account opens 今日, the real buttons one after another
+# ---- 新手引导 v2 (08-intro.js, 08-tour.js, tour_service.py): one step at a time over the whole screen; a new learner
+# first 欢迎, 学英语为了什么 and 想到什么水平, then one step per place of the app with a copy of the tab bar walking along
+INTRO_JS = """() => { const t = document.querySelector('.intro'); if (!t) return null;
+  const s = t.querySelector('.intro-step.cur'), b = s && (s.querySelector('.intro-next') || t.querySelector('.intro-go.show .intro-next')), r = b ? b.getBoundingClientRect() : null;
+  return {title: s && s.querySelector('.intro-t').textContent, next: b && b.textContent.trim(), dis: !!b && b.disabled,
+          role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: !!document.getElementById(t.getAttribute('aria-labelledby') || '-'),
+          focus: t.contains(document.activeElement), btn: r && Math.round(r.top), H: innerHeight,
+          inside: !!r && r.top >= 0 && r.bottom <= innerHeight - 56, wide: document.scrollingElement.scrollWidth > innerWidth + 1,
+          tab: [...t.querySelectorAll('.intro-tab.on')].map(x => x.textContent.trim()).join(''), pill: getComputedStyle(t.querySelector('.intro-pill')).opacity,
+          bar: t.querySelector('.intro-tabs').classList.contains('show'), back: !t.querySelector('.intro-back').hidden,
+          art: !!s.querySelector('.intro-art svg'), wait: !!s.querySelector('.intro-wait'), acct: [...s.querySelectorAll('.intro-acct button')].map(x => x.textContent),
+          bg: getComputedStyle(t).backgroundColor, motion: getComputedStyle(t).transitionDuration,
+          day: document.documentElement.classList.contains('tour-day')}; }"""
+# the places, in the order of the tab bar (今日, 周报 and 使用习惯 wait for their pull requests: a plain 等合并 there)
+INTRO_PLACES = ['底下五个地方', '每天从「今日」开始', '练习：想练哪样点哪样', '考试练习', '能力：看看差在哪', '单词和错题本', '我的', '我的进步', '周报', '使用习惯']
+INTRO_TABS = ['', '今日', '练习', '练习', '能力', '单词', '我的', '我的', '我的', '我的']
 TOUR_JS = """() => { const t = document.querySelector('.tour'); if (!t) return null;
   const tip = t.querySelector('.tour-tip'), hole = t.querySelector('.tour-hole'), r = tip.getBoundingClientRect(), h = hole.getBoundingClientRect();
-  const next = t.querySelector('[data-tour=next]'), skip = t.querySelector('[data-tour=skip]');
-  const cs = getComputedStyle(tip), se = document.scrollingElement;
   return {n: (t.querySelector('.tour-n') || {}).textContent, title: (t.querySelector('#tourT') || {}).textContent, text: (t.querySelector('#tourD') || {}).textContent,
-          next: next && next.textContent, skip: skip && skip.textContent, focus: document.activeElement === next,
-          role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: (t.getAttribute('aria-labelledby') || '').split(' ').filter(Boolean).every(id => !!document.getElementById(id)) && !!t.getAttribute('aria-labelledby'),
-          tip: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], W: innerWidth, H: innerHeight,
           inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5,
-          hole: [Math.round(h.left), Math.round(h.top), Math.round(h.width), Math.round(h.height)],
-          overlap: !(r.bottom <= h.top || r.top >= h.bottom || r.right <= h.left || r.left >= h.right) && h.width > 0,
-          wide: se.scrollWidth > innerWidth + 1, bg: cs.backgroundColor, motion: getComputedStyle(hole).transitionDuration,
-          day: document.documentElement.classList.contains('tour-day')}; }"""
-TOUR_LEARNER = ['今天的计划', '单词', '学一篇', '口语和更多练习', '我的']
+          hole: [Math.round(h.left), Math.round(h.top), Math.round(h.width), Math.round(h.height)]}; }"""
+# the button that goes on: a step's own (欢迎 and the choices), else the one the places' steps share
+INTRO_NEXT = '.intro-step.cur .intro-next, .intro-go.show .intro-next'
+# a guest who has seen (or skipped) the steps: the checks of the one-page start form (start_run and others)
+NO_INTRO = "try { localStorage.setItem('flow-intro', JSON.stringify('skip')); } catch (e) {}"
 
 
 def tour_run(pw):
-    """新手引导: a new account sees it on 今日 at once (375 px, a small iPhone): five steps, each pointing at its button
-    with the card on screen beside it, 下一步 to the end, the last button opens today's first task; it does not come
-    back (not on reload, not on another phone); an older account never sees it; 我的 → 帮助 → 「再看一遍新手引导」 plays
-    it again at 390 px and on a computer, light and dark, with reduced motion; the focus stays in the card; a 老师账号
-    gets its own three on 我的班级, and 跳过 ends it for good."""
+    """新手引导 v2: a new account sees it on 今日 at once (375 px, a small iPhone): ten steps from 底下五个地方, the button
+    in one place on every step, the tab bar's copy marking each step's place (all five alike on the first); closed half
+    way, it goes on from that step; the last button puts a ring round today's first task; it does not come back (not on
+    reload, not on another phone); an older account never sees it; 我的 → 帮助 → 「再看一遍新手引导」 plays it again
+    at 390 px (← → and 跳过) and on a computer, dark, with reduced motion; the focus stays in it. A guest's first opening
+    starts with 欢迎, 学英语为了什么 and 想到什么水平, which save the choices as the one-page form does; 跳过 on 欢迎 leaves
+    that form. A 老师账号 keeps its own three on 我的班级, and 跳过 ends it for good."""
     dev = 'tour'
     browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
     small = dict(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN')
@@ -2855,14 +2871,25 @@ def tour_run(pw):
     errs = []
 
     def open_(who, size, hash_='#/', **kw):
-        ctx = browser.new_context(**size, **kw); ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][who]['token'], 'url': BASE}])
+        ctx = browser.new_context(**size, **kw)
+        if who:
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners'][who]['token'], 'url': BASE}])
         pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(f'{who}: {e}'))
-        pg.goto(BASE + '/' + hash_, wait_until='load'); settle(pg)
+        pg.goto(BASE + '/' + hash_, wait_until='load')
+        if who:
+            settle(pg)
         return ctx, pg
 
     def shown(pg, timeout=6000):
         try:
-            pg.wait_for_selector('.tour .tour-tip', timeout=timeout); pg.wait_for_timeout(350)  # the hole's move is .22 s
+            pg.wait_for_selector('.intro.in', timeout=timeout); pg.wait_for_timeout(500)
+        except Exception:
+            return None
+        return pg.evaluate(INTRO_JS)
+
+    def shown_t(pg, timeout=6000):  # a 老师账号's three steps on 我的班级 (08-tour.js)
+        try:
+            pg.wait_for_selector('.tour .tour-tip', timeout=timeout); pg.wait_for_timeout(350)
         except Exception:
             return None
         return pg.evaluate(TOUR_JS)
@@ -2870,45 +2897,61 @@ def tour_run(pw):
     def due(pg):
         return pg.evaluate("() => fetch('/api/next/tour', {credentials: 'same-origin'}).then(r => r.json())")
 
-    def walk(pg, tag, shots=False):
-        seen = []
-        for k in range(len(TOUR_LEARNER)):
-            st = pg.evaluate(TOUR_JS); seen.append(st)
+    def nxt(pg):
+        pg.click(INTRO_NEXT); pg.wait_for_timeout(450)
+
+    def tour_run_tour(pg, tag, frm=0, to=None, shots=False):
+        """the places from step frm, 下一步 up to (not past) the last; what each one showed"""
+        seen, to = [], len(INTRO_PLACES) if to is None else to
+        for k in range(frm, to):
+            pg.wait_for_timeout(3400 if k == 0 else 500)  # the first: the mark goes along all five, then fades
+            st = pg.evaluate(INTRO_JS); seen.append(st)
             if shots:
-                pg.screenshot(path=str(OUT / f'tour-{tag}-{k + 1}.png'))
-            if k < len(TOUR_LEARNER) - 1:
-                pg.click('.tour [data-tour=next]'); pg.wait_for_timeout(350)
+                pg.screenshot(path=str(OUT / f'intro-{tag}-{k + 1}.png'))
+            if k < len(INTRO_PLACES) - 1:  # (a part of the way ends on step `to`)
+                nxt(pg)
         return seen
 
     try:
-        # a new account, a small iPhone: it shows by itself
+        # a new account, a small iPhone: it shows by itself, from 底下五个地方 (the account has its goals already)
         ctx, pg = open_('tour', small)
         first = shown(pg)
-        check(dev, '375 px: a new account sees it on 今日 by itself, a modal dialog with its title, the focus on 下一步',
-              bool(first) and first['role'] == 'dialog' and first['modal'] == 'true' and first['named'] and first['focus'], first)
-        check(dev, 'one notice at a time: the first day 「语流更新了」 and the reminders step aside, a 公告 while the tour is open',
+        check(dev, '375 px: a new account sees it on 今日 by itself, a modal dialog with its title, the focus in it',
+              bool(first) and first['role'] == 'dialog' and first['modal'] == 'true' and first['named'] and first['focus'] and first['title'] == INTRO_PLACES[0], first)
+        check(dev, 'one notice at a time: the first day 「语流更新了」 and the reminders step aside, a 公告 while it is open',
               bool(first) and first['day'] and pg.evaluate("""() => { const v = document.getElementById('view'), x = [];
                 for (const [id, cls] of [['notice', 'notice'], ['updCard', 'notice'], ['announce', 'notice']]) {
                   let e = document.getElementById(id); if (!e) { e = document.createElement('div'); e.id = id; e.className = cls; e.textContent = 'x'; v.appendChild(e); x.push(e); }
                   if (getComputedStyle(e).display !== 'none') return false; }
                 x.forEach(e => e.remove()); return true; }"""))
-        steps = walk(pg, '375', shots=True) if first else []
-        check(dev, '375 px: five steps — 今天的计划, 单词, 学一篇, 口语和更多练习, 我的 — 「第 N 步，共 5 步」',
-              [s['title'] for s in steps] == TOUR_LEARNER and all(s['n'] == f'第 {k + 1} 步，共 5 步' for k, s in enumerate(steps)), [s and (s['n'], s['title']) for s in steps])
-        check(dev, '375 px: each step points at its button (a hole round it) with the card beside it, not over it, all on one screen, no sideways scroll',
-              len(steps) == 5 and all(s['hole'][2] > 0 and not s['overlap'] and s['inside'] and not s['wide'] for s in steps), [(s['title'], s['hole'], s['tip'], s['H'], s['overlap'], s['inside'], s['wide']) for s in steps])
-        check(dev, '跳过 on every step but the last (关闭 there); the last button is 「开始今天的第一项」',
-              len(steps) == 5 and all(s['skip'] == '跳过' for s in steps[:4]) and steps[4]['skip'] == '关闭' and steps[4]['next'] == '开始今天的第一项', [s and (s['skip'], s['next']) for s in steps])
-        # Tab stays in the card
+        steps = tour_run_tour(pg, '375', 0, 3, shots=True) if first else []
+        # closed half way (on 考试练习): the next opening goes on from there
+        pg.goto(BASE + '/#/', wait_until='load'); pg.reload(wait_until='load'); settle(pg)
+        back = shown(pg)
+        check(dev, 'closed half way: the next opening goes on from that step', bool(back) and back['title'] == INTRO_PLACES[3], back and back['title'])
+        steps += tour_run_tour(pg, '375', 3, shots=True) if back else []
+        check(dev, '375 px: ten steps, the places in the order of the tab bar, the last button 「开始学习」',
+              [x['title'] for x in steps] == INTRO_PLACES and steps[-1]['next'] == '开始学习' and all(x['next'] == '下一步' for x in steps[:-1]), [x and (x['title'], x['next']) for x in steps])
+        check(dev, '375 px: the tab bar\'s copy marks each step\'s place; on 底下五个地方 all five alike (the mark gone after it went along them)',
+              [x['tab'] for x in steps] == INTRO_TABS and steps[0]['pill'] == '0' and all(x['bar'] for x in steps), [(x['tab'], x['pill']) for x in steps])
+        check(dev, '375 px: the button in one place on every step, on screen above the tab bar, no sideways scroll; a picture (or 等合并) on each',
+              len(steps) == 10 and len({x['btn'] for x in steps}) == 1 and all(x['inside'] and not x['wide'] and (x['art'] or x['wait']) for x in steps),
+              [(x['title'], x['btn'], x['inside'], x['wide']) for x in steps])
+        check(dev, '375 px: no way back from the first place into the choices already saved', bool(steps) and not steps[0]['back'] and all(x['back'] for x in steps[1:]))
         if steps:
-            pg.keyboard.press('Tab'); pg.keyboard.press('Tab'); pg.keyboard.press('Tab')
-            check(dev, 'Tab keeps the focus in the card while it is open', pg.evaluate("() => !!document.activeElement.closest('.tour')"))
-        to = pg.evaluate("() => { const a = document.querySelector('#view .go-next'); return a && a.getAttribute('href'); }")
+            pg.keyboard.press('Tab'); pg.keyboard.press('Tab'); pg.keyboard.press('Tab'); pg.keyboard.press('Tab')
+            check(dev, 'Tab keeps the focus in it while it is open', pg.evaluate("() => !!document.activeElement.closest('.intro')"))
         with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
-            pg.click('.tour [data-tour=next]')
-        pg.wait_for_timeout(400)
-        check(dev, 'the last button opens today\'s first task and the card goes',
-              bool(to) and pg.evaluate('location.hash') == to and pg.query_selector('.tour') is None and resp.value.json().get('counted') is True, (to, pg.evaluate('location.hash')))
+            pg.click(INTRO_NEXT)
+        pg.wait_for_timeout(1000)
+        ring = pg.evaluate("""() => { const c = document.querySelector('.coach'), a = document.querySelector('#view .go-next');
+          return c && a ? [c.querySelector('.coach-tip b').textContent, a.getAttribute('href')] : null; }""")
+        check(dev, 'the last button: it goes, counted once; a soft ring round today\'s first task, 「从这里开始」',
+              pg.query_selector('.intro') is None and resp.value.json().get('counted') is True and bool(ring) and ring[0] == '从这里开始', (ring, resp.value.json()))
+        if ring:
+            pg.click('#view .go-next'); pg.wait_for_timeout(900)
+            check(dev, 'tapping it opens that task and the ring goes', pg.evaluate('location.hash') == ring[1] and not pg.evaluate("!!document.querySelector('.coach-tip b') && document.querySelector('.coach-tip b').textContent === '从这里开始'"),
+                  pg.evaluate('location.hash'))
         check(dev, 'kept on the server: not due any more', due(pg) == {'learner': False, 'teacher': False}, due(pg))
         pg.goto(BASE + '/#/', wait_until='load'); settle(pg)
         check(dev, 'reload: it does not come back', shown(pg, 2500) is None)
@@ -2916,27 +2959,63 @@ def tour_run(pw):
         # the same account on another phone: nothing either
         ctx, pg = open_('tour', phone)
         check(dev, 'another phone, same account: it does not come back', shown(pg, 2500) is None)
-        # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; 简洁化: in the 更多 sheet)
+        # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; in the 更多 sheet): ← → turn the steps, 跳过 is not counted
         go(pg, '#/me/help'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         again = shown(pg)
-        check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from step 1',
-              bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == TOUR_LEARNER[0] and again['inside'], again)
+        check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from 底下五个地方',
+              bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == INTRO_PLACES[0] and again['inside'], again)
         if again:
+            pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(450); r1 = pg.evaluate(INTRO_JS)['title']
+            pg.keyboard.press('ArrowLeft'); pg.wait_for_timeout(450); l1 = pg.evaluate(INTRO_JS)['title']
+            check(dev, '→ and ← turn the steps', (r1, l1) == (INTRO_PLACES[1], INTRO_PLACES[0]), (r1, l1))
             with pg.expect_response(lambda r: r.url.endswith('/api/next/tour') and r.request.method == 'POST', timeout=6000) as resp:
-                pg.click('.tour [data-tour=skip]')
-            check(dev, '再看一遍 and 跳过: the card goes, not counted again', pg.query_selector('.tour') is None and resp.value.json().get('counted') is False, resp.value.json())
+                pg.click('.intro [data-intro=skip]')
+            pg.wait_for_timeout(600)
+            check(dev, '再看一遍 and 跳过: it goes, not counted again, no ring', pg.query_selector('.intro') is None and resp.value.json().get('counted') is False
+                  and pg.query_selector('.coach') is None, resp.value.json())
         ctx.close()
         # a computer, dark, reduced motion
         ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me/help', color_scheme='dark', reduced_motion='reduce')
         pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         st = shown(pg)
-        steps = walk(pg, 'desktop-dark', shots=True) if st else []
+        steps = tour_run_tour(pg, 'desktop-dark', shots=True) if st else []
         lum = (lambda c: sum(int(x) for x in re.findall(r'\d+', c)[:3]) / 3)(st['bg']) if st else 255
-        check(dev, '1280 px, dark: five steps, each with its button and the card on screen, no sideways scroll',
-              [s['title'] for s in steps] == TOUR_LEARNER and all(s['hole'][2] > 0 and not s['overlap'] and s['inside'] and not s['wide'] for s in steps), [(s['title'], s['hole'], s['tip'], s['overlap'], s['inside'], s['wide']) for s in steps])
-        check(dev, 'dark: the card is dark too; reduced motion: the hole jumps, it does not glide', lum < 90 and float(st['motion'].rstrip('s') or 1) < 0.01, st and (st['bg'], st['motion']))
-        pg.keyboard.press('Escape'); pg.wait_for_timeout(200)  # the open card is what Escape closes
-        check(dev, 'Escape closes it', pg.query_selector('.tour') is None)
+        check(dev, '1280 px, dark: ten steps, each button on screen, no sideways scroll; the last 「看完了」',
+              [x['title'] for x in steps] == INTRO_PLACES and all(x['inside'] and not x['wide'] for x in steps) and steps[-1]['next'] == '看完了', [(x['title'], x['inside'], x['wide'], x['next']) for x in steps])
+        check(dev, 'dark: dark too; reduced motion: nothing glides, and on 底下五个地方 no place is marked',
+              lum < 90 and float(st['motion'].rstrip('s') or 1) < 0.01 and bool(steps) and steps[0]['pill'] == '0', st and (st['bg'], st['motion'], steps and steps[0]['pill']))
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
+        check(dev, 'Escape closes it', pg.query_selector('.intro') is None)
+        ctx.close()
+        # a guest's first opening: 欢迎, then the choices one at a time; they are saved as the one-page form saves them
+        ctx, pg = open_(None, small)
+        hello = shown(pg, 8000)
+        check(dev, 'a guest\'s first opening: 欢迎 over the start page, with 开始 and 注册账号 / 已有账号？登录 side by side',
+              bool(hello) and pg.evaluate('location.hash') == '#/welcome' and hello['title'] == '欢迎来到语流' and hello['next'] == '开始' and hello['acct'] == ['注册账号', '已有账号？登录']
+              and not hello['bar'] and not hello['back'], hello)
+        if hello:
+            nxt(pg); g0 = pg.evaluate(INTRO_JS)
+            pg.click('[data-ig="exam"]'); pg.wait_for_timeout(150); g1 = pg.evaluate(INTRO_JS)
+            pg.click('[data-ie="cet4"]'); pg.wait_for_timeout(150); g2 = pg.evaluate(INTRO_JS)
+            check(dev, '学英语为了什么: 下一步 waits for a goal, and with 考试 for the exam', g0['title'] == '你学英语主要为了什么？' and g0['dis'] and g1['dis'] and not g2['dis'], (g0, g1['dis'], g2['dis']))
+            nxt(pg)
+            aim = pg.evaluate("""() => [[...document.querySelectorAll('.intro-step.cur [data-it]')].filter(b => !b.querySelector('.rec').hidden).map(b => b.dataset.it),
+              [...document.querySelectorAll('.intro-step.cur [data-id][aria-checked=true]')].map(b => b.dataset.id)]""")
+            check(dev, '想达到什么水平: 四级 suggests B1, an exam 5 days a week', aim == [['B1'], ['5']], aim)
+            nxt(pg); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); pg.wait_for_timeout(500)
+            kept = pg.evaluate("(g => g && [g.goals, g.exam, g.target, g.weekly_goal])(JSON.parse(localStorage.getItem('flow-next-guest') || 'null'))")
+            after = pg.evaluate(INTRO_JS)
+            check(dev, 'saved as the one-page form saves them, then 今日 under the places still to come (no way back to the choices)',
+                  kept == [['exam'], 'cet4', 'B1', 5] and after and after['title'] == INTRO_PLACES[0] and not after['back'], (kept, after and after['title']))
+            pg.click('.intro [data-intro=skip]'); pg.wait_for_timeout(500); pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(1500)
+            check(dev, 'a guest\'s 跳过: kept on this phone, not shown again', pg.query_selector('.intro') is None and pg.evaluate("localStorage.getItem('flow-intro')") == '"skip"'
+                  and pg.query_selector('#view .hello') is not None)
+        ctx.close()
+        ctx, pg = open_(None, small)
+        if shown(pg, 8000):
+            pg.keyboard.press('Escape'); pg.wait_for_timeout(500)
+        check(dev, '跳过 on 欢迎: the one-page start form under it, as before', pg.query_selector('.intro') is None and pg.evaluate('location.hash') == '#/welcome'
+              and pg.query_selector('#wgGo') is not None)
         ctx.close()
         # an older account (made before the tour): never
         ctx, pg = open_('phone', small)
@@ -2944,7 +3023,7 @@ def tour_run(pw):
         ctx.close()
         # a 老师账号: three steps on 我的班级, 跳过 ends it for good
         ctx, pg = open_('tour-teacher', small)
-        t1 = shown(pg)
+        t1 = shown_t(pg)
         pg.screenshot(path=str(OUT / 'tour-teacher-1.png'))
         tnew = pg.evaluate("() => { const r = document.getElementById('tNew').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width)]; }") if t1 else None
         check(dev, '老师账号: its own tour on 我的班级, step 1 at 「新建班级」',
@@ -2958,7 +3037,7 @@ def tour_run(pw):
         if t2:
             pg.click('.tour [data-tour=skip]'); pg.wait_for_timeout(300)
         pg.goto(BASE + '/#/', wait_until='load'); settle(pg)
-        check(dev, '老师账号: 跳过 ends it for good', shown(pg, 2500) is None and due(pg) == {'learner': False, 'teacher': False})
+        check(dev, '老师账号: 跳过 ends it for good', shown_t(pg, 2500) is None and due(pg) == {'learner': False, 'teacher': False})
         ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
@@ -3229,7 +3308,10 @@ def about_run(pw):
         # the ways in from the learning site, as a first-time guest
         ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN')
         pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='networkidle'); settle(pg)
-        check('about', 'a first visit sees the line to 认识语流 under the starting questions', pg.query_selector('#view a[href="/about"]') is not None)
+        pg.wait_for_selector('.intro.in', timeout=8000)
+        check('about', 'a first visit gets 新手引导 v2, which says what the line to 认识语流 under the starting questions said (the line is gone)',
+              pg.query_selector('#view a[href="/about"]') is None)
+        pg.keyboard.press('Escape'); pg.wait_for_timeout(400)
         pg.goto(BASE + '/#/me/help'); settle(pg)
         pg.click('#meMore'); pg.wait_for_selector('#sheetCard a.grow[href="/about"]', timeout=4000)  # 简洁化: in 帮助 → 更多
         check('about', '我的 → 帮助 → 更多 has 认识语流', pg.query_selector('#sheetCard a.grow[href="/about"]') is not None)
@@ -4400,7 +4482,7 @@ def shell_run(pw):
           window.FlowApp = { features: ['privacy'], has: f => f === 'privacy', on: () => () => {}, off: () => {},
             call: (cmd) => { asked.push(cmd); if (cmd === 'privacy.state') return Promise.resolve({ state, version: '1' }); if (cmd === 'privacy.ask') { const r = window.__answer || 'agreed'; if (r === 'agreed') state = 'agreed'; return Promise.resolve(r); } return Promise.reject(new Error('no')); } }; })()"""
         ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
-        ctx.add_init_script(app)
+        ctx.add_init_script(app); ctx.add_init_script(NO_INTRO)
         pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='load'); pg.wait_for_selector('#wgReg', timeout=8000)
         # still 'basic' after the app asked: no form
         pg.evaluate("window.__answer = 'basic'"); pg.click('#wgReg'); pg.wait_for_timeout(600)
@@ -4570,6 +4652,7 @@ def start_run(pw):
                 tag = f'{size} {theme}'
                 ctx = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2, locale='zh-CN',
                                           color_scheme=theme, bypass_csp=True)
+                ctx.add_init_script(NO_INTRO)  # the one-page form itself; 新手引导 v2 over it is tour_run's
                 pg = ctx.new_page(); errs = []
                 pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
                 # a first visit: the full mark (name and line), about a second, then the page, which is the one-page start
@@ -4652,6 +4735,7 @@ def start_run(pw):
         # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
+        ctx.add_init_script(NO_INTRO)
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         check(dev, 'a signed-in account without settings gets the start page (no 注册 or 登录 there)', pg.evaluate('location.hash') == '#/welcome' and not pg.query_selector('#wgLogin') and not pg.query_selector('#wgReg'), pg.evaluate('location.hash'))
@@ -4686,6 +4770,7 @@ def start_run(pw):
         # no word plan yet: 今日's first step asks for a book (not ticked); with an exam set, 背词计划 opens with its book chosen
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh2']['token'], 'url': BASE}])
+        ctx.add_init_script(NO_INTRO)
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
         pg.click('[data-goal="daily"]'); pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
