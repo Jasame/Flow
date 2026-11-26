@@ -4793,6 +4793,29 @@ def english_run(pw):
                 check(dev, f'{h}: no sideways scrolling in English', wide <= 1, wide)
             check(dev, f'{scheme}: no script errors on the English pages', not errs, errs[:3])
             ctx.close()
+        # 看中文 under an AI explanation (31-ex-zh.js): the rewrite's result, its button in both languages, the Chinese under each line
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['english']['token'], 'url': BASE}])
+        ctx.add_init_script(EN_ONCE)
+        pg = ctx.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + f'/#/m/{PID}/output', wait_until='load'); settle(pg)
+        pg.fill('#ans', 'If I had left earlier, I would catch the bus.'); pg.click('#go')
+        pg.wait_for_selector('.result [data-ex]', timeout=15000); pg.wait_for_timeout(300)
+        btn = pg.query_selector('.result + .ex-zh-row button')
+        check(dev, '看中文: a 「Show Chinese · 看中文」 button right under the AI feedback', btn is not None and 'Show Chinese' in btn.text_content() and '看中文' in btn.text_content(),
+              btn.text_content() if btn else None)
+        if btn:
+            n = pg.evaluate("document.querySelectorAll('.result [data-ex]').length")
+            btn.click(); pg.wait_for_selector('.result .ex-zh', timeout=10000); pg.wait_for_timeout(200)
+            got = pg.evaluate("[...document.querySelectorAll('.result .ex-zh')].map(x => [x.textContent, x.hasAttribute('data-zh'), x.lang])")
+            check(dev, '看中文: each explanation line gets its Chinese under it, marked to stay Chinese', len(got) == n and all(z.startswith('（中文）') and k and l == 'zh-CN' for z, k, l in got), got[:3])
+            check(dev, '看中文: the row says the Chinese is AI-made (AI 生成) and the button now hides it',
+                  pg.evaluate("!!document.querySelector('.ex-zh-row .ai-mark') && document.querySelector('.ex-zh-row button').textContent.includes('Hide Chinese')"))
+            pg.click('.ex-zh-row button'); pg.wait_for_timeout(200)
+            check(dev, '看中文: tapped again, the Chinese is hidden', pg.evaluate("[...document.querySelectorAll('.result .ex-zh')].every(x => !x.offsetParent)"))
+        check(dev, '看中文: no script errors', not errs, errs[:3])
+        ctx.close()
         # one screen in English where the Chinese page is one (the review card, 测词汇量): English is longer
         for H in (667, 553):
             ctx = browser.new_context(viewport={'width': 375, 'height': H}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',

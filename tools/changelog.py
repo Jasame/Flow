@@ -9,7 +9,8 @@
 
 tag 是 r<N>（语流，flowlang.cn）或 b<N>（内测版，flow.jasa.hk）。每个 tag 指向发布分支上的一个 REQUEST 提交，
 REQUEST 第一项是装上去的提交：#60（2026-11-24）以后是构建提交（tag build-<sha12>），它的父提交才是 main 上的那个。
-「这次带了哪些 PR」= 上一个同类 tag 的 main 提交到这一个之间的「Merge pull request #N」（标题是合并提交的第二行）。
+「这次带了哪些 PR」= 上一个同类 tag 的 main 提交到这一个之间的「Merge pull request #N」（标题是合并提交的第二行），
+加上 main 上标题以「(#N)」结尾的普通提交（GitHub 的 Squash and merge，标题就是 PR 标题）。
 一个 PR 要是跟着另一个 PR 的分支进了 main（r27 的 #42、#48 跟着 #60），它没有自己的合并提交，这里列不出来：
 正式版的记录要对照 GitHub 上那段时间合并的 PR 补上。
 热修（r34，2026-11-25）是在上一个正式版的提交上挑修复打的，不在 main 上：这种 tag 列的是从 main 分出来以后加的提交，
@@ -36,6 +37,7 @@ SITES = {'r': ('release', 'https://flowlang.cn', '语流'), 'b': ('release-beta'
 LOG = 'LOG.md'
 SHA = re.compile(r'^[0-9a-f]{40}$')
 MERGE = re.compile(r'^Merge pull request #(\d+) from \S+')
+SQUASH = re.compile(r'\s*\(#(\d+)\)$')  # GitHub 的「Squash and merge」：main 上一个普通提交，标题以 (#N) 结尾（#461）
 
 # 改动落在哪个区域：按 tools/README.md「Working agreement」里的区域负责人分。从上往下，第一个对上的算数。
 AREAS = [
@@ -150,17 +152,24 @@ def resolve(ref):
 def prs(a, b):
     """a（不含）到 b 之间合并的 PR，按合并先后：[{num, title, sha, areas}]。a 为 None 时只看 b 本身。"""
     rng = [f'{a}..{b}'] if a else ['-1', b]
-    out = git('log', '--merges', '--reverse', '--format=%H%x1f%s%x1f%b%x1e', *rng)
+    first = set(git('rev-list', '--first-parent', *rng).split())  # 只有 main 自己的提交才可能是压成一个的 PR
+    out = git('log', '--reverse', '--format=%H%x1f%P%x1f%s%x1f%b%x1e', *rng)
     found, seen = [], set()
     for rec in out.split('\x1e'):
         if not rec.strip():
             continue
-        sha, subject, body = (rec.strip('\n').split('\x1f') + ['', ''])[:3]
-        m = MERGE.match(subject)
+        sha, parents, subject, body = (rec.strip('\n').split('\x1f') + ['', '', ''])[:4]
+        if len(parents.split()) > 1:
+            m = MERGE.match(subject)
+            title = next((ln.strip() for ln in body.splitlines() if ln.strip()), subject)
+        elif sha in first:
+            m = SQUASH.search(subject)
+            title = subject[:m.start()] if m else ''
+        else:
+            continue
         if not m or m.group(1) in seen:
             continue
         seen.add(m.group(1))
-        title = next((ln.strip() for ln in body.splitlines() if ln.strip()), subject)
         files = git('diff', '--name-only', f'{sha}^1', sha).splitlines()
         found.append(dict(num=int(m.group(1)), title=title, sha=sha, areas=areas(files)))
     return found

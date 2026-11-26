@@ -518,6 +518,11 @@ ul.app-steps{list-style:disc}
 .app-warn{font-size:13.5px;line-height:1.6;color:var(--ink);padding:10px 12px;border-radius:12px;background:var(--amber-soft);border:1px solid var(--line2);border:1px solid color-mix(in srgb,var(--amber) 30%,transparent)}
 .app-perm{font-size:13.5px;line-height:1.6;color:var(--ink2)}
 .dl-needs{font-size:13.5px;color:var(--muted)}
+.hm-code{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0;padding:10px 12px;border-radius:12px;background:var(--sunk)}
+.hm-code span{font-size:13.5px;color:var(--muted)}
+.hm-code code{font-size:20px;font-weight:600;letter-spacing:.06em;color:var(--ink)}
+.hm-code .hm-copy{margin-left:auto}
+.hm-code[hidden]{display:none}
 .dl-cert{margin-top:6px}
 .dl-cert code{display:block;margin-top:4px;padding:6px 10px;border-radius:10px;background:var(--sunk);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all}
 .apps-note a{color:var(--green-ink)}
