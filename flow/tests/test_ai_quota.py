@@ -202,5 +202,37 @@ class QuotaTests(unittest.TestCase):
         self.assertEqual(rows[2]['override']['daily'], 2)
 
 
+class NameTests(unittest.TestCase):
+    """「我的 → 设置 → AI 用量」 (the owner, 2026-11-26 22:1x: 「汉化不完全」): every task a learner's AI use is counted under
+    has a name a learner reads, Chinese on a Chinese page and English on an English one; an unknown kind is 「其他」."""
+
+    def kinds_in_code(self):
+        import re
+        flow = Path(__file__).resolve().parents[1]
+        pat = re.compile(r"(?:run_job\(\s*c\s*,\s*uid\s*,[^,]+,|_ai\(\s*c\s*,\s*uid\s*,\s*data\s*,|reserve\(\s*c\s*,\s*uid\s*,)\s*'([a-z0-9-]+)'")
+        found = set()
+        for f in flow.glob('*.py'):
+            found |= {k for k in pat.findall(f.read_text(encoding='utf-8')) if not k.endswith('-')}  # 'next-assess-' + kind: below
+        import two_lines, ai_routes
+        found |= {two_lines.ASK, two_lines.CHECK, 'next-assess-speaking', 'next-assess-writing', 'audio', 'feedback'}
+        found |= {k for k, _, _ in ai_routes.TASKS}
+        return found
+
+    def test_every_counted_task_has_a_learners_name(self):
+        import ui_lang
+        kinds = self.kinds_in_code()
+        self.assertGreater(len(kinds), 20)
+        self.assertEqual(sorted(kinds - set(q.NAMES)), [], 'give these a name in ai_quota.NAMES')
+        for k, (zh, en) in q.NAMES.items():
+            self.assertTrue(ui_lang.HAN.search(zh), k); self.assertFalse(ui_lang.HAN.search(en), k)
+            self.assertNotIn('-', zh, k)  # no keys, no model names
+        self.addCleanup(ui_lang.use, None)
+        ui_lang.use(None)
+        self.assertEqual((q._label('next-shadow'), q._label('next-two-check'), q._label('a-new-kind'), q._label('other')),
+                         ('跟读', '听两句、答一句：批改', '其他', '其他'))
+        ui_lang.use('en')
+        self.assertEqual((q._label('next-shadow'), q._label('a-new-kind')), ('Shadowing', 'Other'))
+
+
 if __name__ == '__main__':
     unittest.main()

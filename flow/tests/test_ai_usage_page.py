@@ -60,7 +60,7 @@ class AiUsagePage(unittest.TestCase):
         st, a, _ = self.call('/api/account/ai', headers=h)
         self.assertEqual(st, 200, a)
         self.assertEqual((a['used'], a['limit'], a['remaining'], a['level'], a['stopped'], a['adjusted']), (9, 10, 1, 'low', None, False))
-        self.assertEqual([(k['label'], k['count']) for k in a['by_kind']], [('写作批改', 6), ('导师问答', 3)])
+        self.assertEqual([(k['label'], k['count']) for k in a['by_kind']], [('作文批改', 6), ('导师问答', 3)])
         self.assertIn('今天还能用 1 次', a['note'])
 
     def test_an_ai_answer_says_what_is_left_and_no_other_does(self):
