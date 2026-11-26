@@ -220,7 +220,11 @@ def _note(row_flagged):
 
 def take_down(c, extra_id, why, by):
     """Hide one row for everyone from the console (B6; the weekly look at 「这条不对」), keeping who, why and when.
-    Returns 1 if a row changed. The console keeps its own admin log too."""
+    Returns 1 if a row changed. The console keeps its own admin log too. A row the reviewer or the owner's review
+    already hid is left as it is (0): its reason stays, so put_back can never show it again."""
+    row = c.execute('SELECT hidden, flagged FROM vocab_extras WHERE id=?', (int(extra_id),)).fetchone()
+    if not row or (row[0] and not _note(row[1]).get('admin')):
+        return 0
     note = json.dumps({'by': str(by)[:40], 'why': str(why)[:120], 'at': int(time.time()), 'admin': True}, ensure_ascii=False)
     return c.execute('UPDATE vocab_extras SET hidden=1, flagged=? WHERE id=?', (note, int(extra_id))).rowcount
 
@@ -288,9 +292,23 @@ def ask(messages, model=None):
     return parse(reply), name
 
 
-def run_batch(c, batch, nx, guard, review=True):
-    """Write, check, store and review one batch: {'words', 'rows', 'left_out', 'hidden'}."""
+def reviewer(review=True):
+    """The second model that reads every item before a card shows it (the guide: 「再由另一个 AI 模型复查」), or ''
+    with review off (--no-review: throwaway sample databases only). Review on and no reviewer set: stop, write nothing,
+    rather than put unread items on the cards (2026-11-26, B7 checking B2's #429 wording)."""
     import chat_service
+    if not review:
+        return ''
+    name = chat_service.backup_model()
+    if not name:
+        raise RuntimeError('没有复查模型（FLOW_BACKUP_AI_MODEL），不写')
+    return name
+
+
+def run_batch(c, batch, nx, guard, review=True):
+    """Write, check, store and review one batch: {'words', 'rows', 'left_out', 'hidden'}. The reviewer is looked up
+    first: without one nothing is asked or stored."""
+    reviewer_name = reviewer(review)
     out, model = ask(write_messages(batch))
     by = {str(x.get('word', '')).lower(): x for x in (out.get('items') or []) if isinstance(x, dict)}
     rows = left = 0
@@ -303,9 +321,8 @@ def run_batch(c, batch, nx, guard, review=True):
             passed.append({'word': w, 'meaning': meaning, 'collocations': [{'en': e, 'zh': z} for k, e, z, _ in keep if k == 'colloc'],
                            'near': [{'word': e, 'zh': z, 'diff': d} for k, e, z, d in keep if k == 'near']})
     hidden = 0
-    reviewer = chat_service.backup_model() if review else ''
-    if reviewer and passed:
-        problems, _ = ask(review_messages(passed), reviewer)
+    if reviewer_name and passed:
+        problems, _ = ask(review_messages(passed), reviewer_name)
         hidden = flag(c, problems.get('problems'))
     c.commit()
     return {'words': len(batch), 'rows': rows, 'left_out': left, 'hidden': hidden}
@@ -431,7 +448,7 @@ def main(argv=None):
     ap.add_argument('--workers', type=int, default=4)
     ap.add_argument('--max-yuan', type=float, default=3.0, help='这次运行花到这么多元就不再发新请求')
     ap.add_argument('--offpeak', action='store_true', help='北京时间 8–22 点（DeepSeek 忙时价）先等到 22 点再跑')
-    ap.add_argument('--no-review', action='store_true')
+    ap.add_argument('--no-review', action='store_true', help='不复查，只用于试验用的数据库（正式版卡片上的每一条都要复查过）')
     ap.add_argument('--own-cap', action='store_true', help='用户临时放行：不受网站每天预算和每晚批量上限管，只按 --max-yuan')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--output', default='', help='这一晚的结果写到这个文件（夜里自动跑时用）')
@@ -465,6 +482,7 @@ def _main(a):
     print(json.dumps(plan, ensure_ascii=False), flush=True)
     if a.dry_run or not todo:
         return 0
+    reviewer(not a.no_review)  # no reviewer: stop before the first batch; main() writes the error and the plan pauses
     while a.offpeak and 8 <= time.localtime().tm_hour < 22:
         time.sleep(300)
     meaning = lambda w: ((nx.lookup(w) or {}).get('meaning') or '')[:60]

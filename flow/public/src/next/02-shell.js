@@ -3,16 +3,21 @@
   // Screen readers read the page in Chinese (lang="zh-CN"); English on it (a text, a question, a word, an example)
   // gets lang="en" as it appears, so it is read with an English voice. An element is marked when all of its text is
   // English; one that mixes both is left as it is (VoiceOver and TalkBack still switch for the Latin letters).
+  // In English mode (00-i18n.js) the other way round: the page is lang="en" and Chinese on it (a meaning, a translation)
+  // gets lang="zh-CN" (and data-lz, taken off again if the text is put into English later).
   const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, LATIN2 = /[A-Za-z]{2}/;  // Chinese characters (not the full-width punctuation)
   function markEnglish(root) {
+    const en = uiLang() === 'en', want = en ? HAN : LATIN2, other = en ? LATIN2 : HAN;
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), seen = new Set(); let n;
     while ((n = w.nextNode())) {
       const el = n.parentElement;
-      if (!el || seen.has(el) || !LATIN2.test(n.nodeValue)) continue;
+      if (!el || seen.has(el) || !want.test(n.nodeValue)) continue;
       seen.add(el);
       const own = el.closest('[lang]');
       if (own && own !== document.documentElement) continue;  // it says its language already
-      if (!HAN.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) el.lang = 'en';
+      if (!other.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) {
+        if (en) { el.lang = 'zh-CN'; el.setAttribute('data-lz', ''); } else el.lang = 'en';
+      }
     }
   }
   const EN_NEW = new Set(); let enFrame = 0;
@@ -104,20 +109,22 @@
     if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
+    if (S.user && S.home.profile) langFromAccount(S.home.profile);  // and 界面语言 (07-lang.js)
     setDueBadge();
     return changed;
   }
   // 底栏 「练习」「单词」: a small ink dot when something waits, never a number (the user, 2026-11-26: 少数字，角标给人压力;
   // B9); a screen reader still hears how many, in the tab's own name: 「单词，有 10 项」
-  function tabCount(id, n, name) {
+  function tabCount(id, n, name, what) {
     const b = document.getElementById(id); if (!b) return;
     b.hidden = !n; b.textContent = '';
-    const a = b.closest('a'); if (a) { if (n) a.setAttribute('aria-label', `${name}，有 ${n} 项`); else a.removeAttribute('aria-label'); }
+    const a = b.closest('a'); if (a) { if (n) a.setAttribute('aria-label', `${name}，有 ${n} 项${what || ''}`); else a.removeAttribute('aria-label'); }
   }
   function setDueBadge() {
     const st = S.home && S.home.stats, due = st ? st.due + st.new : 0, other = st ? st.other_due || 0 : 0;
     tabCount('dueBadge', due, '单词');
     tabCount('otherBadge', other, '练习');  // the mistakes, patterns and sentences due again (练习 → 复习, 49-practice.js)
+    tabCount('radarBadge', st ? st.radar_due || 0 : 0, '能力', '该测了');  // 底栏「能力」: skills due to be measured (48-radar.js)
   }
   // The page drawn again with fresher data, without the loading skeleton or the entrance animation, and only when it
   // would not take anything from the learner (a sheet open, typing in a field, another page by now, a whole text being
@@ -373,7 +380,7 @@
       else if (name === 'easy') { setNav('practice'); await (a ? easyRead(decodeURIComponent(a)) : easyView()); }
       else if (name === 'words' && a === 'confuse') { setNav('cards'); await (b ? confuseRound(decodeURIComponent(b)) : confuseView()); }
       else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
-      else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
+      else if (name === 'radar') { setNav('radar'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'two') { setNav('today'); await twoView(decodeURIComponent(a || '')); }  // 听两句、答一句 (26-two-lines.js)
       else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' || a === 'more' ? a : 'due', b ? decodeURIComponent(b) : ''); }

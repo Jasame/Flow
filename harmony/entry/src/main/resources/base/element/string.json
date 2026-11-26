@@ -1,10 +1,10 @@
 {
   "string": [
-    { "name": "module_desc", "value": "语流：每天一篇分级材料，听、读、说、背单词" },
-    { "name": "EntryAbility_desc", "value": "语流" },
-    { "name": "EntryAbility_label", "value": "语流" },
-    { "name": "mic_reason", "value": "录下你说的英语（跟读、口语对话、发音练习），只在你点录音的那几秒打开，录音只用来给你批改" },
-    { "name": "reminder_reason", "value": "到你定的时间提醒你复习单词（只在有词要复习的日子）" },
-    { "name": "background_reason", "value": "锁屏以后接着朗读整篇文章，锁屏上能暂停、切句" }
+    {"name": "module_desc", "value": "语流：每天一篇分级材料，听、读、说、背单词"},
+    {"name": "EntryAbility_desc", "value": "语流"},
+    {"name": "EntryAbility_label", "value": "语流"},
+    {"name": "mic_reason", "value": "用于跟读和口语练习时录音"},
+    {"name": "reminder_reason", "value": "用于到时间提醒复习单词"},
+    {"name": "background_reason", "value": "用于锁屏后继续朗读文章"}
   ]
 }

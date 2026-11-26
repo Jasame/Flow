@@ -17,7 +17,8 @@
   // --top-h: all above the page (the bar, and the 内测版's line while it is open), for pages that fill one screen
   // (复习 and 测词汇量, 80-flat.css). 48px until measured; the inset is padding, so the border box is measured.
   if (window.ResizeObserver && bar) {
-    const tops = () => { const r = document.documentElement.style, b = Math.round(bar.getBoundingClientRect().height), line = document.getElementById('betaBar');
+    const tops = () => { const r = document.documentElement.style, line = document.getElementById('betaBar');
+      const b = Math.round(bar.getBoundingClientRect().height) || Math.round(parseFloat(getComputedStyle(document.body).paddingTop) || 0);  // no bar (phones): the status bar's room
       r.setProperty('--bar-h', b + 'px'); r.setProperty('--top-h', b + (line && line.isConnected ? Math.round(line.getBoundingClientRect().height) : 0) + 'px'); };
     const ro = new ResizeObserver(tops), line = document.getElementById('betaBar');
     ro.observe(bar, { box: 'border-box' }); if (line) ro.observe(line, { box: 'border-box' });
@@ -27,9 +28,9 @@
   // ---- 返回: in the top bar, in place of the logo, on every page but the four tabs and the first-visit page.
   // It goes to the page before when the app has one (the history kept here), else to the page's own tab (‹ 练习).
   const HIST = [location.hash || '#/'];
-  const TAB_OF = { today: ['#/', '今日'], practice: ['#/practice', '练习'], cards: ['#/cards', '单词'], me: ['#/me', '我的'] };
+  const TAB_OF = { today: ['#/', '今日'], practice: ['#/practice', '练习'], radar: ['#/radar', '能力'], cards: ['#/cards', '单词'], me: ['#/me', '我的'] };
   // The four tab pages; #/teach is a 老师账号's home (its first tab, 「班级」, #121), the same page as its #/.
-  const TAB_PAGES = ['', 'practice', 'cards', 'me', 'teach'];
+  const TAB_PAGES = ['', 'practice', 'radar', 'cards', 'me', 'teach'];  // radar: the 「能力」 tab (2026-11-26)
   // A page's tab as the tab bar shows it: a 老师账号's first tab says 班级, not 今日 (02-shell.js roleTabs)
   const tabOf = nav => {
     const a = document.querySelector(`.tabs [data-nav="${nav}"]`), t = TAB_OF[nav] || TAB_OF.today;
@@ -41,13 +42,19 @@
     if (HIST.length > 50) HIST.splice(0, HIST.length - 50);
   });
   // Called by setNav (02-shell.js) on every page with the tab it belongs to.
+  // Phones (B9's batch 1, the user 2026-11-26): no 「语流 Flow」 bar once in the app; its room goes to the page. It stays
+  // where it has something to say: 返回 in the home-screen app and Flow's apps (no browser back around them), and the
+  // first-visit page (not in the app yet). A computer keeps it, with the tabs in it (98-home-app.css, html.bar-off).
+  const PHONE = matchMedia('(max-width: 759px)');
   function homeBack(nav) {
     const btn = document.getElementById('backBtn'), brand = bar.querySelector('.brand');
     if (!btn) return;
+    homeBack.nav = nav;
     const h = location.hash.replace(/^#\/?/, '');
     const root = TAB_PAGES.includes(h) || h === 'welcome';
     const show = HOME_APP && !root;
     btn.hidden = !show; brand.hidden = show;
+    document.documentElement.classList.toggle('bar-off', PHONE.matches && !show && h !== 'welcome');
     if (!show) return;
     const tab = tabOf(TAB_OF[nav] ? nav : 'today'), prev = HIST.length > 1;
     btn.querySelector('span').textContent = prev ? '返回' : tab[1];
@@ -55,6 +62,8 @@
     btn.onclick = () => { if (HIST.length > 1) history.back(); else location.hash = homeBack.up || tab[0]; };
     homeBack.up = '';
   }
+  if (PHONE.addEventListener) PHONE.addEventListener('change', () => homeBack(homeBack.nav));
+  else if (PHONE.addListener) PHONE.addListener(() => homeBack(homeBack.nav));  // Safari before 14
   // A sub-page's own 「← 口语路线」 line (a .link.small at the top of the page, before its title) says the same as the
   // top bar's 返回 and takes a line of the screen: in the app it is hidden, and 返回 with no page before goes where it
   // went (‹ 口语路线), not to the tab. In Safari there is no 返回 in the bar: the line stays.

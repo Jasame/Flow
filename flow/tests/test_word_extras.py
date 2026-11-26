@@ -1,4 +1,4 @@
-"""AI 常用搭配和近义词 (word_extras, 2026-11-25): the program's checks, one row per item, the reviewer's doubts kept
+"""AI 常用搭配和近义、易混词 (word_extras, 2026-11-25): the program's checks, one row per item, the reviewer's doubts kept
 hidden, and a batch from writing to the card, with the models stood in for."""
 import json, os, sqlite3, sys, tempfile, time, unittest
 from pathlib import Path
@@ -149,6 +149,14 @@ class StoreTests(unittest.TestCase):
         self.assertIn('lend', [x['en'] for x in wx.shown(self.c, 'borrow')])
         wx.flag(self.c, [{'word': 'borrow', 'kind': 'colloc', 'en': 'borrow an idea', 'why': '不常用'}])  # the reviewer hid it
         self.assertEqual(wx.put_back(self.c, ids['borrow an idea'], 'admin@flow'), 0)  # the console does not undo the reviewer
+        self.assertEqual(wx.take_down(self.c, ids['borrow an idea'], '再下架一次', 'admin@flow'), 0)  # nor writes over it,
+        self.assertEqual(wx.put_back(self.c, ids['borrow an idea'], 'admin@flow'), 0)  # so 放回 cannot show it after all
+        why = json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['borrow an idea'],)).fetchone()[0])
+        self.assertEqual(why, {'by': 'qwen-plus', 'why': '不常用'})
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说错', 'admin@flow'), 1)  # taken down again: a new reason
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说反了', 'admin@flow'), 1)
+        self.assertEqual(json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['lend'],)).fetchone()[0])['why'], '区别说反了')
+        self.assertEqual(wx.take_down(self.c, 99999, 'x', 'admin@flow'), 0)
         self.assertFalse([x for x in wx.reported(self.c) if x['en'] == 'borrow an idea'][0]['by_admin'])
         wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')  # a rerun does not show it again
         self.assertNotIn('borrow an idea', [x['en'] for x in wx.shown(self.c, 'borrow')])
@@ -168,6 +176,20 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(calls, [None, 'flow-text-qwen-plus'])  # the writer on the batch lane, then the reviewer
         self.assertEqual([x['en'] for x in wx.shown(self.c, 'borrow') if x['kind'] == 'near'], [])
         self.assertEqual(wx.shown(self.c, 'penny'), [])  # nothing passed: the card shows nothing, nothing made up
+
+    def test_no_reviewer_no_items(self):  # the guide (B2's #429): every item on a card was read by a second model
+        calls = []
+
+        def ask(messages, model=None):
+            calls.append(model)
+            return {'items': [GOOD]}, 'flow-batch-ds-flash'
+        with patch.object(wx, 'ask', ask), patch('chat_service.backup_model', lambda: ''):
+            with self.assertRaises(RuntimeError):
+                wx.run_batch(self.c, [('borrow', '四级', '借', False)], nx, topic_guard.hits)
+            self.assertEqual(calls, [])  # the writer is not asked either: nothing paid for, nothing stored
+            self.assertEqual(self.c.execute('SELECT COUNT(*) FROM vocab_extras').fetchone()[0], 0)
+            r = wx.run_batch(self.c, [('borrow', '四级', '借', False)], nx, topic_guard.hits, review=False)  # samples only
+        self.assertEqual((r['rows'], calls), (4, [None]))
 
 
 class NightlyTests(unittest.TestCase):  # A0 2026-11-26: one nod from the owner for the whole run, paused on anything odd
@@ -215,6 +237,18 @@ class NightlyTests(unittest.TestCase):  # A0 2026-11-26: one nod from the owner 
         self.assertFalse(self.tick(29)); self.assertEqual(len(self.started), 1)  # waits for the owner, never retries alone
         self.assertEqual(wx.anomaly({'error': 'boom'}, self.plan), '运行出错：boom')
         self.assertIn('超过每晚上限', wx.anomaly({'yuan': 4.5}, self.plan))
+
+    def test_a_night_without_a_reviewer_pauses_the_plan(self):
+        wx._write(self.d / 'word-extras' / 'plan.json', self.plan)
+        self.assertTrue(self.tick(27))
+        out = self.started[0][self.started[0].index('--output') + 1]
+        with patch.object(wx, '_main', lambda a: wx.reviewer()), patch('chat_service.backup_model', lambda: ''):
+            with self.assertRaises(RuntimeError):
+                wx.main(['--output', out])  # what the child process does when the site has no reviewer set
+        (self.d / 'word-extras' / 'running.json').unlink()
+        self.assertFalse(self.tick(28))
+        self.assertTrue(self.plan_now()['paused'].startswith('运行出错：RuntimeError: 没有复查模型'))
+        self.assertEqual(len(self.started), 1)  # waits for B7 and the owner
 
     def test_the_first_night_is_looked_at_first(self):
         wx._write(self.d / 'word-extras' / 'plan.json', {**self.plan, 'hold_after_first': True})

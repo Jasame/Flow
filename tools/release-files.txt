@@ -352,6 +352,7 @@ flow/tests/test_audio_lines.py
 flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
+flow/tests/test_backup_beta.py
 flow/tests/test_beta_invites.py
 flow/tests/test_beta_tools.py
 flow/tests/test_channels.py
@@ -360,6 +361,8 @@ flow/tests/test_class_signup.py
 flow/tests/test_classes.py
 flow/tests/test_coach.py
 flow/tests/test_console_ai_quota.py
+flow/tests/test_console_overview_model.py
+flow/tests/test_console_word_extras.py
 flow/tests/test_content_fallback.py
 flow/tests/test_continuity.py
 flow/tests/test_corpus.py
@@ -422,6 +425,7 @@ flow/tests/test_tour.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
 flow/tests/test_two_lines.py
+flow/tests/test_ui_lang.py
 flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
@@ -442,6 +446,7 @@ flow/topic_guard.py
 flow/tour_service.py
 flow/tts_service.py
 flow/two_lines.py
+flow/ui_lang.py
 flow/updates_service.py
 flow/upgrade.sh
 flow/user_guide.py
