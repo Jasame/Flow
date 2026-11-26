@@ -1233,3 +1233,10 @@
   - #506 AI 用量：每项功能都写学员看得懂的名字，没登记的显示「其他」（AI）
 - 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45844089705
+
+### b149 · 2026-11-26 23:09
+- main `286db26`，构建 `73e9837`
+- 新合并的 PR（自 b148 起）：
+  - #507 今日「调整顺序」：拖动的那一块一直在手指下面（测试）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45846103141
