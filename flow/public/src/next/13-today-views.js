@@ -59,8 +59,9 @@
     return { p, must, extra, wk, next, readId, art, more1, left };
   }
   // A step: its number (✓ when done), title, about how long; the next one in ink, the others quieter. No green.
-  // (the words step stays as the plan names it until B2 agrees to 背单词 here: B9's spec 第 4 版 asks for it)
-  const stepName = (s, f) => s.key === 'read' && f.art ? f.art.title : s.title;
+  // The words step is 背单词 here (B9's spec 第 4 版; B2 agreed, 2026-11-26): how many to review and learn, and how a
+  // backlog is going, show on the words page; here only the minutes.
+  const stepName = (s, f) => s.key === 'read' && f.art ? f.art.title : /^单词(：|$)/.test(s.title || '') ? '背单词' : s.title;
   function stepsHTML(f) {
     return `<ol class="tv-steps">${f.must.map((s, k) => `<li><a class="tv-step${s.done ? ' done' : ''}${s === f.next ? ' next' : ''}" href="${esc(s.href)}">`
       + `<span class="n" aria-hidden="true">${s.done ? '✓' : k + 1}</span><span class="t">${esc(stepName(s, f))}</span>`
