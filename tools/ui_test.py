@@ -778,7 +778,7 @@ def run_device(pw, dev, opts):
     check(dev, 'me: 进步 (three tiles) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助 (still open from the tap), then 退出登录; no ability card, no way to the classic site',
           me['groups'] == ['进步', '设置'] and me['tiles'] == ['我的进步', '周报', '错题本'] and me['icons'] and not me['ability'] and me['out'] and not me['classic']
           and me['folds'] == [['账号和隐私', '导出、注销、数据存放', True, True], ['帮助', '指南、隐私说明、反馈', True, True]], me)  # 帮助: opened above, still open
-    check(dev, 'me: 账号和隐私 has its nine rows, 隐私说明 next to 用户协议 (D2)', me['account'] == ['邮箱', '修改密码', '退出所有设备', '年龄段', '数据存放', '用户协议', '隐私说明', '导出我的数据', '注销账号'], me['account'])
+    check(dev, 'me: 账号和隐私 has its ten rows, 切换账号 first, 隐私说明 next to 用户协议 (D2)', me['account'] == ['切换账号', '邮箱', '修改密码', '退出所有设备', '年龄段', '数据存放', '用户协议', '隐私说明', '导出我的数据', '注销账号'], me['account'])
     pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
     pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
     check(dev, 'me: the voice row opens a sheet, and the row shows the new voice', '英音 · 男' in (pg.text_content('#meVoiceV') or ''), pg.text_content('#meVoiceV'))

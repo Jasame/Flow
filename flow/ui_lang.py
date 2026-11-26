@@ -80,6 +80,10 @@ def answer(obj):
 # The server's error messages in English (American spelling, sentence case, short; the terms in docs/english-ui.md).
 # Key: the Chinese exactly as the code writes it, numbers as {n}. More come area by area (全英文界面 第 1 段).
 ERRORS = {
+    # account_switch.py: 切换账号
+    '这台设备最多记住 3 个账号，先移除一个': 'This device remembers up to 3 accounts. Remove one first',
+    '员工账号请每次用密码登录，不能加进切换账号': 'Staff accounts sign in with the password each time and cannot be kept for switching',
+    '这个账号已经不在这台设备上了，请重新登录': 'That account is no longer on this device. Please sign in again',
     # app.py: every request
     '接口不存在': 'Not found',
     '材料或请求参数不正确': 'Something in the request is not right',

@@ -6,6 +6,23 @@
     '没有找到，换个词试试，或者看看「常见问题」。': 'Nothing found. Try another word, or see the FAQ chapter.',
     '更新于 {n}-{n}-{n}': 'Updated {1}-{2}-{3}',
 
+    // 81-switch.js and its rows (切换账号: 我的 → 账号和隐私, the name's 「切换 ›」, 添加账号 in the sign-in box)
+    '切换账号': 'Switch account', '切换 ›': 'Switch ›', '这台设备 {n} 个账号': '{1} accounts on this device', '添加另一个账号': 'Add another account',
+    '已切换到 {x}': 'Switched to {1}', '读不到这台设备上的账号，请稍后再试': "Couldn't read the accounts on this device. Please try again later.",
+    '学生': 'Student', '正在用': 'In use', '{x}：更多': '{1}: more', '选一个账号继续': 'Pick an account to continue',
+    '这台设备最多记住 {n} 个账号，先移除一个。': 'This device remembers up to {1} accounts. Remove one first.',
+    '员工账号不进切换账号：添加别的账号时，这个员工账号会先退出。': 'Staff accounts are not kept for switching: adding another account signs this staff account out first.',
+    '不切换，先这样': 'Not now', '添加账号': 'Add account',
+    '这台设备记住的账号，拿到这台设备的人都能切进去。': 'Anyone who has this device can switch into the accounts it remembers.',
+    '公用电脑、借来的手机，用完请在这里移除。': 'On a shared computer or a borrowed phone, remove them here when you are done.',
+    '从这台设备移除': 'Remove from this device',
+    '只是这台设备忘掉这个账号，相当于它在这台设备上退出登录；账号和学习记录都不动，以后用密码还能登录。': 'This device just forgets the account, as if it signed out here. The account and its records stay, and the password still signs it in.',
+    '这台设备不再记住 {x}': 'This device no longer remembers {1}',
+    '添加以后，现在这个账号也留在这台设备上，在「切换账号」里点一下就能回来。': 'The account you are using now stays on this device too: one tap in “Switch account” brings you back.',
+    '是你自己的设备吗？': 'Is this your own device?',
+    '这台设备会记住两个账号，以后不用密码就能切换。拿到这台设备的人，也能切进这两个账号。': 'This device will remember both accounts and switch between them without a password. Anyone who has this device can switch into them too.',
+    '是我的设备，添加': "It's mine, add it", '不添加': "Don't add", '把老师账号加到这台设备': 'Add a teacher account to this device',
+
     // 49-practice.js
     '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed drill', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
     '{n} 个生活和校园情景，和 AI 对话': '{1} scenes with AI',
