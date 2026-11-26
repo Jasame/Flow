@@ -124,7 +124,8 @@ class ReleaseListTests(unittest.TestCase):
         public = {n.split('/')[-1] for n in self.listed if n.startswith('flow/public/') and n.count('/') == 2}
         self.assertEqual(public, {'next.html', 'next.js', 'next.css', 'sw.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
                                   'apple-touch-icon.png', 'survey.html', 'survey.js', 'survey.css', 'literata.woff2',
-                                  'about.html', 'about.js', 'about.css'})
+                                  'about.html', 'about.js', 'about.css',
+                                  'icon-192-beta.png', 'icon-512-beta.png', 'apple-touch-icon-beta.png'})  # the 内测版's (app.py beta_icons)
 
 
 if __name__ == '__main__':

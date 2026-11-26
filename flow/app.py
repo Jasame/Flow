@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('class_service').schema(c)
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)
+  __import__('word_extras').schema(c)  # AI 常用搭配和近义词 (单词详细模式)
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -150,11 +151,20 @@ def shell_file(name):
   key=f.stat().st_mtime_ns
   if _SLIM.get(name,(None,))[0]!=key:_SLIM[name]=(key,__import__('slim').slim(name,body))
   return _SLIM[name][1]
+ # the 内测版's own icons: the same logo on orange (#e8590c, the owner's pick A, 2026-11-25), so 语流 and 语流内测 sit
+ # apart on a home screen; 语流's (flowlang.cn) are not touched
  if name=='manifest.webmanifest' and CHANNEL=='beta':
-  m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测');return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())
+  m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测')
+  for i in m.get('icons',[])+[x for c in m.get('shortcuts',[]) for x in c.get('icons',[])]:i['src']=i['src'].replace('.png','-beta.png')
+  return json.dumps(m,ensure_ascii=False,indent=1).encode()
+ if name=='about.html':return beta_icons(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode()))
  if name not in ('next.html','sw.js'):return body
- return body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+ body=body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
+ return beta_icons(body) if name=='next.html' else body
+def beta_icons(page):
+ """On the 内测版: the home-screen icon and the tab's icon (the inline SVG's fill) in its orange; 语流's page as it is."""
+ if CHANNEL!='beta':return page
+ return page.replace(b'href="/apple-touch-icon.png"',b'href="/apple-touch-icon-beta.png"').replace(b"fill='%231f9d55'",b"fill='%23e8590c'")
 
 PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see do_GET '/'
 
@@ -162,13 +172,14 @@ PAGE_CACHE='max-age=0, stale-while-revalidate=2592000'  # the learning page: see
 # and never loads the learning site. Its pictures are real screenshots (tools/about_shots.py) in public/about/.
 ABOUT_ASSETS=('about.js','about.css')
 # 下载安装 (认识语流 #download): the apps' installers and download/latest.json, which says which one each platform gets:
-# {"android"|"windows"|"mac": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
+# {"android"|"windows"|"mac"|"linux-appimage"|"linux-deb": {"version", "file", "size", "sha256", "date", "cert"?}} (about.js downloads()). On 语流 nginx
 # serves /download/ from a folder outside the release (A1, app-downloads-hosting); this route is what answers where it
 # does not: files from FLOW_DOWNLOAD_DIR (by default <data>/download), and an empty list when there is none, so the page
 # shows 即将开放 with no failed request. Only plain file names of these types are served.
 DOWNLOADS=Path(os.environ.get('FLOW_DOWNLOAD_DIR') or str(DATA/'download'))
 DOWNLOAD_TYPES={'apk':'application/vnd.android.package-archive','exe':'application/octet-stream',
- 'dmg':'application/x-apple-diskimage','json':'application/json; charset=utf-8'}
+ 'dmg':'application/x-apple-diskimage','deb':'application/vnd.debian.binary-package','appimage':'application/octet-stream',
+ 'json':'application/json; charset=utf-8'}
 def download_file(name):
  """The file under DOWNLOADS for /download/<name>, with its type, or None: one plain name, no folders, a known type."""
  if not (0<len(name)<=100 and name.isascii() and name[0].isalnum() and all(ch.isalnum() or ch in '._-' for ch in name)):return None
@@ -455,6 +466,8 @@ class Handler(BaseHTTPRequestHandler):
    '/icon-192.png':('icon-192.png','image/png'),
    '/icon-512.png':('icon-512.png','image/png'),
    '/apple-touch-icon.png':('apple-touch-icon.png','image/png'),
+   '/icon-192-beta.png':('icon-192-beta.png','image/png'),'/icon-512-beta.png':('icon-512-beta.png','image/png'),
+   '/apple-touch-icon-beta.png':('apple-touch-icon-beta.png','image/png'),  # the 内测版's (beta_icons)
    '/next':('next.html','text/html; charset=utf-8'),
    '/next.js':('next.js','text/javascript; charset=utf-8'),
    '/next.css':('next.css','text/css; charset=utf-8'),
@@ -789,6 +802,9 @@ if __name__=='__main__':
     except Exception as exc:print('ai budget/check failed:',type(exc).__name__,flush=True)
     try:__import__('tts_service').tick(db)  # 03:00–05:00: the fixed sentences the server voice says, made while idle
     except Exception as exc:print('tts prewarm failed:',type(exc).__name__,flush=True)
+    try:
+     with db() as c:__import__('privacy_service').purge_paused(c)  # paused accounts, 30 days on: deleted as 隐私和数据 says
+    except Exception as exc:print('paused-account deletion failed:',type(exc).__name__,flush=True)
     time.sleep(300)
   threading.Thread(target=remind_loop,daemon=True).start()
   class Server(ThreadingHTTPServer):

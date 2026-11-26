@@ -125,6 +125,13 @@
     url(text, o) {
       const k = this.key(text, o);
       if (this.urls.has(k)) return this.urls.get(k);
+      // No connection at all: the address kept on this device at once, or 'offline' at once, rather than a request that
+      // cannot go out (each sentence of a whole text waited 1–2 s under 「正在准备朗读第 N 句…」, B3's offline run 2026-11-26)
+      if (navigator.onLine === false) {
+        const old = this.kept()[this.hash(k)];
+        if (old) return Promise.resolve(old[0]);
+        return Promise.reject(Object.assign(new Error('离线中'), { code: 'offline' }));
+      }
       const p = (async () => {
         await DATA.ready;
         try {
@@ -253,11 +260,27 @@
   }
   // Both lines failed (or there is only one): nothing more to try for this file.
   const mediaGaveUp = a => !a.dataset.alt || a.dataset.line === 'alt';
+  // Recordings and word sounds are AAC (.mp4, .m4a, .aac). A device that cannot decode it (a Linux desktop without its
+  // codec, 语流 C3, 2026-11-25) has them read sentence by sentence in AI 朗读 instead, and is told why once, rather than
+  // 「音频暂时没加载出来，稍后再点一次」 for a file that can never play there.
+  // Only the question with the codec tells: a browser answers 「audio/mp4」 from the container alone (WebKitGTK says
+  // 'maybe' with just GStreamer's mp4 demuxer and no AAC decoder, C3), so that one says nothing.
+  let AAC = (() => {
+    try { return document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"') !== ''; }
+    catch (e) { return true; }
+  })();
+  let aacTold = false;
+  function noAac() {
+    if (aacTold) return; aacTold = true;
+    noteIssue('audio', '这台设备放不了 AAC 录音', '');
+    toast(SV.on() ? '这台设备放不了录音的格式，改用 AI 朗读一句一句读' : '这台设备放不了录音的格式，先用浏览器的声音读');
+  }
 
   /* ---------- narration: pre-generated Kokoro audio + timings (sentence exact, words estimated) ---------- */
   const NAR = {
-    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null,
+    audio: new Audio(), meta: null, key: '', raf: 0, stopAt: null, onTick: null, onEnd: null, aac: AAC,
     async load(id, voice, version) {
+      if (!AAC) { noAac(); return false; }  // as a text without a recording: sentence by sentence
       const key = voice + '/' + id + '@' + version;
       if (this.key === key && this.meta) return true;
       this.stop(); this.meta = null; this.key = '';
@@ -270,6 +293,7 @@
       } catch (e) { return false; }
     },
     play(from, to, onTick, onEnd) {
+      if (!AAC) { this.onEnd = onEnd; this.noFormat(); return; }  // found out before (the file would not decode): no try
       LONG.other();
       this.stopLoop(); this.stopAt = to; this.onTick = onTick; this.onEnd = onEnd; this.paused = false;
       const a = this.audio, asked = a.src;
@@ -278,7 +302,14 @@
       try { a.currentTime = from; } catch (e) { /* not seekable yet */ }
       // Refused (WeChat: not inside a tap): say how to hear it. A file that fails is tried on the other line first
       // (mediaSwap changes the source, and that play() is the one that counts); only when none is left, give up.
-      a.play().catch(e => { if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); } else if (a.src === asked && mediaGaveUp(a)) this.gaveUp(); });
+      // A source that cannot be played (NotSupportedError) is left to the 'error' listener: it tells a missing file from
+      // one this device cannot decode (noFormat) before saying anything.
+      a.play().catch(e => {
+        if (e && e.name === 'NotAllowedError') { noSound('没有放出声音'); this.finish(); return; }
+        if (a.src !== asked || !mediaGaveUp(a)) return;
+        if (e && e.name === 'NotSupportedError' && !a.error) return;  // the 'error' listener comes next and decides
+        this.failed();
+      });
       const loop = () => {
         const t = this.audio.currentTime;
         if (this.onTick) this.onTick(t);
@@ -307,6 +338,21 @@
       try { this.audio.currentTime = ss[j].s; } catch (e) { /* not seekable yet */ }
     },
     gaveUp() { if (!this.raf && !this.onEnd) return; noteIssue('audio', '全文录音没加载出来', this.net ? this.net.split('?')[0] : ''); toast('音频暂时没加载出来，稍后再点一次'); this.finish(); },
+    // Both lines failed: a file this device cannot decode (「not supported」 with the file there: noFormat), or one that
+    // did not come (gaveUp). 「not supported」 is also what a missing file says, so the server is asked first.
+    failed() {
+      const e = this.audio.error, net = this.net;
+      if (e && e.code === 4 && net && AAC) { fetch(net, { method: 'HEAD', credentials: 'same-origin' }).then(r => (r.ok ? this.noFormat() : this.gaveUp()), () => this.gaveUp()); return; }
+      this.gaveUp();
+    },
+    // The file came (the server has it) and still would not play: this device cannot decode it, whatever canPlayType
+    // said. From now on as with no AAC (NAR.load says no recording), and a whole text playing goes on sentence by sentence.
+    noFormat() {
+      AAC = false; this.aac = false; noAac();
+      const r = LONG.r;
+      if (r && r.nm && this.onEnd) { this.stopLoop(); this.audio.dataset.want = ''; this.onEnd = null; this.onTick = null; r.nm = null; r.cont = false; r.at = null; LONG.go(); return; }
+      this.finish();
+    },
     stopLoop() { cancelAnimationFrame(this.raf); this.raf = 0; },
     stop() { this.stopLoop(); this.audio.dataset.want = ''; this.paused = false; MS.release('nar'); this.onEnd = null; this.onTick = null; try { this.audio.pause(); } catch (e) { /* ignore */ } },
     // -> [sentence index, char offset of the current word] at time t
@@ -318,7 +364,7 @@
       return [si, wc];
     },
   };
-  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.gaveUp(); });
+  NAR.audio.addEventListener('error', () => { if (mediaGaveUp(NAR.audio)) NAR.failed(); });
   // Paused by something other than the page (a call, the lock screen, another app's sound): the page says so (MINI:
   // 已暂停 and 继续) instead of showing it still playing; playing again (继续, the lock screen) takes it back.
   NAR.audio.addEventListener('pause', () => {
@@ -528,7 +574,7 @@
     // c: {text, audio: {us: [sprite, start, end], uk: [...]}}; falls back to the browser voice
     word(c) {
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
-      if (!ac) { TTS.say(c.text); return; }
+      if (!ac || !AAC) { if (ac) noAac(); TTS.say(c.text); return; }  // no recording, or none this device can play
       const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
       if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: '语流 · 单词' });
       else this.play(sprite, w[1], w[2], c.text);
@@ -542,7 +588,7 @@
     },
     // ex: {pack, i, text, audio: narration version or 0}; onend when it has been said (对比回放 plays the recording then)
     async sentence(ex, onend) {
-      if (!ex.audio) { TTS.say(ex.text, onend); return; }
+      if (!ex.audio || !AAC) { if (ex.audio) noAac(); TTS.say(ex.text, onend); return; }
       const key = S.voice + '/' + ex.pack;
       try {
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
@@ -585,8 +631,10 @@
   // in memory as a blob: URL, so a tap plays at once. Not with Save-Data or on 2G; at most 8 recordings are kept.
   // (Word sounds are not preloaded: a word's file holds about 100 words, and the player fetches only that word's bytes.)
   const PRELOAD = {
-    done: new Map(), going: new Map(),
-    frugal() { const c = navigator.connection; return !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
+    done: new Map(), going: new Map(), app: false,
+    // Save-Data, 2G, or 语流's iOS app saving power (低电量模式, iOS 27 asking apps to do less: FlowApp 'frugal', C1):
+    // nothing fetched ahead (today's texts kept offline, the next material, its recording, the next sentences)
+    frugal() { const c = navigator.connection; return this.app || !!(c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))); },
     url(u) { return this.done.get(u) || u; },
     warm(u) {
       if (!u) return Promise.resolve(null);
@@ -605,6 +653,11 @@
       this.going.set(u, p); return p;
     },
   };
+  if (window.FlowApp && FlowApp.has && FlowApp.has('frugal')) {
+    const take = d => { PRELOAD.app = !!(d && d.on); };
+    Promise.resolve(FlowApp.call('app.frugal')).then(take, () => {});
+    if (FlowApp.on) FlowApp.on('frugal', take);
+  }
   // From 今日: the material most likely opened next, and its recording, so the study page opens and plays without a wait.
   async function preloadMaterial(id) {
     if (!id || MAT[id] || PRELOAD.frugal()) return;
@@ -653,34 +706,69 @@
   // outside the page (a call, the lock screen): 已暂停, and the button says 继续.
   const pauseIcon = size => `<svg width="${size || 18}" height="${size || 18}" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>`;
   const MINI = {
-    el: null, h: null, label: '', resumeFn: null,
+    el: null, h: null, label: '', resumeFn: null, dk: null,
+    box() {
+      if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
+      this.el.classList.toggle('docked', !!this.dk); document.body.classList.toggle('docked', !!this.dk);
+      return this.el;
+    },
+    // 精听 (the user's pick of 语流 B9's design, 2026-11-25): with nothing playing the bar stays above the tabs with the
+    // page's start button (#playAll, 「播放全文」 or 「从第 N 句继续」), 「AI 合成」 and the speed; playing, it is the usual
+    // player, its 暂停 / 继续 still #playAll for that text. dk: {key, ai, paint(), play(), rate()}. Other pages: only while playing.
+    dock(dk) { this.dk = dk; if (!this.h) this.idle(); else this.box(); NATIVE.adopt(); },  // the app playing this text: taken back
+    undock() { this.dk = null; document.body.classList.remove('docked'); if (this.el) this.el.classList.remove('docked'); if (!this.h) this.hide(); },
+    // 👁 (盲听) by the speed while nothing plays (B9's r36 audit F1: it had a row of its own above the sentences)
+    eye() { const on = !!(this.dk && this.dk.blind && this.dk.blind.on()); return `<button type="button" class="eye${on ? ' on' : ''}" id="blind" aria-pressed="${on}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button>`; },
+    idle() {
+      const dk = this.dk, el = this.box();
+      el.innerHTML = `<button type="button" class="toggle" id="playAll"></button>${aiVoiceNote('AI 合成', 'span')}<span class="sp"></span>`
+        + '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>' + (dk.blind ? this.eye() : '');
+      el.querySelector('#playAll').onclick = () => dk.play();
+      el.querySelector('.speed-set').onclick = () => dk.rate();
+      if (dk.blind) el.querySelector('#blind').onclick = () => dk.blind.toggle();
+      el.classList.remove('paused'); el.classList.add('idle'); el.hidden = false; document.body.classList.add('playing');
+      this.ai(typeof dk.ai === 'function' ? dk.ai() : !!dk.ai);
+      dk.paint();
+    },
     show(label, h) {
       if (typeof h === 'function') h = { stop: h };
       this.h = h; this.label = label; this.resumeFn = null;
-      if (!this.el) { this.el = document.createElement('div'); this.el.className = 'mini-player'; this.el.setAttribute('role', 'region'); this.el.setAttribute('aria-label', '播放控制'); document.body.appendChild(this.el); }
-      this.el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>${aiVoiceNote('AI 合成', 'span')}`
-        + (h.toggle ? `<button type="button" class="toggle"></button><button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
+      const el = this.box(), mine = !!(this.dk && h.key && h.key === this.dk.key);
+      el.innerHTML = `<span class="eq" aria-hidden="true"><i></i><i></i><i></i></span><span class="lbl"></span>${aiVoiceNote('AI 合成', 'span')}`
+        + (h.toggle ? `<button type="button" class="toggle"${mine ? ' id="playAll"' : ''}></button>${mine ? '<button type="button" class="speed-set" aria-label="播放设置：语速、每句几遍、句后停顿"></button>' : ''}<button type="button" class="stop close" aria-label="关闭播放（记住读到哪里）">✕</button>`
           : `<button type="button" class="stop">${playIcon(true, 15)}<span>停止</span></button>`);
-      this.el.querySelector('.lbl').textContent = label;
-      this.el.querySelector('.stop').onclick = () => { const st = this.h && this.h.stop; this.hide(); if (st) st(); };
-      if (h.toggle) this.el.querySelector('.toggle').onclick = () => this.h.toggle();
-      this.el.classList.remove('paused'); this.el.hidden = false; document.body.classList.add('playing');
+      el.querySelector('.lbl').textContent = label;
+      el.querySelector('.stop').onclick = () => { const st = this.h && this.h.stop; this.hide(); if (st) st(); };
+      if (h.toggle) el.querySelector('.toggle').onclick = () => this.h.toggle();
+      if (mine) { const dk = this.dk; el.querySelector('.speed-set').onclick = () => dk.rate(); }
+      el.classList.remove('paused', 'idle'); el.hidden = false; document.body.classList.add('playing');
+      this.ai(h.ai !== false);
       this.paint();
+      if (mine) this.dk.paint();
     },
     paint() {
-      if (!this.el || this.el.hidden) return;
-      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle');
-      this.el.querySelector('.lbl').textContent = on ? '已暂停' : this.label;
+      if (!this.onResize) { this.onResize = () => this.paint(); addEventListener('resize', this.onResize); }  // 「12/30」 follows the width
+      if (!this.el || this.el.hidden || !this.h) return;
+      const on = this.el.classList.contains('paused'), t = this.el.querySelector('.toggle'), lbl = this.el.querySelector('.lbl'), text = on ? '已暂停' : this.label;
+      // 精听's bar keeps 1× while playing (B9 F3): where 「第 12 / 30 句」 would not fit with it, 「12/30」
+      lbl.textContent = this.dk && innerWidth < 370 ? text.replace(/^第 (\d+) \/ (\d+) 句$/, '$1/$2') : text;
       if (t) { t.innerHTML = on ? `${playIcon(false, 15)}<span>继续</span>` : `${pauseIcon(15)}<span>暂停</span>`; t.classList.toggle('resume', on); t.setAttribute('aria-label', on ? '继续' : '暂停'); }
       let b = this.el.querySelector('.resume:not(.toggle)');
       if (!t && on && !b) { b = document.createElement('button'); b.type = 'button'; b.className = 'resume'; b.innerHTML = `${playIcon(false, 15)}<span>继续</span>`; this.el.insertBefore(b, this.el.querySelector('.stop')); }
       if (b) { if (!t && on) b.onclick = () => { if (this.resumeFn) this.resumeFn(); }; else b.remove(); }
     },
     update(label) { this.label = label; this.paint(); },
-    paused(on) { if (this.el && !this.el.hidden) { this.el.classList.toggle('paused', !!on); this.paint(); } },
+    // 「AI 合成」 follows the voice really heard: 语流's own (a recording, AI 朗读) or, fallen back, the browser's (B9, 2026-11-25)
+    ai(on) { const n = this.el && this.el.querySelector('.ai-voice-note'); if (n) n.hidden = !on; },
+    paused(on) { if (this.el && !this.el.hidden && this.h) { this.el.classList.toggle('paused', !!on); this.paint(); } },
     // a recording paused from outside, with no whole text around it: 已暂停, and 继续 calls resume
-    pause(on, resume) { if (!this.el || this.el.hidden) return; this.resumeFn = resume || null; this.paused(on); },
-    hide() { if (this.el) { this.el.hidden = true; this.el.classList.remove('paused'); } this.h = null; document.body.classList.remove('playing'); },
+    pause(on, resume) { if (!this.el || this.el.hidden || !this.h) return; this.resumeFn = resume || null; this.paused(on); },
+    // stopped: 精听's bar goes back to its start button; anywhere else the bar goes
+    hide() {
+      this.h = null;
+      if (this.dk) { this.idle(); return; }
+      if (this.el) { this.el.hidden = true; this.el.classList.remove('paused', 'idle'); } document.body.classList.remove('playing');
+    },
     end() { const b = this.el && !this.el.hidden && this.el.querySelector('.stop'); if (b) b.click(); },
   };
 
@@ -715,13 +803,26 @@
       const k = JSON.stringify(this.knobs(r));
       if (force || k !== this.sent) { this.sent = k; FlowApp.audio.set(this.knobs(r)).catch(() => {}); }
     },
+    // The app's own 语速 and 单句循环, changed on the lock screen (iOS 27, 语流 C1's #335: rate, rep and loop in 'audio' and
+    // state(), why 'remote'): the page takes them, its chips follow, and nothing is pushed back (a forced set put 1× back).
+    // 单句循环 there is rep 0 with loop; turned off, the app sends the page's own back. An older app sends none: false.
+    takeKnobs(d, r) {
+      if (!d || typeof d.rate !== 'number' || !(d.rate > 0)) return false;
+      if (d.rate !== TTS.rate) { TTS.rate = d.rate; save('flow-next-rate', TTS.rate); NAR.audio.playbackRate = TTS.rate; }
+      if (typeof d.rep === 'number' && d.rep >= 0 && r.setRep) r.setRep(d.rep);
+      this.sent = JSON.stringify(this.knobs(r));
+      if (r.onKnobs) r.onKnobs();
+      return true;
+    },
     start(r) {
       const d = this.last;
       if (this.lone === r.key && d && d.key === r.key && d.state !== 'idle') {
         // this page loaded again while the app went on with this very text: take it back where the app is, no new start
-        this.lone = null; if (typeof d.i === 'number') r.i = d.i; r.state = d.state === 'paused' ? 'playing' : d.state; r.note = '';
-        if (d.state === 'paused') FlowApp.audio.resume().catch(() => {});
-        MINI.paused(false); this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;
+        // (r.auto: 精听 took it back by itself, MINI.dock / adopt: a paused text stays paused; a tap on 继续 resumes it)
+        const keep = !!r.auto && d.state === 'paused';
+        this.lone = null; if (typeof d.i === 'number') r.i = d.i; r.state = d.state === 'paused' && !keep ? 'playing' : d.state; r.note = '';
+        if (d.state === 'paused' && !keep) FlowApp.audio.resume().catch(() => {});
+        MINI.paused(keep); if (!this.takeKnobs(d, r)) this.retune(true); LONG.save(); LONG.emit(); this.loop(); return;  // the app's knobs, else the page's
       }
       const o = { key: r.key, title: r.title || '', from: r.i, ...this.knobs(r) };
       if (S.csrf) o.csrf = S.csrf;
@@ -742,9 +843,10 @@
       if (d.state === 'idle') { if (d.why === 'ended') LONG.finish(); else if (d.why !== 'user') LONG.stop(); return; }
       if (typeof d.i === 'number' && d.i !== r.i) { r.i = d.i; r.n = 0; LONG.save(); }
       // the app fell back to the phone's own voice: why, said by the page as everywhere on the site (SV.why: once a reason)
-      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || '');
+      r.state = d.state; r.note = d.fail ? SV.why(d.fail) : (d.note || ''); MINI.ai(!!r.nm || !d.fail);
       MINI.paused(d.state === 'paused');
-      this.retune();  // 复读 or 语速 changed meanwhile
+      if (d.why === 'remote') this.takeKnobs(d, r);  // 语速 or 单句循环 changed on the lock screen
+      this.retune();  // 复读 or 语速 changed on the page meanwhile
       LONG.emit(); this.loop();
     },
     // the app made a sentence this phone had no address for: kept in the SV address book (§3 audio-made), so it is
@@ -799,13 +901,21 @@
     },
     // the app's text, which this page did not start, after the router hid MINI for a new page: on screen again
     reshow() { const d = this.last; if (!LONG.r && this.lone && d && d.key === this.lone && d.state !== 'idle') this.orphan(d); },
+    // the app plays the very text whose 精听 page is open (loaded again, or come back to): the page takes it back by
+    // itself, so its one bar is that text's player, the sentence lit; true when it did
+    adopt() {
+      const d = this.last, dk = MINI.dk;
+      if (!dk || !dk.attach || LONG.r || !d || this.lone !== d.key || d.key !== dk.key || d.state === 'idle') return false;
+      dk.attach(); return true;
+    },
     // this page loaded again (a new version, iOS ended it in the background) while the app goes on: its control is back
     orphan(d) {
       this.keep(d);
       if (LONG.r) return;
       if (d.state === 'idle') { if (this.lone) { this.lone = null; MINI.hide(); } return; }
+      if (MINI.dk && MINI.dk.key === d.key) { this.lone = d.key; if (this.adopt()) return; }
       const label = (d.title || '朗读') + (d.n ? ` · 第 ${d.i + 1} / ${d.n} 句` : '');
-      if (this.lone !== d.key || !MINI.el || MINI.el.hidden) {
+      if (this.lone !== d.key || !MINI.el || MINI.el.hidden || !MINI.h) {  // !MINI.h: 精听's idle bar is there, not the app's player
         this.lone = d.key;
         MINI.show(label, { toggle: () => (MINI.el.classList.contains('paused') ? FlowApp.audio.resume() : FlowApp.audio.pause()), stop: () => { this.lone = null; FlowApp.audio.stop(); } });
       } else MINI.update(label);
@@ -839,7 +949,7 @@
       const n = o.texts.length, r = this.r = { ...o, i: Math.max(0, Math.min(from || 0, n - 1)), n: 0, tok: 0, state: o.nm ? 'playing' : 'waiting', note: '', at: null };
       r.cont = !!o.nm && !o.loop;
       r.native = NATIVE.on();
-      MINI.show(this.label(), { toggle: () => this.toggle(), stop: () => this.stop() });
+      MINI.show(this.label(), { key: r.key, ai: !!(o.nm || SV.on()), toggle: () => this.toggle(), stop: () => this.stop() });  // ai: 语流's own voices, not the browser's
       if (r.native) { this.emit(); NATIVE.start(r); return; }  // 语流's iOS app plays it (NATIVE)
       if (o.nm) { this.emit(); this.go(); return; }  // inside the tap: WeChat plays a recording only when it starts there
       this.emit();
@@ -865,7 +975,7 @@
         return;
       }
       if (r.nm) {
-        r.state = 'playing'; this.emit();
+        r.state = 'playing'; MINI.ai(true); this.emit();
         this.own(() => NAR.play(s.s, s.e, t => { const [si, wc] = NAR.locate(t); if (si === r.i && r.onWord) r.onWord(si, wc); }, () => { if (this.r === r && r.tok === tok) this.after(); }));
         return;
       }
@@ -892,7 +1002,7 @@
         clearTimeout(late);
         if (this.r !== r || r.tok !== tok) return;  // paused, stopped or moved on while it was being made
       }
-      r.state = 'playing'; r.note = u ? '' : err ? SV.why(err) : SV.off ? SV.why({ code: SV.off }) : ''; this.emit();
+      r.state = 'playing'; r.note = u ? '' : err ? SV.why(err) : SV.off ? SV.why({ code: SV.off }) : ''; MINI.ai(!!u); this.emit();
       const next = () => { if (this.r === r && r.tok === tok) this.after(); };
       if (u) {
         this.own(() => CLIP.play(u, 0, 1e6, text, next, null, { url: u, from: 0, to: Infinity, title: '语流 · ' + (r.title || '朗读'), cut: () => { if (this.r === r && r.tok === tok) this.held(); } }));

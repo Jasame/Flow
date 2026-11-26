@@ -21,7 +21,7 @@
 .guide-search{width:100%}
 .guide-body{font-size:15px;line-height:1.75}
 .guide-body h2{font-size:20px;margin:28px 0 8px;scroll-margin-top:80px}
-.guide-body h3{font-size:16px;margin:20px 0 6px}
+.guide-body h3{font-size:16px;margin:20px 0 6px;scroll-margin-top:80px}  /* a section link (#/guide/<section id>) clear of the top bar */
 .guide-body ol,.guide-body ul{padding-left:1.4em;margin:6px 0}
 .guide-body li{margin:4px 0}
 .guide-body .tip{padding:10px 12px;border-radius:12px;background:var(--amber-soft);margin:10px 0}

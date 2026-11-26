@@ -43,7 +43,8 @@ GROUP = {k: g for k, _, g in TASKS}
 EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'daily-search': ('今日热点联网检索', None),
          'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None),
          # 2026-11-25: read-aloud through the gateway's flow-tts (tts_service): in the costs and the daily budget, never a route
-         'tts': ('AI 朗读（声音）', None)}
+         'tts': ('AI 朗读（声音）', None), 'tts-prewarm': ('AI 朗读预生成（夜间）', None),
+         'word-extras': ('单词搭配和近义词（批量）', 'next-examples')}  # word_extras.py: AI 例句's route, batch lane
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
 LANES = ('eval', 'batch')
@@ -198,7 +199,7 @@ def _pick(kind, tables):
     return default_model(), 'default'
 
 
-LANE_OF = {'fill-examples': 'batch'}  # batch work in the site's own process, whatever FLOW_AI_LANE says
+LANE_OF = {'fill-examples': 'batch', 'word-extras': 'batch'}  # batch work in the site's own process, whatever FLOW_AI_LANE says
 
 
 def route(kind=None):
@@ -608,12 +609,42 @@ def budget():
     return float(v) if isinstance(v, (int, float)) and v > 0 else 0.0
 
 
+EXEMPT_KIND = 'word-extras'
+
+
+def exempt_on():
+    """The owner let one run past the caps for now (2026-11-26: 「暂时放行预算上限，跑完收紧」): word_extras' plan with
+    own_cap, until it is done. It keeps its own nightly and total yuan."""
+    try:
+        return bool(__import__('word_extras').own_cap_on())
+    except Exception:  # noqa: BLE001 - no plan, no exemption
+        return False
+
+
+def exempt_spent(c, day=None):
+    """Yuan of that run on a Beijing day (today by default)."""
+    start = _day_start(day or beijing_day())
+    table = prices()
+    try:
+        rows = c.execute('SELECT ts, model, served, prompt, cached, completion FROM ai_calls WHERE ts>=? AND ts<? AND ok=1 AND kind=?',
+                         (start, start + DAY, EXEMPT_KIND)).fetchall()
+    except sqlite3.OperationalError:
+        return 0.0
+    return sum(cost(served_name(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
+
+
+def budget_spent(c):
+    """Today's spend as the budget counts it: everything, less a run the owner let past the caps for now."""
+    x = exempt_spent(c) if exempt_on() else 0.0
+    return spent(c) - x, x
+
+
 def budget_state(c):
-    b, s = budget(), spent(c)
+    b, (s, x) = budget(), budget_spent(c)
     level = None
     if b:
         level = 'over' if s >= b else 'warn' if s >= 0.8 * b else None
-    return {'daily': b, 'spent': round(s, 4), 'pct': round(100 * s / b) if b else None, 'level': level}
+    return {'daily': b, 'spent': round(s, 4), 'pct': round(100 * s / b) if b else None, 'level': level, 'exempt': round(x, 4)}
 
 
 STOP_DEFAULT = 10.0
@@ -635,15 +666,69 @@ def learner_day_start(now=None):
     return t - t % DAY
 
 
+# Work no learner asked for: batch fills, the daily texts, deploy checks, the night's voice prewarm, and every call on
+# the eval or batch lanes (ai_eval, fill_examples). The ¥10 stop counts learners only, so a night of batch work never
+# stops a learner who is still studying (语流 B7, 2026-11-25); the ¥5 budget still counts everything.
+NOT_LEARNER = ('fill-examples', 'daily-search', 'daily-news', 'daily-topic', 'ai-check', 'ai-check-json', 'tts-prewarm', 'word-extras')
+# Batch work, with a ceiling of its own a night (A0 for the owner, 2026-11-25: 「批量另外设一个每晚上限，比如 ¥15，到线就停，
+# 后台看得到」): the kinds below and every call on the eval or batch lanes. The ¥5 budget still stops them too.
+BATCH = ('fill-examples', 'daily-search', 'daily-news', 'daily-topic', 'tts-prewarm', 'word-extras')
+BATCH_DEFAULT = 15.0
+
+
 def spent_since(c, start):
-    """Yuan of every answered call since start: status 200, also an answer that could not be used (it was paid for)."""
+    """Yuan of learners' answered calls since start: status 200, also an answer that could not be used (it was paid
+    for); not the work in NOT_LEARNER nor any call on the eval or batch lanes."""
     table = prices()
     try:
-        rows = c.execute('SELECT ts, model, served, prompt, cached, completion FROM ai_calls WHERE ts>=? AND status=200',
-                         (start,)).fetchall()
+        rows = c.execute('SELECT ts, model, served, prompt, cached, completion FROM ai_calls WHERE ts>=? AND status=200 '
+                         "AND kind NOT IN (%s) AND model NOT LIKE 'flow-batch%%' AND model NOT LIKE 'flow-eval%%'"
+                         % ','.join('?' * len(NOT_LEARNER)), (start, *NOT_LEARNER)).fetchall()
     except sqlite3.OperationalError:
         return 0.0
     return sum(cost(served_name(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
+
+
+def batch_line():
+    """Yuan a learners' day (from 08:00 Beijing) of batch work may cost: the console's ai_batch, else ¥15; 0 = no cap."""
+    v = _settings().get('ai_batch')
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v) if v > 0 else 0.0
+    return BATCH_DEFAULT
+
+
+def batch_spent_since(c, start):
+    """Yuan of batch work since start (BATCH kinds and the eval or batch lanes), every answered call."""
+    table = prices()
+    skip = (EXEMPT_KIND,) if exempt_on() else ('',)  # a run the owner let past the caps keeps to its own yuan
+    try:
+        rows = c.execute('SELECT ts, model, served, prompt, cached, completion FROM ai_calls WHERE ts>=? AND status=200 '
+                         "AND (kind IN (%s) OR model LIKE 'flow-batch%%' OR model LIKE 'flow-eval%%') AND COALESCE(kind, '') <> ?"
+                         % ','.join('?' * len(BATCH)), (start, *BATCH, *skip)).fetchall()
+    except sqlite3.OperationalError:
+        return 0.0
+    return sum(cost(served_name(r[2], r[1]), r[0], r[3], r[4], r[5], table) for r in rows)
+
+
+def batch_full(c=None, now=None):
+    """Tonight's batch work has cost batch_line() or more: it waits for the next learners' day (08:00 Beijing)."""
+    line = batch_line()
+    if not line:
+        return False
+    own = c is None
+    c = c or _db()
+    if c is None:
+        return False
+    try:
+        return batch_spent_since(c, learner_day_start(now)) >= line
+    finally:
+        if own:
+            c.close()
+
+
+def batch_stop(c=None):
+    """Batch work stops: the day's budget (¥5, everything counted) or tonight's batch ceiling (¥15) is reached."""
+    return over_budget(c) or batch_full(c)
 
 
 def day_full(c=None, now=None):
@@ -679,7 +764,7 @@ def over_budget(c=None):
     if c is None:
         return False
     try:
-        return spent(c) >= budget()
+        return budget_spent(c)[0] >= budget()
     finally:
         if own:
             c.close()
@@ -762,7 +847,7 @@ def nightly(c, now=None):
     if not nightly_on() or not NIGHT[0] <= t.hour < NIGHT[1]:
         return False
     from vertex_auth import ai_enabled
-    if not ai_enabled() or over_budget(c):
+    if not ai_enabled() or batch_stop(c):
         return False
     d = eval_dir()
     day = t.date().isoformat()
@@ -810,6 +895,10 @@ def tick(c, now=None):
     """Every few minutes from the site's loop: budget mails, the nightly check, and once a day old rows pruned."""
     check_budget(c, now)
     nightly(c, now)
+    try:
+        __import__('word_extras').nightly(c, now)  # 单词搭配：only with the owner's plan file (word_extras.py)
+    except Exception as exc:  # noqa: BLE001 - never stops the site's loop
+        print('word_extras nightly:', type(exc).__name__, str(exc)[:120], flush=True)
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)

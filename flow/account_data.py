@@ -18,7 +18,8 @@ LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures
 LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt'}
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
-    'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
+    'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_corrections': 'AI 改错记录：哪一次练习里改了哪个语法点（看哪些问题反复出现）',
+    'next_evidence': '周报「这周的一次进步」：后来你自己写对的句子（每个语法点最多两句，90 天后删）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
     'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标、我的考试和日期、朗读声音、主题色',
     'next_goals': '能力目标', 'next_assess': '水平测评', 'next_radar': '能力雷达的每次结果', 'next_skill_events': '各项练习的得分',
     'next_exam_results': '考试练习的成绩', 'next_exam_type_results': '题型专练每一组的成绩', 'next_easy_reads': '轻松读：读了什么、多快', 'next_word_practice': '单词练习的每一题',
@@ -231,6 +232,17 @@ def erase(c, u, data, verify, data_dir=None):
     if not stored or not verify(p, stored['password']):
         left = auth_service.LOCK_TRIES - auth_service.failed(c, key, lock, now)
         return {'error': '密码不正确' + ('，再错 %d 次会暂停 15 分钟' % left if 0 < left <= 2 else '，已暂停 15 分钟' if left <= 0 else ''), 'field': 'password'}, 400
+    return {'ok': True, 'rows': forget(c, uid, data_dir)}, 200
+
+
+def forget(c, uid, data_dir=None):
+    """Delete the account uid and everything it has (its rows in every table, its own articles' voice, its feedback
+    pictures): 注销账号 once the password is right (erase), and a paused account PAUSE_DAYS on (privacy_service.purge_paused).
+    Returns how many rows went. The caller has checked who may; a staff account is never passed here."""
+    key = 'u:%d' % uid
+    stored = c.execute('SELECT email FROM users WHERE id=?', (uid,)).fetchone()
+    if not stored:
+        return 0
     shots = [r[0] for r in c.execute("SELECT id FROM feedback WHERE user_id=? AND images!='[]'", (uid,)).fetchall()] if 'feedback' in _tables(c) else []
     refs = _references(c)
     c.commit()
@@ -263,4 +275,4 @@ def erase(c, u, data, verify, data_dir=None):
         base = feedback_service.folder() if data_dir is None else data_dir / 'feedback'
         for rid in shots:
             shutil.rmtree(base / str(rid), ignore_errors=True)
-    return {'ok': True, 'rows': n}, 200
+    return n

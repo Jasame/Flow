@@ -27,7 +27,12 @@ def schema(c):
 CREATE TABLE IF NOT EXISTS next_skill_events(id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), skill TEXT NOT NULL,
  kind TEXT NOT NULL, score REAL NOT NULL, level TEXT, pack TEXT, created REAL NOT NULL);
 CREATE INDEX IF NOT EXISTS next_skill_events_user ON next_skill_events(user_id, skill, created);
-CREATE TABLE IF NOT EXISTS next_weekly(user_id INTEGER PRIMARY KEY REFERENCES users(id), last_sent TEXT);''')
+CREATE TABLE IF NOT EXISTS next_weekly(user_id INTEGER PRIMARY KEY REFERENCES users(id), last_sent TEXT);
+-- 每次 AI 改错 (r29 周报的「反复出现」): one row per output and grammar point, so repeats count by output and by day
+-- (a fix card keeps one row per mistake and its first date only). Not learning evidence: kept out of learning_events.
+CREATE TABLE IF NOT EXISTS next_corrections(user_id INTEGER NOT NULL REFERENCES users(id), node TEXT NOT NULL, source TEXT NOT NULL,
+ kind TEXT NOT NULL DEFAULT '', skill TEXT NOT NULL DEFAULT '', pack TEXT, assisted INTEGER, created REAL NOT NULL, PRIMARY KEY(user_id, node, source));
+CREATE INDEX IF NOT EXISTS next_corrections_time ON next_corrections(user_id, created);''')
     cols = {r[1] for r in c.execute('PRAGMA table_info(next_cards)')}
     for name, decl in (('skill', 'TEXT'), ('node', 'TEXT'), ('extra', 'TEXT')):
         if name not in cols:
@@ -70,8 +75,11 @@ def add_mistake(c, uid, kind, text, norm, meaning='', context='', skill=None, no
     return cid
 
 
-def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3):
-    """Corrections from AI feedback ({from, to, why, node}) become fix cards."""
+def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3, request_id='', kind='', assisted=None):
+    """Corrections from AI feedback ({from, to, why, node}) become fix cards. Each one on a grammar point is also noted
+    once per output (request_id; one made up when there is none) in next_corrections, for 反复出现 (progress_service.
+    recurring): a card keeps one row per mistake, so it cannot tell whether the same point came back in other outputs."""
+    source = 'fix:' + (str(request_id or '') or __import__('uuid').uuid4().hex)
     for ch in (changes or [])[:limit]:
         frm, to = (ch.get('from') or '').strip(), (ch.get('to') or '').strip()
         if not to or frm in ('', '—') or frm.lower() == to.lower() or len(frm) > 160:
@@ -79,7 +87,10 @@ def mistakes_from_changes(c, uid, changes, sentence, skill, pack=None, limit=3):
         # keep the sentence the mistake was in, not the whole essay or retelling
         ctx = next((x for x in nx.sentences(sentence or '') if frm.lower() in x.lower()), sentence or '')[:600]
         add_mistake(c, uid, 'fix', to, 'fix:' + nx._norm(frm + ' > ' + to), ch.get('why') or '', ctx, skill,
-                    ch.get('node'), pack, {'from': frm}, commit=False)
+                    ch.get('node'), pack, {'from': frm, 'kind': kind} if kind else {'from': frm}, commit=False)
+        if ch.get('node') and uid:
+            c.execute('INSERT OR IGNORE INTO next_corrections(user_id,node,source,kind,skill,pack,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
+                      (uid, ch['node'], source, kind or '', skill or '', pack, None if assisted is None else int(bool(assisted)), time.time()))
     c.commit()
 
 
@@ -153,9 +164,10 @@ def ability(c, uid, now=None):
 
 
 def suggest_level(c, uid, now=None):
-    """Adaptive difficulty: after enough comprehension and dictation at the learner's level, suggest moving up or down."""
+    """Adaptive difficulty: after enough comprehension and dictation at the learner's level, suggest moving up or down.
+    None with 按我的学习记录推荐 switched off (next_service.follows_records)."""
     prof = nx.profile(c, uid)
-    if not prof:
+    if not prof or not nx.follows_records(prof):
         return None
     now = now or time.time()
     cur = 'C1' if prof['level'] == 'C1' else prof['level']
@@ -254,7 +266,9 @@ def daily_path(c, uid, home, now=None):
     # the words most due first (one round of BACK_WORDS), a text half read before or one a level easier, and nothing
     # else; the next day is an ordinary one again.
     back = None
-    before = ps.study_days(c, uid, now - 400 * 86400, start)
+    # 回归模式 reshapes the day from the study record: with 按我的学习记录推荐 switched off there is none (D2: the plan's
+    # shape follows the records → under the switch; by the minutes the learner chose → not)
+    before = ps.study_days(c, uid, now - 400 * 86400, start) if nx.follows_records(prof) else None
     if before:
         missed = (ps._local(now).date() - max(before)).days - 1
         if missed >= getattr(vs, 'BACK_DAYS', BACK_DAYS):
@@ -331,7 +345,9 @@ def daily_path(c, uid, home, now=None):
             add({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2},
                 tb.read_minutes(other.get('words'), 'core'), ('read', 'other'), 8)
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
-    weakest = __import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']
+    # 按我的学习记录推荐 switched off: the skill goes round by the day instead (speaking, writing, listening, reading)
+    weakest = (__import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']) if nx.follows_records(prof) else \
+        ('speaking', 'writing', 'listening', 'reading')[datetime.date.fromisoformat(nx._day(now)).toordinal() % 4]
     level = prof.get('level') or 'B1'
     if level == 'A2' and minutes <= 10 and 'say' not in today_kinds:
         key, title, sub = 'sounds', '发音入门', '容易混的音，听辨 + 跟读'
@@ -446,6 +462,12 @@ def daily_path(c, uid, home, now=None):
     for s in must + extra:
         for k in ('_parts', '_rank', '_must'):
             s.pop(k)
+    # 其他复习 (review-split-plan.md; the owner chose 方案 1): mistakes, saved sentences and patterns due, the first line of
+    # 「还有时间的话」, never 必做 — the words are 必做, these wait for time to spare. Not on a day back (the words first).
+    oc = vs.other_counts(c, uid, now)
+    if oc['due'] and not back:
+        extra = [{'key': 'review-other', 'title': f"错题和句型复习 · {oc['due']} 道", 'sub': '做错过的题和收藏的句型，到期再来一次',  # 今日 adds 「· 约 N 分钟」 from minutes
+                  'href': '#/review/other', 'done': False, 'minutes': oc['minutes'], 'group': 'extra', 'part': 'other'}] + extra[:EXTRA - 1]
     done = sum(1 for s in must if s['done'])
     studied = ps.active_minutes(c, uid, start, now + 1)
     return {'minutes': minutes, 'budget': b, 'steps': must + extra + week, 'done': done, 'total': len(must),
@@ -490,7 +512,7 @@ def report(c, uid, now=None):
     backlog = __import__('vocab_service').counts(c, uid, now)['due']
     if backlog > 100:  # a pile of words due comes first: it only grows while other things are practised
         focus = f'先把单词积压清掉：现在有 {backlog} 个单词到了复习时间。接下来几天，每天先复习一轮，再学新的内容。'
-    elif ab['weakest']:
+    elif ab['weakest'] and nx.follows_records(nx.profile(c, uid)):  # 按我的学习记录推荐 off: no advice picked from the records
         name = SKILLS[ab['weakest']]
         what = {'speaking': '每天复述一篇或和 AI 对话一轮', 'writing': '写一段短文让 AI 批改', 'listening': '每天听写三句', 'reading': '先读懂再做理解题'}
         focus = f"{name}是现在最弱的一项，接下来几天{what.get(ab['weakest'], '多练这一项')}。"

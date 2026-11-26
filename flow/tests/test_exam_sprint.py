@@ -301,7 +301,7 @@ class SprintTests(unittest.TestCase):
             self.assertLessEqual(st['minutes'], m + 1, (m, st))  # a minute over fits, as the plan packs it
             self.assertTrue(st['href'].startswith('#/exam/cet4/') and st['href'].split('/')[-1] in tids, st)
             self.assertTrue(st['title'].startswith('考试小练：四级'))
-            self.assertIn(f"约 {st['minutes']} 分钟", st['sub'])
+            self.assertNotIn('分钟', st['sub'])  # 今日's plan row says the minutes from st['minutes'], once
         # the same piece all day
         self.assertEqual(ex.drill_step(self.c, 1, 6, self.now), ex.drill_step(self.c, 1, 6, self.now))
         # 3 minutes: no 10-item set fits, so a passage

@@ -28,6 +28,49 @@
 | 上传用过的整包 `/root/claude-ops/flow-audio-packs.tar`（112 MB） | 还在，内容已装好 | 可以删，删以前问一下 |
 | 例句还差 89 个词；偏敏感的例句要复核 | 两次补全写进 16,308 条，抽查 41 条里 1 条偏敏感 | 语流 B2（原 11）：#114（不嘲笑、不带刻板印象的复核）合进去以后一起补，花费不到 ¥0.5 |
 
+## 2026-11-26
+
+### 09:34 · 香港：Linux 0.1.1 测试版放进下载目录
+
+- **改了什么**：下载目录加了 Linux 的 AppImage、deb 和 `SHA256SUMS.txt`；`desktop/latest.json` 加了 linux-x86_64（Mac、Windows 不变），
+  `latest.json` 加了 linux-appimage、linux-deb。
+- **谁、为什么**：语流 A1·发版和服务器，桌面版 Linux（#310）。用户的原话：「放（推荐）」。
+- **备份**：两份清单的备份在 `/root/claude-ops/backup-*-20261126-093428.json`。
+- **撤回**：两份清单里删掉 linux 那几项；三个文件挪到 `/root/claude-ops`。
+
+### 09:34 · 香港：安卓 1.0.4 放进下载目录
+
+- **改了什么**：下载目录加了 1.0.4 的 apk（1,143,849 字节，sha256 `634fa483…`），`latest.json` 的 android 改成 1.0.4、code 5，
+  App 里会提示更新。
+- **谁、为什么**：语流 A1，安卓 1.0.4（#332）。用户的原话：「放（推荐）」。
+- **备份**：`latest.json` 的备份在 `/root/claude-ops/backup-*-20261126-093428.json`。
+- **撤回**：把 `latest.json` 的 android 改回 1.0.2（code 3）。1.0.2 的 apk 还在。
+
+### 09:21 · 香港：下载的 nginx 规则放宽
+
+- **改了什么**：`/www/server/panel/vhost/nginx/extension/flowlang.cn/download.conf`：下载文件名允许大写和下划线，放行 AppImage、deb，
+  加上 `/download/SHA256SUMS.txt`。`nginx -t` 通过以后 reload。
+- **谁、为什么**：语流 A1，给 Linux 测试版的文件名用。
+- **备份**：`/root/claude-ops/backup-download-conf-20261126-092156.conf`。
+- **撤回**：只改回下载那一条规则和 `SHA256SUMS.txt` 那一段，`nginx -t` 通过后 reload。
+
+### 09:17 · 香港：nginx 日志按天切，留 14 天
+
+- **改了什么**：新文件 `/etc/logrotate.d/flow-nginx`：`flow.jasa.hk.log` 和 `error.log` 每天切一次，留 14 天。
+- **谁**：语流 A1。用户的原话：「按天切，留 14 天（推荐）」。
+- **撤回**：删掉 `/etc/logrotate.d/flow-nginx`。
+
+### 00:42 · 两个站：能力测评的口语题走 Omni（`FLOW_AUDIO_ROUTES` 加一段）
+
+- **改了什么**：香港 `/etc/flow.env` 第 41 行、`/etc/flow-beta.env` 第 50 行，`FLOW_AUDIO_ROUTES` 行尾加了 `,*=flow-audio-omni-flash`，
+  然后重启了 flow 和 flow-beta。意思是：没有点名的录音任务，都走 `flow-audio-omni-flash`。
+- **为什么**：2026-11-25 16:28 关了主 AI（`FLOW_MAIN_AI=off`）以后，录音线路里没有 `next-assess-speaking`，「能力测评 · 口语」从那时起
+  每次都失败，今晚有 2 位学员碰到。语流 B7 查出来的，语流 A1 改的。
+- **用户的原话**：00:4x 在语流 A1 的确认框里选了「加一条「*」，现在生效（推荐）」。
+- **验证**：`audio_route('next-assess-speaking')` → `flow-audio-omni-flash`，其他已经点名的线路不变。
+- **备份**：两个文件旁边的 `*.bak-audiostar-20261126-004210`。
+- **撤回**：删掉行尾的 `,*=flow-audio-omni-flash`，重启 flow 和 flow-beta。只改这一段，不要拷回整份备份。
+
 ## 2026-11-25
 
 ### 21:42 · 杭州：ops-log 补记两条（jasa.hk 换片、产品页加「在哪儿都能学」）

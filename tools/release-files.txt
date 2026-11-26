@@ -244,12 +244,17 @@ flow/public/about.css
 flow/public/about.html
 flow/public/about.js
 flow/public/about/app-android.jpg
+flow/public/about/app-linux.jpg
 flow/public/about/app-mac.jpg
 flow/public/about/app-windows.jpg
 flow/public/about/check-d.jpg
 flow/public/about/check.jpg
 flow/public/about/desk-d.jpg
 flow/public/about/desk.jpg
+flow/public/about/ios-control.jpg
+flow/public/about/ios-features.jpg
+flow/public/about/ios-island.jpg
+flow/public/about/ios-widget.jpg
 flow/public/about/listen-d.jpg
 flow/public/about/listen.jpg
 flow/public/about/output-d.jpg
@@ -261,6 +266,7 @@ flow/public/about/review.jpg
 flow/public/about/share.jpg
 flow/public/about/today-d.jpg
 flow/public/about/today.jpg
+flow/public/apple-touch-icon-beta.png
 flow/public/apple-touch-icon.png
 flow/public/guide/cards.jpg
 flow/public/guide/easy.jpg
@@ -293,7 +299,9 @@ flow/public/guide/sprint.jpg
 flow/public/guide/today.jpg
 flow/public/guide/week.jpg
 flow/public/guide/welcome.jpg
+flow/public/icon-192-beta.png
 flow/public/icon-192.png
+flow/public/icon-512-beta.png
 flow/public/icon-512.png
 flow/public/literata.woff2
 flow/public/manifest.webmanifest
@@ -333,6 +341,7 @@ flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
 flow/tests/test_aigc_label.py
 flow/tests/test_atlas.py
+flow/tests/test_audio_lines.py
 flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
@@ -348,6 +357,7 @@ flow/tests/test_corpus_v5.py
 flow/tests/test_daily_knowledge.py
 flow/tests/test_daily_line.py
 flow/tests/test_daily_pause.py
+flow/tests/test_evidence.py
 flow/tests/test_exam_sprint.py
 flow/tests/test_feedback.py
 flow/tests/test_field.py
@@ -378,6 +388,7 @@ flow/tests/test_no_gemini.py
 flow/tests/test_origin_install.py
 flow/tests/test_package.py
 flow/tests/test_pedagogy.py
+flow/tests/test_personalize.py
 flow/tests/test_practice.py
 flow/tests/test_practice_hub.py
 flow/tests/test_privacy.py
@@ -406,6 +417,7 @@ flow/tests/test_vocab.py
 flow/tests/test_voice_eval.py
 flow/tests/test_welcome.py
 flow/tests/test_word_clip.py
+flow/tests/test_word_extras.py
 flow/tests/test_wordbook_registry.py
 flow/tests/test_wordbooks.py
 flow/tests/test_wordbooks_open.py
@@ -424,6 +436,7 @@ flow/vertex_native.py
 flow/vocab_service.py
 flow/voice_eval.py
 flow/word_clip.py
+flow/word_extras.py
 flow/word_links.py
 tests/test_release.py
 tools/build_ecdict_subset.py

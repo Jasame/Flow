@@ -1,9 +1,14 @@
-import unittest, tempfile, sys, os, sqlite3, time, json, base64, datetime
+import unittest, tempfile, sys, os, re, sqlite3, time, json, base64, datetime
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app, fsrs, next_service as nx, vocab_service as vs
 
+
+
+def saved_earlier(c, cid):
+    """A card saved some time ago: due now (a word saved today waits for tomorrow, next_service.save_card)."""
+    c.execute('UPDATE next_cards SET due=created WHERE id=?', (cid,)); c.commit()
 
 class FsrsTests(unittest.TestCase):
     def test_new_item_goes_through_steps_then_grows(self):
@@ -46,7 +51,7 @@ class VocabTests(unittest.TestCase):
         self.c.execute('UPDATE next_cards SET due=?, last=? WHERE id=?', (time.time() - 1, time.time() - days * 86400, cid)); self.c.commit()
 
     def test_saved_expression_review_cycle(self):
-        cid = nx.save_card(self.c, 1, {'text': 'make the bus'})[0]['card']['id']
+        cid = nx.save_card(self.c, 1, {'text': 'make the bus'})[0]['card']['id']; saved_earlier(self.c, cid)
         q = vs.queue(self.c, 1); self.assertEqual((q['due'], q['new'], q['items'][0]['mode']), (0, 1, 'recall'))
         r = vs.rate(self.c, 1, {'id': cid, 'rating': 'good', 'mode': 'recall', 'ms': 2300})[0]
         self.assertEqual(r['card']['state'], 'learning'); self.assertEqual(vs.queue(self.c, 1)['items'], [])
@@ -89,7 +94,7 @@ class VocabTests(unittest.TestCase):
         ex = vs.examples('decision', 'B1')
         self.assertTrue(ex); self.assertTrue(all('decision' in e['text'].lower() for e in ex))
         self.assertEqual(len({e['pack'] for e in ex}), len(ex))
-        cid = nx.save_card(self.c, 1, {'text': 'decision', 'context': 'It was a hard decision.'})[0]['card']['id']
+        cid = nx.save_card(self.c, 1, {'text': 'decision', 'context': 'It was a hard decision.'})[0]['card']['id']; saved_earlier(self.c, cid)
         item = vs.queue(self.c, 1)['items'][0]
         self.assertEqual(item['id'], cid); self.assertEqual(item['mode'], 'recognize')
         self.assertTrue(all(e['text'] != 'It was a hard decision.' for e in item['examples']))
@@ -242,8 +247,8 @@ class BacklogTests(unittest.TestCase):
         self.assertNotIn('120', sub + text)
         self.assertIn(f"约 {vs.minutes_for(40, 0, vs.ANSWER_SECONDS)} 分钟", sub)
         # the card layout (mail_layout): the same words as text and HTML, a button to the review, the way to turn it off
-        self.assertIn('去复习：', text); self.assertIn('/#/review', text); self.assertIn('调整计划', text.split('——')[-1])
-        self.assertIn('class="fl-btn"', html); self.assertIn('/#/review', html); self.assertIn('/#/vocab/plan', html)
+        self.assertIn('去复习：', text); self.assertIn('/?from=remind&k=review#/review', text); self.assertIn('调整计划', text.split('——')[-1])
+        self.assertIn('class="fl-btn"', html); self.assertIn('from=remind', html); self.assertIn('#/review', html); self.assertIn('/#/vocab/plan', html)
 
 
     def test_a_reminder_goes_as_text_and_the_card_layout(self):
@@ -304,8 +309,9 @@ class OnceReminderTests(unittest.TestCase):
 
     def mails(self, at):
         sent = []
-        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub)))
+        n = vs.send_reminders(self.c, at, lambda to, sub, text, html=None: sent.append((to, sub, text)))
         self.assertEqual(n, len(sent))
+        self.links = [re.search(r'from=remind&k=(\w+)', t[2]).group(1) for t in sent]  # which reminder brought the visit back
         return n
 
     def test_a_time_tonight_takes_the_place_of_the_hour_and_then_the_hour_is_back(self):
@@ -315,9 +321,17 @@ class OnceReminderTests(unittest.TestCase):
         self.assertEqual((st, r['once']), (200, self.day + 21 * 3600))  # to the minute
         self.assertEqual(self.mails(self.day + 20 * 3600 + 300), 0)  # 20:05: not the daily one while a time is chosen
         self.assertEqual(self.mails(self.day + 21 * 3600 + 60), 1)  # 21:01: the chosen time
+        self.assertEqual(self.links, ['once'])  # its button says so (?from=remind&k=once)
         self.assertIsNone(vs.reminder(self.c, 1, self.day + 21 * 3600 + 60)['once'])
         self.assertEqual(self.mails(self.day + 21 * 3600 + 600), 0)  # once a day
         self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 1)  # tomorrow: every day at 20:00 again
+        self.assertEqual(self.links, ['review'])
+        mailed = lambda: self.c.execute('SELECT last_sent, last_mailed FROM next_reminders WHERE user_id=1').fetchone()
+        tomorrow = datetime.datetime.fromtimestamp(self.day + 86400, nx.TZ).date().isoformat()
+        self.assertEqual(tuple(mailed()), (tomorrow, tomorrow))  # a mail went: both say so
+        self.c.execute("DELETE FROM next_cards WHERE user_id=1"); self.c.commit()
+        self.assertEqual(self.mails(self.day + 2 * 86400 + 20 * 3600 + 300), 0)  # nothing to review: the hour is handled, no mail
+        self.assertEqual(tuple(mailed()), (datetime.datetime.fromtimestamp(self.day + 2 * 86400, nx.TZ).date().isoformat(), tomorrow))
 
     def test_tomorrow_morning_comes_instead_of_tonight_and_that_day_has_no_second_mail(self):
         vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})
@@ -576,10 +590,8 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
         nx.save_card(self.c, 1, {'text': 'make ends meet'})
         sent = []
-        at8 = datetime.datetime.now(nx.TZ).replace(hour=20, minute=5, second=0)
-        if at8.timestamp() < time.time():  # the next 20:05, so the card saved just now is already due then
-            at8 += datetime.timedelta(days=1)
-        at8 = at8.timestamp()
+        # tomorrow 20:05: a word saved today is due from tomorrow (next_service.save_card)
+        at8 = (datetime.datetime.now(nx.TZ) + datetime.timedelta(days=1)).replace(hour=20, minute=5, second=0).timestamp()
         self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text, html=None: sent.append((to, sub))), 1)
         self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
         self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a, **kw: sent.append(a)), 0)  # once a day
@@ -720,3 +732,81 @@ class SaveCardTwiceTests(unittest.TestCase):
         self.assertEqual((st, again['existing'], again['card']['id']), (200, True, first['card']['id']))
         self.assertEqual(again['card']['meaning'], '决策'); self.assertEqual(again['card']['context'], 'We need to explain our decisions.')  # an empty one keeps it
 
+
+
+class ReviewSplitTests(unittest.TestCase):
+    """单词 and 其他复习 apart (the owner, 2026-11-25; review-split-plan.md): the word queue, its counts and the word page
+    hold words and phrases only; mistakes, saved sentences and patterns are 其他复习 (练习 → 复习), with their own queue
+    and counts, the same forgetting curve and records."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.p = patch.object(app, 'DB', Path(self.tmp.name) / 'v.db'); self.p.start()
+        app.init(); self.c = app.db()
+        self.c.execute('INSERT INTO users(username,password,email) VALUES(?,?,?)', ('learner', 'h', 'learner@example.test'))
+        self.c.commit()
+        self.now = datetime.datetime.now(nx.TZ).replace(hour=8, minute=0, second=0, microsecond=0).timestamp()
+
+    def tearDown(self):
+        self.c.close(); self.p.stop(); self.tmp.cleanup()
+
+    def card(self, text, kind='word', source='saved', meaning='', norm=None, state='review'):
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last) "
+                       "VALUES(1,?,?,?,' ',?,?,?,?,?,3,5,?)", (text, norm or text, meaning, kind, self.now - 9 * 86400, self.now - 3600, state, source, self.now - 3 * 86400))
+        self.c.commit()
+        return self.c.execute('SELECT id FROM next_cards WHERE norm=?', (norm or text,)).fetchone()[0]
+
+    def fill(self):
+        self.card('borrow'); self.card('make a decision', kind='phrase')
+        self.card('Which is right?', kind='question', source='mistake', norm='gq:1')
+        self.card('they went', kind='fix', source='mistake', norm='fix:they go > they went')
+        self.card('as soon as', kind='phrase', meaning='句型｜例：Call me as soon as you land.')
+        self.card('I would rather stay at home than go out tonight.', kind='sentence')
+
+    def test_the_word_queue_and_counts_hold_words_and_phrases_only(self):
+        self.fill()
+        with patch.object(vs.time, 'time', lambda: self.now):
+            words = sorted(i['text'] for i in vs.queue(self.c, 1)['items'])
+            other = sorted(i['text'] for i in vs.queue(self.c, 1, part='other')['items'])
+        self.assertEqual(words, ['borrow', 'make a decision'])
+        self.assertEqual(other, sorted(['Which is right?', 'they went', 'as soon as', 'I would rather stay at home than go out tonight.']))
+        self.assertEqual(vs.counts(self.c, 1, self.now)['due'], 2)
+        o = vs.other_counts(self.c, 1, self.now)
+        self.assertEqual((o['due'], o['mistakes']), (4, 2))  # 错题本 counts its two mistakes; the pattern and sentence are 其他 too
+        self.assertEqual(o['minutes'], max(1, round(4 * vs.OTHER_SECONDS / 60)))
+
+    def test_a_new_mistake_counts_in_its_own_queue_not_as_a_new_word(self):
+        self.card('borrow')
+        self.card('Which is right?', kind='question', source='mistake', norm='gq:2', state='new')
+        self.assertEqual(vs.counts(self.c, 1, self.now)['new'], 0)
+        self.assertEqual(vs.other_counts(self.c, 1, self.now)['due'], 1)
+
+    def test_answering_returns_the_counts_of_its_own_queue_and_undo_restores_it(self):
+        self.fill()
+        gq = self.c.execute("SELECT id FROM next_cards WHERE norm='gq:1'").fetchone()[0]
+        with patch.object(vs.time, 'time', lambda: self.now):
+            res, code = vs.rate(self.c, 1, {'id': gq, 'rating': 'good', 'mode': 'question', 'ms': 8000})
+        self.assertEqual(code, 200)
+        self.assertEqual((res['due'], res['new']), (3, 0))                      # 其他复习 left, not the words
+        self.assertEqual(vs.counts(self.c, 1, self.now)['done_today'], 0)        # a mistake answered is no word answered
+        with patch.object(vs.time, 'time', lambda: self.now):
+            back, code = vs.undo(self.c, 1, {'id': gq})
+        self.assertEqual(back['due'], 4)
+
+    def test_the_word_list_leaves_mistakes_to_the_mistake_book(self):
+        self.fill()
+        texts = {i['text'] for i in nx.cards(self.c, 1)['items']}
+        self.assertNotIn('Which is right?', texts); self.assertNotIn('they went', texts)
+        self.assertIn('as soon as', texts)                                       # a saved pattern is still in the list, reviewed apart
+        self.assertEqual({i['text'] for i in nx.cards(self.c, 1, f='mistake')['items']}, {'Which is right?', 'they went'})
+
+    def test_home_stats_and_the_api_carry_the_other_count(self):
+        self.fill()
+        with patch.object(vs.time, 'time', lambda: self.now), patch.object(nx.time, 'time', lambda: self.now):
+            st = nx.stats(self.c, 1)
+            self.assertEqual((st['due'], st['other_due']), (2, 4))
+            out, code = vs.get(self.c, 1, '/api/next/review', {'part': ['other']})
+            words, _ = vs.get(self.c, 1, '/api/next/review', {})
+            ov, _ = vs.get(self.c, 1, '/api/next/vocab', {})
+        self.assertEqual((code, len(out['items']), out['part']), (200, 4, 'other'))
+        self.assertEqual(len(words['items']), 2)
+        self.assertEqual(ov['other']['due'], 4)

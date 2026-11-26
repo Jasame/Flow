@@ -1,6 +1,9 @@
 import Foundation
 import UIKit
 import WebKit
+#if BETA
+import WidgetKit
+#endif
 
 /// window.FlowApp, the page's way to the native parts (ios/README.md, 「网页和 App 之间的桥」).
 /// Page → app: window.webkit.messageHandlers.flow.postMessage({cmd, args}) answers with a Promise.
@@ -9,11 +12,13 @@ import WebKit
 final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     static let name = "flow"
     static let version = 1
-    static let features = ["audio", "rec", "notify"]
+    static let features = ["audio", "rec", "notify", "settings", "haptic", "frugal", "activity"]
 
     weak var webView: WKWebView?
     /// the page's 主题色 changed (Accent): the app's own controls take it
     var onAccent: ((String) -> Void)?
+    /// 我的 → 设置 → iOS 专属功能: the app's own page (FeaturesView); false when it cannot be shown now
+    var onSettings: (() -> Bool)?
     let player: LongPlayer
     let recorder: Recorder
     let reminders: Reminders
@@ -25,6 +30,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         super.init()
         player.emit = { [weak self] type, detail in self?.emit(type, detail) }
         recorder.emit = { [weak self] type, detail in self?.emit(type, detail) }
+        Frugal.shared.changed = { [weak self] on in self?.emit("frugal", ["on": on]) }
     }
 
     /// The wrapper the three apps share (native/flowapp.js, docs/native-bridge.md §2) after iOS's transport, at document
@@ -91,6 +97,19 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             Accent.save(name)
             onAccent?(name)
             return true
+        case "app.settings":  // 我的 → 设置 → 「iOS 专属功能」 (docs/native-bridge.md §2 settings)
+            return ["ok": onSettings?() ?? false]
+        case "app.features":  // which of them this phone has, and whether each is on
+            return Features.state
+        case "app.haptic":  // 「复习时的轻触震动」: {kind: tap | select | success | warning | error}
+            return ["ok": Haptics.play((a["kind"] as? String) ?? "tap", in: webView)]
+        case "app.frugal":  // 「省电时少做事」: the page preloads less while it is on (and hears `frugal` when it changes)
+            return ["on": Frugal.shared.on]
+        case "activity.review":  // 「复习进度的实时活动」: {done, total} as the review goes
+            return await ReviewActivities.update(done: Self.int(a["done"]) ?? 0, total: Self.int(a["total"]) ?? 0)
+        case "activity.end":  // the review finished or was left
+            await ReviewActivities.end(done: Self.int(a["done"]), total: Self.int(a["total"]))
+            return ["ok": true]
 
         case "audio.play":
             guard let r = LongPlayer.Request(json: a, base: webView?.url ?? AppConfig.site) else { return ["ok": false, "why": "bad request"] }
@@ -120,6 +139,31 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             return true
         #if BETA
         case "notify.test": return await reminders.testSchedule(a)
+        case "audio.remote":  // the lock screen's buttons, for tests (a simulator has no Now Playing to press)
+            switch a["cmd"] as? String {
+            case "rate": player.setRate(Float(Self.double(a["v"]) ?? 1))
+            case "repeat": player.setRepeatOne((a["on"] as? Bool) ?? true)
+            case "back": player.skipBack(Self.double(a["v"]) ?? 5)
+            default: return ["ok": false, "why": "bad command"]
+            }
+            return player.snapshot()
+        case "app.today-card":  // what the widgets show now (Common/TodayCard.swift), for tests
+            guard let c = SharedStore.load(), let d = try? JSONEncoder().encode(c),
+                  let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { return NSNull() }
+            return o
+        case "app.today-card-sample":  // an example card for the widgets, for screenshots (a test is signed out)
+            var c = TodayCard.sample
+            c.updated = Date()
+            c.accent = Accent.saved ?? "green"
+            SharedStore.save(c)
+            WidgetCenter.shared.reloadAllTimelines()
+            return true
+        case "activity.count":  // review Live Activities running, for tests
+            return ReviewActivities.count
+        case "app.feature":  // a switch of 「iOS 专属功能」, for tests
+            guard let f = (a["id"] as? String).flatMap(Feature.init(rawValue:)) else { return ["ok": false, "why": "no such feature"] }
+            Features.set(f, (a["on"] as? Bool) ?? f.defaultOn)
+            return Features.state
         #endif
         default:
             return ["ok": false, "why": "unknown command"]
@@ -129,6 +173,7 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
     /// After a page (re)load or coming back to the front: what plays now, so the page shows it without guessing.
     func resendState() {
         if player.state != .idle { emit("audio", player.snapshot(why: "state")) }
+        Frugal.shared.update()  // Low Power Mode may have changed while the app was away
     }
 
     func emit(_ type: String, _ detail: [String: Any]) {

@@ -32,12 +32,28 @@
   const WORD_TOOLS = [
     ['#/vocab/plan', '背词计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
     ['#/words/confuse', '词汇辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
-    ['#/cards/mistake', '错题本', '<path d="M6 3h12v18H6z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>'],
     ['#/vocab/test', '测词汇量', '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>'],
     ['imp', '导入', '<path d="M12 3v11m-4-4 4 4 4-4"/><path d="M5 15v5h14v-5"/>']];
   // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
   // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
   // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
+  // 复习时的轻触震动 (语流 C1; the iOS app's own setting turns it off): a light tap where the app can, nothing in a browser.
+  // Turning a card is a light 'select'; a rating says how it went (success, a light tap for 模糊, warning — never error,
+  // a word forgotten is no fault); 撤销 and 太简单了 a light tap.
+  // 复习进度的实时活动 (语流 C1; the iOS app, off unless the learner turns it on): the lock screen and the Dynamic Island
+  // say 「复习单词 done / total」 while a round of words goes on; ended (the last numbers kept a minute) when the round is
+  // over or the page is left. Words only. Nothing in a browser; an app without it answers nothing.
+  let ACTIVITY = null;
+  function activity(kind, done, total) {
+    try {
+      if (!(window.FlowApp && FlowApp.has && FlowApp.has('activity'))) return;
+      if (kind === 'end' && !ACTIVITY) return;
+      ACTIVITY = kind === 'end' ? null : { done, total };
+      FlowApp.call('activity.' + kind, { done, total }).catch(() => {});
+    } catch (e) { /* no app */ }
+  }
+  function activityEnd() { if (ACTIVITY) activity('end', ACTIVITY.done, ACTIVITY.total); }
+  function haptic(kind) { try { if (window.FlowApp && FlowApp.has && FlowApp.has('haptic')) FlowApp.call('app.haptic', { kind }).catch(() => {}); } catch (e) { /* no app */ } }
   const KNOW = {
     side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },
     set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } },
@@ -52,6 +68,11 @@
     // should not answer, so there it is off until chosen in 我的 → 设置.
     tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
     setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } },
+    // 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words and reviews apart, new words detailed (the
+    // first look is the one to take in), reviews simple (quick). Only what is shown changes: the front asks the same
+    // (detailed adds a grey line of tags and history, nothing of the answer), so a rating means the same in both.
+    view(kind) { const d = kind === 'new' ? 'detailed' : 'simple'; try { const v = localStorage.getItem('flow-card-view-' + kind); return v === 'simple' || v === 'detailed' ? v : d; } catch (e) { return d; } },
+    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } },
   };
   // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
   // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the
@@ -167,7 +188,7 @@
           : '<p class="muted tiny">开始学习后，这里会显示每天大约要复习多少个。</p>'}
         <div class="cal" aria-label="最近 5 周每天复习次数">${o.calendar.map(d => `<i class="l${d.n ? Math.min(4, Math.ceil(d.n / maxC * 4)) : 0}" title="${d.day}：${d.n} 次"></i>`).join('')}</div></div></details>
       <form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索单词、意思或原句" enterkeyhint="search" placeholder="搜索单词、意思或原句${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"><button class="btn">搜索</button></form>
-      <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达'], ['mistake', '错题']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+      <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
       <div id="listSlot">${listHTML(list, q, page, f)}</div>`}
       ${o.total ? '<p class="tc section"><button class="link small" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki</button></p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -211,6 +232,36 @@
     const vs = document.getElementById('vStats');
     if (vs) vs.addEventListener('toggle', () => { try { localStorage.setItem('flow-words-stats', vs.open ? 'open' : ''); } catch (e) { /* private mode */ } });
     bindList();
+  }
+  // 错题本 (练习 → 复习 → 错题本; review-split-plan.md, 语流 B9 and A0): the mistakes on a page of their own under 练习 —
+  // not the word page with a filter — with a way to review the ones due (#/review/other), a search, and nothing else
+  async function mistakeView(q, page) {
+    if (!S.user) return needLogin('登录后才能看错题本。');
+    q = q || ''; page = page || 1;
+    const st = { q, page };
+    const [list, ov] = await Promise.all([api('/api/next/cards?f=mistake&q=' + encodeURIComponent(q) + '&page=' + page), api('/api/next/vocab')]);
+    const due = (ov.other || {}).mistakes || 0;  // the mistakes due: this page is about mistakes (the patterns are counted on 练习)
+    const body = l => l.items.length ? listHTML(l, st.q, st.page, '')
+      : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
+    view.innerHTML = `<div><a class="link small hit44" href="#/practice">← 练习</a></div>
+      <div><h1 class="h1">错题本</h1><span class="muted small">做错的题都在这里，到期了会在「错题和句型复习」里再考你 · 共 ${list.total} 道</span></div>
+      ${due ? `<a class="btn primary" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
+      ${list.total || q ? `<form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
+      <div id="listSlot">${body(list)}</div>`;
+    const reload = async () => {
+      const slot = document.getElementById('listSlot'); slot.classList.add('busy');
+      try { const l = await api('/api/next/cards?f=mistake&q=' + encodeURIComponent(st.q) + '&page=' + st.page); slot.innerHTML = body(l); bind(); }
+      catch (e) { toast(e.message); } finally { slot.classList.remove('busy'); }
+    };
+    const bind = () => {
+      view.querySelectorAll('#listSlot [data-card]').forEach(b => b.onclick = () => cardSheet(Number(b.dataset.card), reload));
+      const pv = document.getElementById('pv'), nx = document.getElementById('nx'), sc = document.getElementById('sfClear');
+      if (pv) pv.onclick = () => { st.page--; reload(); };
+      if (nx) nx.onclick = () => { st.page++; reload(); };
+      if (sc) sc.onclick = () => { const i = document.querySelector('#sf input'); if (i) i.value = ''; st.q = ''; st.page = 1; reload(); };
+    };
+    const sf = document.getElementById('sf'); if (sf) sf.onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
+    bind();
   }
   function listHTML(list, q, page, f) {
     const pages = Math.max(1, Math.ceil(list.total / list.per));
@@ -441,7 +492,7 @@
       view.querySelectorAll('[data-a]').forEach(b => b.onclick = () => answer(b.dataset.a === '1'));
       document.onkeydown = e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); answer((e.key === 'ArrowRight') === (KNOW.side() === 'right')); } };
     }
-    function answer(yes) { answers[items[i]] = yes; i++; show(); }
+    function answer(yes) { answers[items[i]] = yes; haptic('select'); i++; show(); }
     async function finish() {
       document.onkeydown = null; swipeOff(); document.body.classList.remove('reviewing');
       view.innerHTML = `<p class="loading"><span class="spin"></span> 正在估算…</p>`;

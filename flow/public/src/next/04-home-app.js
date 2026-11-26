@@ -8,8 +8,9 @@
   // FlowDesktop/<version> (Windows) or (macOS)) has no browser back either: 返回 is its way back (with ⌘[ / Alt+← in its
   // own menu). Any of Flow's apps also says so before the page's scripts: window.FlowApp ({platform: 'ios' | 'windows' |
   // 'macos' …}). The keyboard work-around is for iPhones and iPads only, so the desktop leaves it alone anyway.
+  // The HarmonyOS app (语流 C4, harmony/: ArkWeb, its user agent ending in FlowHarmony/<version>) is one of them too.
   const IN_IOS_APP = /FlowiOS\//.test(navigator.userAgent);
-  const IN_APP = /Flow(iOS|Android|Desktop)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
+  const IN_APP = /Flow(iOS|Android|Desktop|Harmony)\//.test(navigator.userAgent) || !!window.FlowApp;  // as docs/native-bridge.md (#162) names them
   const HOME_APP = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || IN_APP;
   document.documentElement.classList.toggle('home-app', HOME_APP);
   // --bar-h: the top bar's height as it is (the status bar or Dynamic Island above it in the home-screen app), and
@@ -150,7 +151,7 @@
     try { v = await fetch('/api/version', { cache: 'no-store', credentials: 'same-origin' }).then(r => (r.ok ? r.json() : null)); } catch (e) { return; }
     if (!v || !v.asset || v.asset === MY_ASSET) return;
     NEW_ASSET = v.asset;
-    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update(); } catch (e) { /* no worker: the reload asks the server */ }
+    try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if (reg) reg.update().catch(() => {}); } catch (e) { /* no worker: the reload asks the server */ }  // the reload into the new version cuts the check short (WebKit: an unhandled "sw.js load failed")
     updateWhenSafe();
   }
   // Something playing or recording (the narration, a clip or the server/browser voice in 01-audio-offline.js, the

@@ -1,4 +1,4 @@
-import unittest, tempfile, sys, json, os, threading, time, urllib.request, urllib.error
+import datetime, unittest, tempfile, sys, json, os, threading, time, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
@@ -80,6 +80,18 @@ class NextServiceTests(unittest.TestCase):
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM learning_events WHERE user_id=1 AND kind='next-check'").fetchone()[0], 1)
         self.assertIn('check', nx.material(self.c, 1, pid)[0]['steps'])
         self.assertEqual(nx.check(self.c, 1, {'pack': pid, 'index': 99, 'choice': 0})[1], 400)
+
+    def test_a_word_saved_today_is_first_reviewed_tomorrow(self):
+        # the owner, 2026-11-26 (语流 B1): from tomorrow 00:00 Beijing time; saving it again keeps the card's schedule
+        at = datetime.datetime(2026, 11, 26, 23, 30, tzinfo=nx.TZ).timestamp()
+        with patch('next_service.time.time', return_value=at):
+            card = nx.save_card(self.c, 1, {'text': 'ponder'})[0]['card']
+        due = self.c.execute('SELECT due FROM next_cards WHERE id=?', (card['id'],)).fetchone()[0]
+        self.assertEqual(due, datetime.datetime(2026, 11, 27, tzinfo=nx.TZ).timestamp())
+        self.c.execute('UPDATE next_cards SET due=? WHERE id=?', (at - 60, card['id'])); self.c.commit()  # due again later on
+        with patch('next_service.time.time', return_value=at + 3600):
+            nx.save_card(self.c, 1, {'text': 'Ponder', 'meaning': '沉思'})
+        self.assertEqual(self.c.execute('SELECT due FROM next_cards WHERE id=?', (card['id'],)).fetchone()[0], at - 60)
 
     def test_cards_save_dedupe_scope_and_delete(self):
         out, s = nx.save_card(self.c, 1, {'text': 'decisions', 'context': 'We need to explain our decisions.', 'pack': 'x'})
@@ -163,9 +175,33 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'})[0], 403)
         self.assertEqual(self.call('/api/next/profile', {'level': 'B2', 'themes': ['science']}, csrf)[0], 200)
         self.assertEqual(self.call('/api/next/cards', {'text': 'hello there'}, csrf)[0], 200)
-        q = json.loads(self.call('/api/next/review')[1]); self.assertEqual((q['due'], q['new'], len(q['items'])), (0, 1, 1))
+        q = json.loads(self.call('/api/next/review')[1]); self.assertEqual((q['due'], q['new'], len(q['items'])), (0, 0, 0))  # saved today, reviewed from tomorrow
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
+
+    def test_the_word_index_for_the_phones_search_is_the_learners_own_words_in_one_go(self):
+        # 语流 C1 (iOS 专属 7): the whole list at once, versioned; not the mistakes, saved sentences or sentence patterns
+        self.assertEqual(self.call('/api/next/cards/index')[0], 401)
+        self.assertEqual(self.call('/api/login', {'username': 'learner', 'password': 'correct horse battery'})[0], 200)
+        csrf = json.loads(self.call('/api/session')[1])['user']['csrf']
+        self.assertEqual(self.call('/api/next/profile', {'level': 'B2', 'themes': ['science']}, csrf)[0], 200)
+        long = '确认' * 30
+        with app.db() as c:
+            uid = c.execute("SELECT id FROM users WHERE username='learner'").fetchone()[0]
+            for k, (text, kind, meaning, source) in enumerate([('confirm', 'word', 'v. 确认, 证实；批准', 'book'), ('make up for', 'phrase', '弥补', ''),
+                                                               ('lengthy', 'word', long, 'book'), ('q:1', 'word', '阅读理解错题', 'mistake'),
+                                                               ('I wish I could go.', 'sentence', '我希望我能去。', ''), ('so … that', 'phrase', '句型｜例：so tired that…', '')]):
+                c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,kind,source,created,due) VALUES(?,?,?,?,?,?,?,?)',
+                          (uid, text, text.lower(), meaning, kind, source, 1000 + k, 0))
+            c.commit()
+        st, body = self.call('/api/next/cards/index'); got = json.loads(body)
+        self.assertEqual(st, 200)
+        self.assertEqual([(w['text'], w['zh']) for w in got['words']], [('lengthy', '确认' * 19 + '确…'), ('make up for', '弥补'), ('confirm', 'v. 确认, 证实')])
+        self.assertTrue(all(isinstance(w['id'], int) for w in got['words']))
+        self.assertEqual(json.loads(self.call('/api/next/cards/index?v=' + got['v'])[1]), {'v': got['v'], 'same': True})  # unchanged: no list
+        self.assertEqual(self.call('/api/next/cards', {'text': 'ponder'}, csrf)[0], 200)
+        again = json.loads(self.call('/api/next/cards/index?v=' + got['v'])[1])
+        self.assertNotEqual(again['v'], got['v']); self.assertEqual(again['words'][0]['text'], 'ponder')
 
     def test_home_carries_the_session_so_the_page_starts_with_one_request(self):
         guest = json.loads(self.call('/api/next/home?level=A2')[1])

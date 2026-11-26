@@ -162,6 +162,8 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'nowords': ('B1', 'work', ['work']),  # settings done, no words and no word book yet: the word page's first look (review_side_run)
             'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'zones': ('B1', 'work', ['work']),  # 点卡片作答 (review_side_run): as 'side'
+            'modes': ('B1', 'work', ['work']),  # 复习卡 简洁 / 详细 (review_side_run): borrow to review, lend new, no word book
+            'split': ('B1', 'work', ['work']),  # 单词 and 其他复习 apart (review_side_run): two words, a grammar mistake and a pattern due
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
@@ -193,6 +195,8 @@ with app.db() as c:
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):
             nx.save_card(c, uid, {'text': w, 'context': ctx, 'pack': PID})
         nx.save_card(c, uid, {'text': 'not A so much as B', 'meaning': '句型｜例：It is not talent so much as practice.', 'context': 'It is not talent so much as practice.'})
+        # saved some time ago: due now, as on the day after saving (a word saved today waits for tomorrow, next_service.save_card)
+        c.execute("UPDATE next_cards SET due=created WHERE user_id=? AND source='saved'", (uid,)); c.commit()
         sk.add_mistake(c, uid, 'fix', 'would have arrived', 'fix:would arrive > would have arrived', '说过去没发生的事', 'If I had left earlier, I would arrive on time. Then I went home.',
                        'writing', None, PID, {'from': 'would arrive'})
         q = json.loads(c.execute('SELECT content FROM lab_packs WHERE id=?', (PID,)).fetchone()[0])['questions'][0]
@@ -263,6 +267,22 @@ with app.db() as c:
                 c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
                           "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,1)", (uid, d[w]['word'], w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600 - k, rank, now - 2 * 86400))
             c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,0,'good',?)", (uid, now - 3 * 86400))  # reviewed before the move
+        if name == 'modes':  # borrow due for review (it is in a 词汇辨析 group), lend new; no word book, so nothing else comes
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
+            now, d = time.time(), nx.dictionary()
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                      "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, 'borrow', 'borrow', d['borrow']['meaning'][:300], now - 20 * 86400, now - 3600, d['borrow']['rank'], now - 3 * 86400))
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank) VALUES(?,?,?,?,'','word',?,?,'new','book',?)",
+                      (uid, 'lend', 'lend', d['lend']['meaning'][:300], now - 60, now - 60, d['lend']['rank']))
+        if name == 'split':  # 2 words, a grammar mistake and a saved pattern due; no word book, so nothing else comes
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
+            now, d = time.time(), nx.dictionary()
+            for w in ('borrow', 'lend'):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                          "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, w, w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600, d[w]['rank'], now - 3 * 86400))
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last,reps) "
+                      "VALUES(?,?,?,?,'','phrase',?,?,'review','saved',1,5,?,2)", (uid, 'as soon as', 'as soon as', '句型｜例：Call me as soon as you land.', now - 20 * 86400, now - 3600, now - 3 * 86400))
+            __import__('skills_service').add_mistake(c, uid, 'fix', 'went', 'fix:' + nx._norm('they go > they went'), '过去发生的事用过去式', 'Yesterday they go to the park.', 'writing')
         if name == 'nowords':  # a new account's word page: no cards, no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
@@ -287,7 +307,7 @@ with app.db() as c:
         c.execute("INSERT INTO next_tours(user_id, tour, result, created) VALUES(?,?,'pending',?)", (out[who]['id'], tour, time.time()))
     # 班级试用: ui-teacher's class with 5 members who studied and got grammar points wrong this week (class_run)
     now = time.time()
-    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('高一（3）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
+    cid = c.execute("INSERT INTO classes(name, code, teacher, by, created, updated) VALUES('大学英语（2）班', 'UICLS2', ?, 'ui', ?, ?)", (out['teacher']['id'], now, now)).lastrowid
     nodes = [r[0] for r in c.execute('SELECT id FROM subskills ORDER BY rowid LIMIT 3')]
     for k in range(5):
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', (f'ui-member-{k}', 'ui-no-login:' + secrets.token_hex(8)))
@@ -333,7 +353,7 @@ class ConsolePage(flow_admin.AdminHandler):
 
 console = ThreadingHTTPServer(('127.0.0.1', 0), ConsolePage)
 threading.Thread(target=console.serve_forever, daemon=True).start()
-(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '高一（3）班'},
+(STATE / 'sessions.json').write_text(json.dumps({'base': f'http://127.0.0.1:{PORT}', 'pid': PID, 'learners': out, 'class': {'id': cid, 'code': 'UICLS2', 'name': '大学英语（2）班'},
                                                  'console': f'http://127.0.0.1:{console.server_address[1]}/flow/', 'outbox': os.path.join(tmp, 'outbox')}))
 
 
