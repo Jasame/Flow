@@ -638,7 +638,7 @@ def run_device(pw, dev, opts):
     # ---- ability radar: set goals, take the reading check, the radar draws the skill against the goal
     go(pg, '#/radar/goals')
     pg.click('[data-all="B2"]'); pg.wait_for_timeout(150); pg.click('[data-d="speaking"][data-l="B1"]'); pg.wait_for_timeout(150)
-    pg.click('#gSave'); pg.wait_for_selector('.radar', timeout=8000); pg.wait_for_timeout(300)
+    pg.click('#gSave'); pg.wait_for_selector('.rdr', timeout=8000); pg.wait_for_timeout(300)
     go(pg, '#/radar/test/reading')
     check(dev, 'radar: the reading passage\'s title carries 「AI 生成」', pg.evaluate("!!document.querySelector('#view h2 .ai-mark')"))
     for _ in range(3):
@@ -670,8 +670,26 @@ def run_device(pw, dev, opts):
         after = pg.evaluate("() => ({ qs: !document.getElementById('aQs').hidden, plays: document.getElementById('aPlays').textContent, btn: document.getElementById('aPlay').textContent, off: document.getElementById('aPlay').disabled })")
         check(dev, 'radar: ✕ on the player counts as one play: the questions show, 再听一遍 left', after['qs'] and after['plays'] == '已听 1 / 2 遍' and '再听一遍' in after['btn'] and not after['off'], after)
     go(pg, '#/radar'); pg.wait_for_timeout(900)
-    rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
-    check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
+    # the radar as one part (48-radar.js radarChart): six names around it, each a link to that skill's check; a skill with
+    # no score says 去测, one with a score shows it and has a dot; one green button, on the first screen above the tab bar
+    rd = pg.evaluate("""() => { const names = [...document.querySelectorAll('.rdr-ax')], go = document.getElementById('radarGo'), tabs = document.querySelector('nav.tabs');
+      const box = e => e.getBoundingClientRect(), shown = e => !!e && getComputedStyle(e).display !== 'none' && box(e).height > 0;
+      const green = getComputedStyle(go).backgroundColor;
+      return { hrefs: names.map(a => a.getAttribute('href')), small: names.map(a => a.querySelector('small').textContent), tap: names.map(a => Math.round(Math.min(box(a).width, box(a).height))),
+        dots: document.querySelectorAll('.rdr .dt').length, shown: document.querySelector('.rdr .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length,
+        go: go.textContent, goBottom: Math.round(box(go).bottom), floor: shown(tabs) && getComputedStyle(tabs).position === 'fixed' && box(tabs).top > innerHeight / 2 ? Math.round(box(tabs).top) : innerHeight,
+        greens: [...document.querySelectorAll('#view a, #view button')].filter(e => shown(e) && getComputedStyle(e).backgroundColor === green).length,
+        wide: document.documentElement.scrollWidth > innerWidth }; }""")
+    tests = ['#/radar/test/listening', '#/radar/test/reading', '#/vocab/test', '#/placement', '#/radar/test/speaking', '#/radar/test/writing']
+    check(dev, 'radar: six names around the radar, each a link to its own check, 去测 or the score under it, 44px to tap',
+          rd['hrefs'] == tests and all(re.fullmatch(r'去测|\d{1,3}', t) for t in rd['small']) and min(rd['tap'] or [0]) >= 44, rd)
+    check(dev, 'radar: the measured skill is drawn (a dot on it), six rows under it', rd['dots'] >= 1 and rd['dots'] == sum(t != '去测' for t in rd['small']) and rd['shown'] and rd['rows'] == 6, rd)
+    # an upright phone shows the title, the radar and the button without scrolling (a phone on its side and wider screens are not held to it)
+    first = rd['goBottom'] <= rd['floor'] if dev in ('phone', 'phone-360') else True
+    check(dev, 'radar: one green button, on the first screen above the tab bar, nothing wider than the screen', rd['greens'] == 1 and first and not rd['wide'], rd)
+    pg.click('.rdr-ax.k1'); pg.wait_for_timeout(500)
+    check(dev, 'radar: a tap on 「阅读」 on the radar opens the reading check', pg.evaluate('location.hash') == '#/radar/test/reading', pg.evaluate('location.hash'))
+    go(pg, '#/radar'); pg.wait_for_timeout(600)
     pg.evaluate("document.getElementById('abFold').open = true"); pg.wait_for_selector('#abFold .ab', timeout=5000)
     check(dev, 'radar: the folded estimate from practice lists 8 skills (was 能力画像 on 我的)', pg.evaluate("() => document.querySelectorAll('#abFold .ab').length") == 8)
     go(pg, '#/radar/test/writing')
