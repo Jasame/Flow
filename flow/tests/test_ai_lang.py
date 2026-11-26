@@ -139,6 +139,38 @@ class PromptTests(Base):
         self.assertEqual(tl.convert_check({**raw, 'note': '你说清楚了什么时候需要安静。'})['met'], 'met')
 
 
+class LastLineTests(Base):
+    def test_the_last_line_only_for_explained_tasks_on_an_english_page(self):
+        import ai_routes
+        msgs = [{'role': 'system', 'content': 's'}, {'role': 'user', 'content': 'u'}]
+        for lang, kind, changed in ((None, 'next-rewrite', False), ('en', 'next-rewrite', True), ('en', 'next-explain', True),
+                                    ('en', 'next-variant', False), ('en', ai_lang.KIND, False), ('en', 'next-two-ask', False)):
+            ui_lang.use(lang)
+            with ai_routes.task(kind):
+                out = ai_lang.last(msgs)
+            self.assertEqual(out is not msgs, changed, (lang, kind))
+            if changed:
+                self.assertTrue(out[-1]['content'].endswith(ai_lang.LAST)); self.assertEqual(out[0], msgs[0])
+                self.assertEqual(msgs[-1]['content'], 'u')  # the caller's messages are not changed
+        ui_lang.use('en')
+        with ai_routes.task('next-shadow'):
+            parts = ai_lang.last([{'role': 'user', 'content': [{'type': 'text', 'text': 'u'}]}])
+        self.assertEqual(parts[-1]['content'][-1], {'type': 'text', 'text': ai_lang.LAST.strip()})
+
+    def test_it_goes_out_last_through_the_real_request(self):
+        seen = []
+
+        def main(msgs, *a, **k):
+            seen.append(msgs)
+            return json.dumps(REWRITE), 'stop'
+        for lang in (None, 'en'):
+            ui_lang.use(lang)
+            with patch('chat_service._request_main', side_effect=main):
+                self.assertEqual(nx.rewrite(self.c, 1, {'pack': PID, 'text': 'If I left earlier I would catch the bus.', 'request_id': self.rid()})[1], 200)
+        self.assertFalse(seen[0][-1]['content'].endswith(ai_lang.LAST))
+        self.assertTrue(seen[1][-1]['content'].endswith(ai_lang.LAST))
+
+
 class ToChineseTests(Base):
     def zh(self, texts, uid=1, reply=None, raises=None):
         calls = []

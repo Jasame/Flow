@@ -43,6 +43,35 @@ TAIL = ('\n\n讲解语言：英文。这位学习者用的是英文界面：总�
         '凡是写「不超过 N 个字」的，英文不超过 N÷2 个英文词。meaning、translation、zh 这些「中文意思」字段仍然用中文。')
 
 
+# The tasks whose answers explain something to the learner: on an English page their last user message ends with LAST
+# (in English: the eval of 2026-11-26 had an explanation's structure and a translation's comment come back in Chinese
+# with the language asked only in the system prompt, in Chinese). Shared content and 「看中文」 itself are left alone.
+EXPLAINED = {'next-rewrite', 'next-explain', 'next-shadow', 'next-retell', 'next-dialog', 'next-essay', 'next-translate',
+             'next-say', 'next-two-check', 'next-assess-speaking', 'next-assess-writing'}
+LAST = ('\n\nLanguage: this learner uses Flow in English. Write every explanation and comment (summary, why, note, structure, '
+        'points, accuracy, fluency, comment, hint, tip, scene, role, strength, next) in plain English, with no Chinese in '
+        'them. Keep meaning, translation and zh in Chinese.')
+
+
+def last(messages):
+    """The messages as they go out: on an English page, for a task in EXPLAINED, LAST at the end of the last user
+    message (chat_service.request_model). Anything else exactly as given."""
+    import ai_routes
+    if not en() or ai_routes.current() not in EXPLAINED or not isinstance(messages, list) or not messages:
+        return messages
+    i = max((k for k, m in enumerate(messages) if isinstance(m, dict) and m.get('role') == 'user'), default=None)
+    if i is None:
+        return messages
+    m = messages[i]
+    if isinstance(m.get('content'), str):
+        content = m['content'] + LAST
+    elif isinstance(m.get('content'), list):
+        content = m['content'] + [{'type': 'text', 'text': LAST.strip()}]
+    else:
+        return messages
+    return messages[:i] + [{**m, 'content': content}] + messages[i + 1:]
+
+
 def en():
     """Is this request's page in English (ui_lang, from its X-Flow-Lang header)?"""
     return ui_lang.lang() == 'en'
