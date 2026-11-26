@@ -54,6 +54,9 @@ document.documentElement.classList.add('js');
       if (line) line.style.transform = `scaleX(${max > 0 ? clamp(y / max, 0, 1) : 0})`;
       if (top) top.classList.toggle('scrolled', y > 8);
       if (!RM) par.forEach(el => {
+        // on a phone the hero's phone picture sits under the text and its top edge peeks at the bottom of the first
+        // screen (往下看看); drifting it down would hide that edge, so it stays put there
+        if (window.innerWidth < 900 && el.closest('.hero-visual')) { el.style.transform = ''; return; }
         const r = el.getBoundingClientRect(); if (r.bottom < -200 || r.top > vh + 200) return;
         const d = (r.top + r.height / 2 - vh / 2) * Number(el.dataset.speed || 0);
         el.style.transform = `translate3d(0,${d.toFixed(1)}px,0)`;
@@ -621,8 +624,28 @@ document.documentElement.classList.add('js');
     }), { rootMargin: '-64px 0px 0px 0px' }).observe(hero);
   }
 
+  /* ---------- 往下看看 (the owner, 2026-11-26): the cue under the first screen goes away on the first scroll and does not
+     come back (nor when the page opens further down); tapping it scrolls to what comes next: the phone picture on a
+     phone (it peeks below the cue), the next section on a wide screen. The floating arrow is CSS. ---------- */
+  function scrollCue() {
+    const cue = $('[data-cue]'); if (!cue) return;
+    if (scrollY > 24) { cue.classList.add('gone'); return; }
+    const onScroll = () => { if (scrollY > 24) { cue.classList.add('gone'); removeEventListener('scroll', onScroll); } };
+    addEventListener('scroll', onScroll, { passive: true });
+    // where a block sits in the page, without the transforms it may still be easing out of (.rv comes in from below)
+    const pageTop = el => { let y = 0; for (let n = el; n; n = n.offsetParent) y += n.offsetTop; return y; };
+    cue.addEventListener('click', e => {
+      const pic = $('.hero-visual'), film = $('#film');
+      const to = pic && pageTop(pic) - scrollY > innerHeight * 0.5 ? pic : film;
+      if (!to) return;
+      e.preventDefault();
+      const head = $('#top') ? $('#top').offsetHeight : 0;
+      window.scrollTo({ top: pageTop(to) - head - 8, behavior: RM ? 'auto' : 'smooth' });
+    });
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); ctaReveal(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); ctaReveal(); scrollCue(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

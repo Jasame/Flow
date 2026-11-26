@@ -164,9 +164,27 @@ em.ink::after{content:'';position:absolute;left:-2%;right:-2%;bottom:.06em;heigh
 .js .hero-visual.in .chip{opacity:1}
 .js .hero-visual.in .c-look{transition-delay:.7s}.js .hero-visual.in .c-ai{transition-delay:.95s}
 .js .hero-visual.in .c-steps{transition-delay:1.2s}.js .hero-visual.in .c-mem{transition-delay:1.45s}
-.scroll-cue{position:absolute;left:50%;bottom:22px;width:26px;height:42px;margin-left:-13px;border:1.5px solid var(--line2);border-radius:14px;display:none}
-.scroll-cue span{position:absolute;left:50%;top:8px;width:4px;height:8px;margin-left:-2px;border-radius:2px;background:var(--green);animation:cue 2s ease-in-out infinite}
-@keyframes cue{0%{transform:translateY(0);opacity:1}70%{transform:translateY(12px);opacity:0}100%{opacity:0}}
+/* 往下看看 (the owner, 2026-11-26: 引导用户向下滑): grey, never the accent colour; on phones right under the facts with the
+   phone picture peeking below it, on wide screens at the bottom of the first screen; it fades out on the first scroll
+   and stays away (about.js scrollCue); with 减少动态效果 the arrow stands still */
+.scroll-cue{display:flex;flex-direction:column;align-items:center;gap:0;width:max-content;margin:16px auto 0;padding:4px 12px;color:var(--muted);font-size:12.5px;line-height:1.4;text-decoration:none;transition:opacity .3s var(--ease),visibility 0s}
+.scroll-cue .sc-arrow{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;animation:cue-float 2s ease-in-out infinite}
+@keyframes cue-float{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+.scroll-cue.gone{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .3s var(--ease),visibility 0s linear .3s}
+@media (prefers-reduced-motion:reduce){.scroll-cue .sc-arrow{animation:none}.scroll-cue,.scroll-cue.gone{transition:none}}
+@media (max-width:899px){
+  .hero-grid{gap:18px}
+  .hero-visual{padding-top:0}
+  .js .hero-visual.rv{opacity:1;transform:none}  /* its top edge is the peek: there from the start, not sliding in */
+}
+@media (max-width:899px) and (max-height:740px){  /* short phones (iPhone SE): the phone picture still peeks at the bottom */
+  .hero{padding-top:12px}
+  .hero .lede{margin-top:14px}
+  .cta-row{margin-top:20px}
+  .hero-links{margin-top:10px}
+  .facts{margin-top:14px}
+  .scroll-cue{margin-top:10px}
+}
 @media (max-width:420px){
   .chip{font-size:12.5px;padding:8px 11px}
   .c-look{left:0}.c-mem{left:0}.c-steps{right:0}.c-ai{right:2%}
@@ -177,7 +195,7 @@ em.ink::after{content:'';position:absolute;left:-2%;right:-2%;bottom:.06em;heigh
   .hero-grid{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:40px}
   .hero .display{font-size:clamp(46px,6.1vw,72px)}  /* 「每天一篇短文，」 stays on one line beside the phone */
   .hero-visual>.parallax{width:min(310px,calc((100vh - 180px) * .44))}
-  .scroll-cue{display:block}
+  .scroll-cue{position:fixed;left:50%;bottom:18px;margin:0;transform:translateX(-50%);z-index:5}
 }
 
 /* ============ numbers ============ */
