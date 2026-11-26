@@ -19,7 +19,7 @@
     function bindRelisten() {
       const showText = () => {
         st.blind = false; pane.querySelectorAll('.line .txt').forEach(t => t.classList.remove('blind'));
-        const bl = pane.querySelector('#blind'); if (bl) { bl.classList.remove('on'); bl.setAttribute('aria-pressed', 'false'); }
+        document.querySelectorAll('#blind, #psBlind').forEach(bl => { bl.classList.remove('on'); bl.setAttribute('aria-pressed', 'false'); });  // 👁 is in the bar
         const box = pane.querySelector('#relisten'); if (box) box.outerHTML = relistenHTML();
       };
       pane.querySelectorAll('[data-und]').forEach(b => b.onclick = async () => {
@@ -45,20 +45,21 @@
       const ls = lines();
       const nm = await narration(ls);
       const voices = (m.audio && m.audio.voices) || [];
-      // The user's pick (语流 B9's design, 2026-11-25): 播放全文, 「AI 合成」 and the speed sit in the bar above the tabs
-      // (MINI, docked), where the thumb is, and the text starts higher on the first screen; 播放设置 opens from 「1×」 as a
-      // sheet; 「从头开始」 and 👁 are on the line above the sentences, playing or not; the how-to is a first-use tip (08-tips.js).
+      // The user's pick (语流 B9's design, 2026-11-25): 播放全文, 「AI 合成」, the speed and 👁 sit in the bar above the tabs
+      // (MINI, docked), where the thumb is, and the text starts high on the first screen (B9's r36 audit F1: no row of tools
+      // above the sentences); 播放设置 opens from 「1×」 as a sheet, with 「从头开始」 and 只听不看 at its top, playing or not;
+      // the how-to is a first-use tip (08-tips.js).
       const rateL = r => `${r}×`;
       // 「AI 合成」 is said once, in the bar by the play button (the user, 2026-11-25: no second line); the browser's own
       // voice is not AI, and only this line says so
-      const lead = nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
-      const hint = `点 👁 只听不看，点句子前的喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;
+      // a recording this device cannot play (no AAC decoder): said here too, as the reason the text is read sentence by sentence
+      const lead = voices.length && !NAR.aac ? (SV.on() ? '这台设备放不了录音的格式，改用 AI 朗读一句一句读。' : '这台设备放不了录音的格式，先用浏览器朗读。')
+        : nm || SV.on() ? '' : '这篇还没有录音，先用浏览器朗读。';
+      const hint = `点 👁 只听不看，点喇叭单句反复听${TOUCH ? '' : '；空格键播放 / 暂停'}。`;  // one line on SE (F1)
       pane.innerHTML = `${again ? relistenHTML() : ''}${modeTabs()}${prereadHTML()}
         <p class="tiny muted sv-prep" id="lsPrep" role="status" hidden></p>
         ${!nm && !TTS.can() ? '<p class="err">这个浏览器不支持朗读，可以直接去「读」。</p>' : ''}
-        <div class="ls-head"><p class="muted tiny listen-tip">${lead}</p>
-          <span class="ls-tools"><button class="link tiny" id="playRestart" type="button" hidden>从头开始</button>
-          <button class="icon-btn ${st.blind ? 'on' : ''}" id="blind" type="button" aria-pressed="${st.blind}" title="盲听：先只听不看" aria-label="盲听">${ICON.eye}</button></span></div>
+        <p class="muted tiny listen-tip">${lead}</p>
         ${tipSlot('listen', hint)}
         <div class="lines">${ls.map((s, i) => `<div class="line" data-i="${i}"><button class="icon-btn" data-say="${i}" aria-label="播放第 ${i + 1} 句">${ICON.speak}</button><div class="txt ${st.blind ? 'blind' : ''}">${wordSpans(s, () => 'kw')}</div></div>`).join('')}</div>
         <div class="section row between"><span class="muted small">共 ${ls.length} 句${nm ? ' · ' + Math.round(nm.duration / 60 * 10) / 10 + ' 分钟' : ''}</span><button class="btn" id="toRead">听完了，去读 →</button></div>`;
@@ -70,7 +71,7 @@
       // #playAll is the bar's button: its start label is painted here, its 暂停 / 继续 by the player (MINI.paint).
       const PKEY = 'listen:' + id;
       const setBtn = () => {
-        const b = document.getElementById('playAll'), rs = pane.querySelector('#playRestart'), rb = MINI.el && MINI.el.querySelector('.speed-set');
+        const b = document.getElementById('playAll'), rs = document.getElementById('playRestart'), rb = MINI.el && MINI.el.querySelector('.speed-set');
         const r = LONG.of(PKEY), at = r ? r.i : PROG.at(PKEY, ls.length);
         if (rs) rs.hidden = !at;
         if (rb) rb.textContent = rateL(TTS.rate);
@@ -122,13 +123,24 @@
         readAll(PROG.at(PKEY, ls.length));
       };
       // 播放设置 from 「1×」: 语速, 复读 (times, the pause after), 声音; it takes effect at once, also on what is playing
-      const playsetHTML = () => `<div class="stack"><h2 class="h2" id="sheetTitle">播放设置</h2><div class="loopbar">
+      // 盲听 (只听不看): the bar's 👁, the switch in 播放设置, and the sentences, kept in step
+      const setBlind = on => {
+        st.blind = on; pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', on));
+        document.querySelectorAll('#blind, #psBlind').forEach(b => { b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+        toast(on ? '盲听：只听不看，再点一次显示原文' : '已显示原文');
+      };
+      const playsetHTML = () => `<div class="stack"><h2 class="h2" id="sheetTitle">播放设置</h2>
+        <div class="row between ps-top"><button class="chip small${st.blind ? ' on' : ''}" type="button" id="psBlind" aria-pressed="${st.blind}">${ICON.eye}<span>只听不看</span></button>
+          <button class="btn small" type="button" id="playRestart"${PROG.at(PKEY, ls.length) || LONG.of(PKEY) ? '' : ' hidden'}>从头开始</button></div>
+        <div class="loopbar">
           <div class="lg" role="group" aria-label="语速"><span class="tiny muted">语速</span>${[0.75, 1, 1.25].map(r => `<button class="chip small" type="button" data-rate="${r}" aria-pressed="${TTS.rate === r}">${r}×</button>`).join('')}</div>
           <div class="lg" role="group" aria-label="复读：每句几遍"><span class="tiny muted">每句</span>${[[1, '1 遍'], [3, '3 遍'], [5, '5 遍'], [0, '循环']].map(([n, l]) => `<button class="chip small" type="button" data-rep="${n}" aria-pressed="${LOOP.rep === n}">${l}</button>`).join('')}</div>
           <div class="lg" role="group" aria-label="复读：句后停顿"><span class="tiny muted">句后</span>${[[0, '不停'], [2, '停 2 秒'], [-1, '留时间跟说']].map(([n, l]) => `<button class="chip small" type="button" data-gap="${n}" aria-pressed="${LOOP.gap === n}">${l}</button>`).join('')}</div>
           ${voices.length ? `<div class="lg"><span class="tiny muted">声音</span>${voiceChips(voices)}</div>` : ''}</div>
         <button class="btn block" type="button" id="psDone" data-close>好</button></div>`;
       const openPlayset = () => openSheet(playsetHTML(), card => {
+        card.querySelector('#psBlind').onclick = () => setBlind(!st.blind);
+        card.querySelector('#playRestart').onclick = () => { closeSheet(); LONG.stop(); PROG.clear(PKEY); readAll(0); };
         card.querySelectorAll('[data-rep], [data-gap]').forEach(b => b.onclick = () => {
           const k = 'rep' in b.dataset ? 'rep' : 'gap'; LOOP[k] = Number(b.dataset[k]); save('flow-next-loop', LOOP);
           NATIVE.retune();  // the app playing it gets the new 复读 at once
@@ -141,8 +153,8 @@
         card.querySelectorAll('[data-voice]').forEach(b => b.onclick = async () => { if (b.disabled) return; closeSheet(); stopAll(); await setVoice(b.dataset.voice); listen(); toast('已切换为' + VOICE_LABELS[b.dataset.voice]); });
       });
       // attach: the app plays this text (语流's iOS app, loaded again): the bar becomes its player (NATIVE.adopt)
-      MINI.dock({ key: PKEY, ai: () => !!nm || SV.on(), paint: setBtn, play: playAll, rate: openPlayset, attach: () => readAll(PROG.at(PKEY, ls.length), true) });
-      pane.querySelector('#playRestart').onclick = () => { LONG.stop(); PROG.clear(PKEY); readAll(0); };
+      MINI.dock({ key: PKEY, ai: () => !!nm || SV.on(), paint: setBtn, play: playAll, rate: openPlayset, attach: () => readAll(PROG.at(PKEY, ls.length), true),
+        blind: { on: () => st.blind, toggle: () => setBlind(!st.blind) } });
       setBtn();
       NATIVE.follow(PKEY, setBtn);  // in the app: the button says where the app got to (it may have played on, or still plays)
       pane.querySelectorAll('[data-say]').forEach(b => b.onclick = () => {
@@ -151,7 +163,6 @@
         sayRepeated(i, () => { setNow(-1); MINI.hide(); });
       });
       pane.querySelectorAll('.line .txt').forEach((t, i) => t.onclick = e => { if (e.target.dataset.w && !st.blind) lookupSheet(e.target.dataset.w, ls[i], id); });
-      pane.querySelector('#blind').onclick = e => { st.blind = !st.blind; toast(st.blind ? '盲听：只听不看，再点一次显示原文' : '已显示原文'); e.currentTarget.classList.toggle('on', st.blind); e.currentTarget.setAttribute('aria-pressed', String(st.blind)); pane.querySelectorAll('.txt').forEach(t => t.classList.toggle('blind', st.blind)); };
       pane.querySelector('#toRead').onclick = () => { stopAll(); markStep('listen'); go('read'); };
       if (again) bindRelisten();
       bindListenHead(stopAll);
@@ -168,7 +179,7 @@
     // The words worth knowing before listening, folded into one line (open it for the meaning, the sound, review).
     function prereadHTML() {
       const pr = m._prHidden ? [] : (m.preread || []);
-      return pr.length ? `<details class="card sunk fold preread"><summary data-tap="listen-preread"><b class="small">读前先认识这 ${pr.length} 个词</b><span class="tiny muted">${pr.map(w => esc(w.word)).join(' · ')}</span></summary>
+      return pr.length ? `<details class="fold preread"><summary data-tap="listen-preread"><b class="small">读前先认识这 ${pr.length} 个词</b><span class="tiny muted">${pr.map(w => esc(w.word)).join(' · ')}</span></summary>
           <div class="stack-s"><div class="pr-list">${pr.map((w, k) => `<div class="pr"><button class="icon-btn" data-prsay="${k}" aria-label="朗读 ${esc(w.word)}">${ICON.speak}</button>
             <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted">${esc(w.meaning)}</div></div></div>`).join('')}</div>
           <div class="row"><button class="btn small primary" id="prAdd">全部加入复习</button><span class="muted tiny">加入后会在文章里标出来</span></div></div></details>` : '';

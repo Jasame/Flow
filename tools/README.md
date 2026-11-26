@@ -232,7 +232,9 @@ and the checks (`--checks`, about 15 s): the repository's own tests (`tests/`: e
 sources, the served scripts parsing, the served scripts and stylesheets still running in Safari 15.0 (`tools/check_compat.py`: iOS 15
 and up must work, 2026-11-25; a lookbehind in a regular expression had made next.js unreadable before iOS 16.4, and
 color-mix() backgrounds were lost before iOS 16.2: a newer CSS value needs a plain one for the same property before it,
-a newer selector or container query a `/* compat-ok: <why> */` or an `@supports not (…)` fallback), and
+a newer selector or container query a `/* compat-ok: <why> */` or an `@supports not (…)` fallback, and a property
+Safari reads only with `-webkit-` (user-select, backdrop-filter before 18, appearance and mask before 15.4) the
+`-webkit-` one in the same rule), and
 `test_guide`. The UI groups and the whole suite are not run before pushing:
 CI runs them on every pull request, the one gate before a merge. Running them here as well ran every test twice
 (2026-11-25: 96 runs in a day, PRs waiting 26 minutes for the MSI).

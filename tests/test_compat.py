@@ -75,6 +75,20 @@ class CompatTests(unittest.TestCase):
         self.assertEqual(css(q + ' @supports not (container-type: inline-size){.phone{display:none}}'), [])
         self.assertEqual(css('@container (min-width:300px){/* compat-ok: hidden below */.t{font-size:12px;font-size:4cqw}}'), [])
 
+    def test_a_property_safari_reads_only_with_webkit_needs_it_in_the_same_rule(self):
+        css = lambda s: [w for line, col, w, v in cc.css_findings(s)]
+        self.assertTrue(css('.line .txt.blind{color:transparent;user-select:none}'))  # 语流 B8 #364: copyable on iPhone
+        self.assertEqual(css('.line .txt.blind{-webkit-user-select:none;user-select:none}'), [])
+        self.assertEqual(css('.a{user-select:none;-webkit-user-select:none}'), [])  # either order
+        self.assertTrue(css('.bar{backdrop-filter:blur(12px)}'))
+        self.assertTrue(css('.b{appearance:none}'))
+        self.assertEqual(css('.b{-webkit-appearance:none;appearance:none}'), [])
+        self.assertEqual(css('.b{appearance:none /* compat-ok: iOS 15.0–15.3 keep the system button look */}'), [])
+        self.assertEqual(css('@supports (backdrop-filter:blur(1px)){.x{-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}}'), [])
+        self.assertEqual(css('.c{-webkit-user-select:none}'), [])  # the prefixed one alone is what Safari reads
+        (line, col, what, ver), = cc.css_findings('.b{\n  appearance:none}')
+        self.assertEqual((line, col, ver), (2, 3, '15.4'))
+
     def test_every_served_script_is_checked_and_the_check_runs_wherever_scripts_are_checked(self):
         names = {p.name for p in cc.SCRIPTS}
         self.assertIn('99-boot.js', names); self.assertIn('sw.js', names); self.assertIn('about.js', names)
