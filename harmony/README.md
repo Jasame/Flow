@@ -23,6 +23,17 @@
 | `notify` 复习提醒 | **还没打开**（`has('notify')` 为 false），网页照浏览器的做法用邮件和「加到手机日历」。<br>原因：第三方 App 的后台代理提醒要华为按包名开通。开通之前 `publishReminder` 回 1700002，系统日志写 `ReminderControl … notification not allowed`，上限是 0（5.0.1 模拟器，2026-11-26 实测）。<br>代码已经写好（`notify/`：规则和 iOS、安卓一样，最多排 28 条），名额开通以后在 `Bridge.FEATURES` 里加回 `'notify'` |
 | `speech` | **不做**。鸿蒙的系统朗读是 Core Speech Kit，属于系统自带的 AI 能力，按规矩不接。服务器的句子做不出来时，朗读暂停（why = error），`fail` 交给网页说明原因，点继续再试 |
 
+## 第一次打开
+
+和安卓 1.0.4 同一套（`android/README.md`「第一次打开」，文字一字不差，D2 和用户看过）：
+
+- 第一次打开，或者这个包里的《用户协议》《隐私和数据》比学员同意过的新，先弹自己的窗口问。回答以前没有网页，也不联网。
+- 两章全文是构建时用安卓的 `android/tools/legal_docs.py` 从 guide.md 生成的（`entry/hvigorfile.ts` → `rawfile/legal/legal.json`，不进 git），点书名号在 App 里打开，不联网。
+- 点「不同意」再确认一次（「再看看」或「进入基本模式」）。基本模式：不登录，进度只存在这台手机上，不录音；页面顶上一行说明和「同意」。登录、注册的请求由 App 拦下，回 403，同时再问一次；录音也先问。
+- 网页「我的 → 设置」里有「撤回同意」和「系统权限」（能力 `privacy`，命令和安卓一样）。撤回：停掉朗读和录音，清掉登录、网页存储、缓存、朗读进度和提醒，回到第一次打开的样子。
+- 回答存在这台手机上（preferences `flow-consent`），连同同意的是哪一版。代码：`common/Consent.ets`（规则和文字，有单元测试）、`common/ConsentGate.ets`（存、问、清）、`pages/Index.ets`（弹窗、阅读页、基本模式那一行）。
+- APP 备案号：`build-profile.json5` 的 `FLOW_BEIAN`，备案以前是空的，网页就不显示。
+
 ## 外壳
 
 - UA 末尾加 `FlowHarmony/<版本>`；`FlowApp.platform` 是 `'harmony'`。

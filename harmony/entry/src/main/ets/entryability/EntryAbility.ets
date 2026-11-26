@@ -5,6 +5,7 @@ import { Site } from '../common/Site';
 import { Reminders } from '../notify/Reminders';
 import { Recorder } from '../rec/Recorder';
 import { FlowAudio } from '../audio/FlowAudio';
+import { ConsentGate } from '../common/ConsentGate';
 
 /** A reminder's path ("#/review", "#/"), from its tap (wantAgent parameters). */
 function pathOf(want: Want): string | undefined {
@@ -24,6 +25,12 @@ export default class EntryAbility extends UIAbility {
     Reminders.init();
     Recorder.init();
     FlowAudio.init();
+    // 不同意 and 撤回同意 (common/ConsentGate.ets): reading and recording stop, reminders and reading places go
+    ConsentGate.onClear = [
+      () => FlowAudio.forget(),
+      () => Recorder.cancel(),
+      () => Reminders.forget(),
+    ];
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {

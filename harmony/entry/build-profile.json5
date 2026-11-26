@@ -6,7 +6,8 @@
       "buildProfileFields": {
         "FLOW_SITE": "https://flow.jasa.hk",
         "FLOW_BETA": "true",
-        "FLOW_BUILD": "dev"
+        "FLOW_BUILD": "dev",
+        "FLOW_BEIAN": ""
       }
     }
   },

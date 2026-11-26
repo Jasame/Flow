@@ -17,3 +17,5 @@
 *.cer
 *.p7b
 *.csr
+# made from the site's guide at every build (entry/hvigorfile.ts, android/tools/legal_docs.py)
+/entry/src/main/resources/rawfile/legal/
