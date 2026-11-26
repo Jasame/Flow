@@ -46,7 +46,7 @@
   function haptic(kind) { try { if (window.FlowApp && FlowApp.has && FlowApp.has('haptic')) FlowApp.call('app.haptic', { kind }).catch(() => {}); } catch (e) { /* no app */ } }
   const KNOW = {
     side() { try { return localStorage.getItem('flow-know-side') === 'left' ? 'left' : 'right'; } catch (e) { return 'right'; } },
-    set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } },
+    set(v) { try { if (v === 'left') localStorage.setItem('flow-know-side', 'left'); else localStorage.removeItem('flow-know-side'); } catch (e) { /* private mode */ } prefSave('know', v === 'left' ? 'left' : 'right'); },  // also with the account (07-prefs.js)
     // the choices in their order on screen, from the 「认识」 end of the list
     order(list) { return this.side() === 'right' ? list.slice().reverse() : list.slice(); },
     // what a swipe does, for onSwipe(right, left): 「认识」's side gets know
@@ -57,12 +57,12 @@
     // 认识 is on its side too. On by default where a finger points; with a mouse a click into the card (to select a word)
     // should not answer, so there it is off until chosen in 我的 → 设置.
     tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
-    setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } },
+    setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } prefSave('tap', on ? 'on' : 'off'); },
     // 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words and reviews apart, new words detailed (the
     // first look is the one to take in), reviews simple (quick). Only what is shown changes: the front asks the same
     // (detailed adds a grey line of tags and history, nothing of the answer), so a rating means the same in both.
     view(kind) { const d = kind === 'new' ? 'detailed' : 'simple'; try { const v = localStorage.getItem('flow-card-view-' + kind); return v === 'simple' || v === 'detailed' ? v : d; } catch (e) { return d; } },
-    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } },
+    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } prefSave(kind === 'new' ? 'card_new' : 'card_review', v); },
   };
   // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
   // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the

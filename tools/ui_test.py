@@ -90,6 +90,9 @@ def settle(pg, sel='#view h1, #view .review, #view .empty, #view .done-card', ti
     pg.wait_for_timeout(350)  # entrance animations
 
 
+# 使用习惯 kept with the account (07-prefs.js): set there, as 我的 → 使用习惯 would; the page takes it at its next load
+PREF_SET = """async p => { const s = await (await fetch('/api/session')).json(); if (!s.user) return;
+  await fetch('/api/next/prefs', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify(p) }); }"""
 # a one-time entry this account has put away (08-tips.js), brought back on the account and on this phone (the page
 # keeps its own copy until it loads again: reload after it)
 TIP_BACK = """async name => { const s = await (await fetch('/api/session')).json(); if (!s.user) return;
@@ -1840,14 +1843,14 @@ def ux_run(pw):
         check(dev, '复读: the choice is remembered', pg.get_attribute('#sheet [data-rep="3"]', 'aria-pressed') == 'true')
         pg.click('#sheet [data-rep="1"]'); pg.click('#psDone'); pg.wait_for_timeout(200)
         # 字号: 特大 makes the reading text larger, and a 360-pixel phone still does not scroll sideways
-        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="xl"]', timeout=4000)
-        pg.click('#sheetCard [data-ts="xl"]'); pg.click('#sheetCard [data-tl="w"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        go(pg, '#/me/habits'); pg.wait_for_selector('#hbSize', timeout=4000)  # 我的 → 使用习惯 (81-habits.js)
+        pg.evaluate("v => { const r = document.getElementById('hbSize'); r.value = v; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }", 2); pg.click('[data-hb="lh"][data-v="w"]')
         pg.set_viewport_size({'width': 360, 'height': 780}); go(pg, f'#/m/{PID}/read'); pg.wait_for_timeout(400)
         z = pg.evaluate("() => { const t = document.querySelector('#view .text'); return t ? [getComputedStyle(t).zoom, getComputedStyle(t).lineHeight] : null; }")
         wide = pg.evaluate('document.scrollingElement.scrollWidth - innerWidth')
         check(dev, '字号: 特大 and 宽松 apply to the reading text, and the page stays within the screen', z and float(z[0]) == 1.25 and wide <= 0, (z, wide))
-        pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheetCard [data-ts="m"]', timeout=4000)
-        pg.click('#sheetCard [data-ts="m"]'); pg.click('#sheetCard [data-tl="n"]'); pg.evaluate("document.querySelector('#sheet [data-close]').click()")
+        pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '#/me/habits'); pg.wait_for_selector('#hbSize', timeout=4000)
+        pg.evaluate("v => { const r = document.getElementById('hbSize'); r.value = v; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }", 0); pg.click('[data-hb="lh"][data-v="n"]')
         # 撤销: a rating taken back brings the same card up again
         go(pg, '#/review'); pg.wait_for_timeout(400)
         first = pg.text_content('#view .review') or ''
@@ -2988,7 +2991,7 @@ def a11y_run(pw):
                 ctx.request.post(BASE + '/api/next/accent', data={'accent': 'green'}, headers={'X-CSRF-Token': me['csrf']})
             if theme == 'light' and accent == 'green':
                 # a sheet is a dialog with a title, and the focus goes into it
-                go(pg, '#/me'); pg.click('#meText')
+                go(pg, '#/me'); pg.click('#meVoice')
                 # openSheet moves the focus in 30 ms after drawing it (02-shell.js): wait for that, up to 2 s, instead of a
                 # fixed 200 ms that a busy runner overran once (main 49d610b, 2026-11-24); a focus that never moves in still fails
                 try:
@@ -3713,9 +3716,8 @@ def review_side_run(pw):
         check(dev, '← on the card is the left button: 不认识', s['back'] and s['def'] == 'again', s)
         pg.keyboard.press('Enter'); pg.wait_for_timeout(450)
         # 我的 → 设置 → 「认识」放在 → 左边
-        go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-know="left"]'); pg.click('#sheetCard [data-know="left"]'); pg.wait_for_timeout(150)
-        label = pg.text_content('#meKnowV') or ''
-        pg.click('#sheetCard [data-close]'); pg.wait_for_timeout(150)
+        go(pg, '#/me/habits'); pg.wait_for_selector('[data-hb="know"]'); pg.click('[data-hb="know"][data-v="left"]'); pg.wait_for_timeout(150)
+        label = '认识在左' if pg.get_attribute('[data-hb="know"][data-v="left"]', 'aria-checked') == 'true' else ''  # 我的 → 使用习惯
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); s = st()
         check(dev, '我的 → 设置: 「认识」放在左边, and the card says 认识 / 模糊 / 不认识', label.startswith('认识在左') and s['claims'] == ['know', 'fuzzy', 'forgot'] and not s['tip'], (label, s))
         pg.keyboard.press('1'); pg.wait_for_timeout(250); s = st()
@@ -3742,6 +3744,8 @@ def review_side_run(pw):
         pg.click('#onceBtn'); pg.wait_for_selector('#onceOff', timeout=5000); pg.click('#onceOff'); pg.wait_for_timeout(300)
         r = pg.evaluate("fetch('/api/next/vocab').then(r => r.json()).then(o => o.reminder)")
         check(dev, '取消这次: back to every day at the hour', r['once'] is None, r)
+        # 「认识」 back on the right: since 2026-11-26 the side is kept with the account (07-prefs.js), and the next devices start fresh
+        go(pg, '#/me/habits'); pg.wait_for_selector('[data-hb="know"]'); pg.click('[data-hb="know"][data-v="right"]'); pg.wait_for_timeout(300)
         check(dev, 'no script errors (computer)', not errs, errs[:3])
         ctx.close()
         # in an app (iOS, Android, desktop; FlowApp before the page): the reminder goes to its notifications, said for its device
@@ -3980,7 +3984,7 @@ def review_side_run(pw):
         left_ok = pg.evaluate("() => [!!document.querySelector('#listSlot'), !document.querySelector('#view .review'), (document.querySelector('#view h1') || {}).textContent]")
         check(dev, 'leaving while an answer is saved: the next page stays, no review card drawn over it', left_ok[0] and left_ok[1], left_ok)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
-        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); steady(pg)
+        pg.evaluate(PREF_SET, {'know': 'left'}); pg.reload(wait_until='load'); steady(pg)  # kept with the account since 2026-11-26
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)
         if pg.query_selector('#undo:not([disabled])'):  # nothing to take back if the tap above did not answer (that check says so)
@@ -3989,6 +3993,7 @@ def review_side_run(pw):
         tap_card(pg, 0)
         check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
         check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
+        pg.evaluate(PREF_SET, {'know': 'right'})  # the next device of this account starts from the default
         ctx.close()
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
@@ -4035,10 +4040,10 @@ def review_side_run(pw):
               m5['back'] and m5['on'] == '简' and m5['all'] <= 3 and not m5['confuse'] and not m5['state'] and not posts, m5)
         pg.click('.ractions [data-rate="good"]'); pg.wait_for_timeout(600); m6 = pg.evaluate(MODE_JS)
         check(dev, '复习卡: a new word is 详细 by default (its own setting)', m6['word'] == 'lend' and m6['on'] == '详' and '新词' in m6['meta'], m6)
-        go(pg, '#/me'); pg.click('#meKnow'); pg.wait_for_selector('#sheetCard [data-view="new:simple"]')
-        pg.click('#sheetCard [data-view="new:simple"]'); pg.wait_for_timeout(200)
-        lab = pg.text_content('#meKnowV') or ''
-        check(dev, '我的 → 设置 → 背词: 背新词 / 复习 each 简洁 or 详细, and the row says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
+        go(pg, '#/me/habits'); pg.wait_for_selector('[data-hb="card_new"]')
+        pg.click('[data-hb="card_new"][data-v="simple"]'); pg.wait_for_timeout(200)
+        lab = '新词简洁' if pg.get_attribute('[data-hb="card_new"][data-v="simple"]', 'aria-checked') == 'true' else ''
+        check(dev, '我的 → 使用习惯: 新词卡 / 复习卡 each 简洁 or 详细, and the switch says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
         check(dev, 'no script errors (简洁 / 详细)', not errs, errs[:3])
         ctx.close()
         # 单词 and 其他复习 apart (the owner, 2026-11-25; review-split-plan.md): the 单词 badge and its review hold words only;
@@ -4155,13 +4160,14 @@ def review_side_run(pw):
         check(dev, 'phone: swipe right again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
         check(dev, 'phone: swipe left is 不认识', s['back'] and s['def'] == 'again', s)
-        pg.evaluate("localStorage.setItem('flow-know-side', 'left')")
+        pg.evaluate(PREF_SET, {'know': 'left'})  # kept with the account since 2026-11-26 (07-prefs.js)
         pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(500)
         touch_swipe(pg, '.review', -160); pg.wait_for_timeout(400); s = st()
         check(dev, 'phone, 「认识」放在左边: swipe left is 认识', s['back'] and s['rates'] == ['good', 'hard', 'again'] and s['def'] == 'good', s)
         f0 = s['foot']; touch_swipe(pg, '.review', -160); pg.wait_for_timeout(500); s = st()
         check(dev, 'phone, left: swipe left again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         check(dev, 'no script errors (phone)', not errs, errs[:3])
+        pg.evaluate(PREF_SET, {'know': 'right'})
         ctx.close()
         # 搭配和近义、易混词 on the 详细 back (B9, 2026-11-26): 「更多 N 条」 and the line under the block are 44 px to a finger,
         # one way in at each end; a tap at their edge opens them and never answers the card (taps on the back answer)
@@ -4348,7 +4354,7 @@ def shell_run(pw):
         ctx, pg = open_(False, hash_='#/speak/cafe-order'); s = pg.evaluate(BACK)
         check(dev, 'Safari, a sub-page: the page\'s own 「← 口语路线」 line is there (no 返回 in the bar)', not s['btn'] and s['line'], s)
         # a sheet goes with its page: a link, and the browser's back
-        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
+        go(pg, '#/me'); pg.click('#meVoice'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
         # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone
         g = pg.evaluate("""async () => { document.querySelector('#sheet [data-close]').click(); const g = document.querySelector('.sheet-ghost');
           const at = g && {shut: document.getElementById('sheet').hidden, ids: g.querySelectorAll('[id]').length + (g.id ? 1 : 0), hidden: g.getAttribute('aria-hidden'), inert: g.inert,
@@ -4356,10 +4362,10 @@ def shell_run(pw):
           await new Promise(r => setTimeout(r, 400)); return {at, gone: !document.querySelector('.sheet-ghost')}; }""")
         check(dev, 'closing a sheet: shut at once, a copy (no ids, inert, hidden from screen readers) slides down and is gone',
               bool(g['at']) and g['at']['shut'] and g['at']['ids'] == 0 and g['at']['hidden'] == 'true' and g['at']['inert'] and g['at']['anim'] == 'sheet-down' and g['gone'], g)
-        pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
+        pg.click('#meVoice'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
         pg.evaluate("location.hash = '#/practice'"); pg.wait_for_timeout(400)
         check(dev, 'a sheet open, another page: the sheet closes with its page', pg.evaluate("document.getElementById('sheet').hidden"))
-        go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
+        go(pg, '#/me'); pg.click('#meVoice'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000)
         pg.go_back(); pg.wait_for_timeout(500)
         check(dev, 'a sheet open, the browser\'s back: the page before, and no sheet over it', pg.evaluate("document.getElementById('sheet').hidden") and pg.evaluate('location.hash') == '#/practice', pg.evaluate('location.hash'))
         # 开局: four level tiles in one row at 375 px, all one height, 推荐 on one as a corner badge
@@ -4434,6 +4440,25 @@ def shell_run(pw):
               tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due == 0 and not tb['dot'] and tb['label'] is None and me_radar == 0, (tb, due, me_radar))
         check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
               min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
+        # 我的 → 使用习惯 (the user and B9, 2026-11-26): one screen on an iPhone SE, nothing to scroll and no sheet; each
+        # two-choice setting a radio group with one chosen, 字号 a slider said by name; a choice takes effect at once and is
+        # kept with the account, so another device has it (07-prefs.js)
+        ctx, pg = open_(False, hash_='#/me'); pg.click('[data-tap="me-habits"]'); pg.wait_for_selector('#hbSize', timeout=6000); pg.wait_for_timeout(300)
+        hb = pg.evaluate("""() => ({ hash: location.hash, scroll: document.scrollingElement.scrollHeight - innerHeight, sheet: !document.getElementById('sheet').hidden,
+          bottom: Math.round(document.querySelector('.hb-size').getBoundingClientRect().bottom), tabs: Math.round(document.querySelector('.tabs').getBoundingClientRect().top),
+          groups: [...document.querySelectorAll('.hb-seg')].map(g => [g.getAttribute('role'), document.getElementById(g.getAttribute('aria-labelledby')).textContent, g.querySelectorAll('[role=radio][aria-checked=true]').length]),
+          slider: document.getElementById('hbSize').getAttribute('aria-valuetext') })""")
+        pg.click('[data-hb="card_review"][data-v="detailed"]'); pg.evaluate("v => { const r = document.getElementById('hbSize'); r.value = v; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }", 1); pg.wait_for_timeout(600)
+        size_now = pg.evaluate("document.documentElement.dataset.size"); ctx.close()
+        ctx, pg = open_(False, hash_='#/me/habits'); pg.wait_for_selector('#hbSize', timeout=6000)  # another device, the same account
+        other = pg.evaluate("""() => ({ review: (document.querySelector('[data-hb="card_review"][aria-checked="true"]') || {dataset: {}}).dataset.v,
+          size: document.documentElement.dataset.size, label: document.getElementById('hbSize').getAttribute('aria-valuetext') })""")
+        pg.click('[data-hb="card_review"][data-v="simple"]'); pg.evaluate("v => { const r = document.getElementById('hbSize'); r.value = v; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }", 0); pg.wait_for_timeout(500); ctx.close()
+        check(dev, '我的 → 使用习惯: one screen at 375×667 (no scrolling, above the tabs, no sheet), each switch a radio group with one chosen, 字号 a slider said by name',
+              hb['hash'] == '#/me/habits' and hb['scroll'] <= 0 and hb['bottom'] <= hb['tabs'] and not hb['sheet'] and len(hb['groups']) >= 5
+              and all(g[0] == 'radiogroup' and g[2] == 1 for g in hb['groups']) and hb['slider'] == '标准', hb)
+        check(dev, '使用习惯 takes effect at once and is kept with the account: another device has 复习卡 详细 and 字号 大',
+              size_now == 'l' and other == {'review': 'detailed', 'size': 'l', 'label': '大'}, (size_now, other))
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()
