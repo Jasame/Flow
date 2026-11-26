@@ -49,6 +49,9 @@ def schema(c):
               'card INTEGER NOT NULL, kind TEXT NOT NULL, sentence TEXT NOT NULL, source TEXT NOT NULL, assisted INTEGER, created REAL NOT NULL, '
               'UNIQUE(user_id, card, source))')
     c.execute('CREATE INDEX IF NOT EXISTS next_evidence_user ON next_evidence(user_id, node, created)')
+    # 没人提醒自己回来 (r29 第 1 项的量法): counts a day, nothing about who (count_returns)
+    c.execute('CREATE TABLE IF NOT EXISTS daily_returns(day TEXT PRIMARY KEY, active INTEGER NOT NULL, returned INTEGER NOT NULL, '
+              'reminded INTEGER NOT NULL)')
 
 
 # ---------- days and weeks ----------
@@ -119,32 +122,97 @@ EVIDENCE_KEEP, EVIDENCE_DAYS = 2, 90
 RECUR_WINDOW, RECUR_DAYS, RECUR_OUTPUTS = 14, 2, 3
 
 
-def note_evidence(c, uid, text, changes, kind, request_id='', assisted=None, now=None):
+def note_evidence(c, uid, text, changes, kind, request_id='', assisted=None, now=None, source=''):
     """After a written output is marked: for each fix card on a grammar point whose corrected form (to) the learner now
-    wrote, and that point not corrected this time, keep that sentence (next_evidence). Forms too short to mean anything
-    (a, the, in…) are left out. Returns how many were kept. The caller commits."""
+    wrote, and that point not corrected this time, keep that sentence (next_evidence). Left out: forms too short to mean
+    anything (a, the, in…), and forms the text being written about has itself (source: the material's English — copied,
+    not shown to be known, B7). assisted is only what the page sent (data['assisted']: the learner saw a hint, a model
+    answer or the marking before this draft); the server never guesses it, None = not known. Returns how many were kept.
+    The caller commits."""
     if not uid or not (text or '').strip():
         return 0
     now = now or time.time()
     fixed = {ch.get('node') for ch in (changes or []) if ch.get('node')}
-    source, low, kept = 'ev:' + (str(request_id or '') or uuid.uuid4().hex), text.lower(), 0
+    ev_id, low, kept = 'ev:' + (str(request_id or '') or uuid.uuid4().hex), text.lower(), 0
     for r in c.execute("SELECT id, text, node FROM next_cards WHERE user_id=? AND kind='fix' AND source='mistake' AND node IS NOT NULL AND created<?",
                        (uid, now)).fetchall():
         to = (r['text'] or '').strip()
         if r['node'] in fixed or not to or len(to) > 60 or (len(to) < 4 and ' ' not in to):
             continue
-        if not re.search(r'(?<![a-z])' + re.escape(to.lower()) + r'(?![a-z])', low):
+        form = re.compile(r'(?<![a-z])' + re.escape(to.lower()) + r'(?![a-z])')
+        if not form.search(low) or (source and form.search(source.lower())):
             continue
         sent = next((s for s in nx.sentences(text) if to.lower() in s.lower()), '')[:300]
         if not sent:
             continue
         c.execute('INSERT OR IGNORE INTO next_evidence(user_id,node,card,kind,sentence,source,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
-                  (uid, r['node'], r['id'], kind, sent, source, None if assisted is None else int(bool(assisted)), now))
+                  (uid, r['node'], r['id'], kind, sent, ev_id, None if assisted is None else int(bool(assisted)), now))
         c.execute('DELETE FROM next_evidence WHERE user_id=? AND node=? AND id NOT IN '
                   '(SELECT id FROM next_evidence WHERE user_id=? AND node=? ORDER BY created DESC, id DESC LIMIT ?)', (uid, r['node'], uid, r['node'], EVIDENCE_KEEP))
         kept += 1
     c.execute('DELETE FROM next_evidence WHERE user_id=? AND created<?', (uid, now - EVIDENCE_DAYS * 86400))
     return kept
+
+
+CORRECTIONS_DAYS = 180  # next_corrections older than this go (recurring reads 14 days), as ai_calls do
+
+
+def prune(c, now=None):
+    """Once a day (ai_routes.tick): corrections past CORRECTIONS_DAYS and kept sentences past EVIDENCE_DAYS, for every
+    learner (note_evidence prunes only the one writing)."""
+    now = now or time.time()
+    c.execute('DELETE FROM next_corrections WHERE created<?', (now - CORRECTIONS_DAYS * 86400,))
+    c.execute('DELETE FROM next_evidence WHERE created<?', (now - EVIDENCE_DAYS * 86400,))
+    c.commit()
+
+
+# ---------- 没人提醒自己回来 (r29 第 1 项的量法; D2's four conditions, with B6) ----------
+
+RETURN_BEFORE_HOUR = 7  # counted for the day before, early the next morning: before the day's mails change the dates
+SMALL = 5  # the console shows no count under this
+
+
+def count_returns(c, now=None):
+    """Once a day, for yesterday: how many learners studied (active), how many of them came back (no study the day
+    before, an account older than yesterday), and how many of those had a reminder mail that day or the day before
+    (next_reminders.last_mailed, next_weekly.mailed: only the latest date of each is kept, hence early the next day).
+    Only the three counts are stored; nothing about who. Returns the row, or None when it is not the time or done."""
+    now = now or time.time()
+    local = _local(now)
+    if local.hour >= RETURN_BEFORE_HOUR:
+        return None
+    day = local.date() - D(days=1)
+    if c.execute('SELECT 1 FROM daily_returns WHERE day=?', (day.isoformat(),)).fetchone():
+        return None
+    before = day - D(days=1)
+    by = {}
+    for t in DAY_TABLES:
+        for uid, d in c.execute(f'SELECT DISTINCT user_id, CAST((created+{CN})/86400 AS INTEGER) FROM {t} WHERE created>=? AND created<?',
+                                (_start(before), _start(day + D(days=1)))):
+            by.setdefault(uid, set()).add(EPOCH + D(days=d))
+    old = {r[0] for r in c.execute('SELECT user_id FROM next_profiles WHERE created<?', (_start(day),))}
+    active = [u for u, ds in by.items() if day in ds]
+    back = [u for u in active if before not in by[u] and u in old]
+    mailed, when = set(), (day.isoformat(), before.isoformat())
+    for table, col in (('next_reminders', 'last_mailed'), ('next_weekly', 'mailed')):
+        if col in {r[1] for r in c.execute(f'PRAGMA table_info({table})')}:
+            mailed |= {r[0] for r in c.execute(f'SELECT user_id FROM {table} WHERE {col} IN (?,?)', when)}
+    row = (day.isoformat(), len(active), len(back), sum(1 for u in back if u in mailed))
+    c.execute('INSERT OR IGNORE INTO daily_returns(day, active, returned, reminded) VALUES(?,?,?,?)', row)
+    c.commit()
+    return dict(zip(('day', 'active', 'returned', 'reminded'), row))
+
+
+def return_stats(c, days=28):
+    """For the console: the last days, newest first, with unprompted = returned − reminded (自己回来). A count under
+    SMALL is None (shown as 「少于 5」), and so is a difference made from one."""
+    small = lambda n: n if n is not None and n >= SMALL else None
+    out = []
+    for r in c.execute('SELECT * FROM daily_returns ORDER BY day DESC LIMIT ?', (days,)):
+        shown = {'active': small(r['active']), 'returned': small(r['returned']), 'reminded': small(r['reminded'])}
+        shown['unprompted'] = small(r['returned'] - r['reminded']) if shown['returned'] is not None and shown['reminded'] is not None else None
+        out.append({'day': r['day'], **shown})
+    return out
 
 
 def recurring(c, uid, now=None):
@@ -169,11 +237,12 @@ def recurring(c, uid, now=None):
 def pairs(c, uid, now=None, days=7):
     """「之前 / 这周」 for the weekly report, newest first, one a grammar point: before = the fix card (the learner's own
     sentence, from → to, when, which practice); after = the sentence they wrote right later (when, which practice,
-    assisted: 1 with help, 0 without, None not known)."""
+    assisted: 1 with help, 0 without, None not known). Both written: a card from something said holds words the AI
+    heard, and what is said is not kept to be shown again (B6)."""
     now = now or time.time()
     out, seen = [], set()
     for e in c.execute('SELECT e.node, e.kind, e.sentence, e.assisted, e.created, k.text AS fix_to, k.context, k.extra, k.created AS before_at, k.skill '
-                       'FROM next_evidence e JOIN next_cards k ON k.id=e.card AND k.user_id=e.user_id WHERE e.user_id=? AND e.created>=? '
+                       "FROM next_evidence e JOIN next_cards k ON k.id=e.card AND k.user_id=e.user_id WHERE e.user_id=? AND e.created>=? AND COALESCE(k.skill,'')!='speaking' "
                        'ORDER BY e.created DESC, e.id DESC', (uid, now - days * 86400)):
         if e['node'] in seen:
             continue
@@ -182,6 +251,53 @@ def pairs(c, uid, now=None, days=7):
         out.append({'node': e['node'],
                     'before': {'sentence': e['context'], 'from': extra.get('from', ''), 'to': e['fix_to'], 'at': e['before_at'], 'kind': extra.get('kind') or e['skill'] or ''},
                     'after': {'sentence': e['sentence'], 'at': e['created'], 'kind': e['kind'], 'assisted': e['assisted']}})
+    return out
+
+
+KIND_LABEL = {'essay': '写作', 'translate': '翻译', 'rewrite': '仿写', 'retell': '复述', 'dialog': '对话', 'ielts': '雅思口语',
+              'writing': '写作', 'translation': '翻译'}  # the last two: cards from before r37 have only the skill
+WAIT_DAYS = 30  # 这周还看不出来 names a written correction this recent
+HOW = {1: '看了提示后', 0: '自己'}  # assisted None: not known, so not said
+
+
+def _md(t):
+    d = _local(t)
+    return f'{d.month}月{d.day}日'
+
+
+def week_progress(c, uid, now=None):
+    """这周的一次进步 for the weekly report (r29 第 3 项): the newest before/after pair (pairs); with none, the newest
+    written correction of the last WAIT_DAYS days (waiting: 这周还看不出来, and 现在用它写一句 opens 仿写 on the text it
+    came from, when the learner still has it), one not already under 还要接着练 when there is such; and 还要接着练 (recurring, the first three), which is advice picked from
+    the records: None when the learner has turned that off (按我的学习记录推荐), as for 接下来的重点. The pair is only
+    the learner's own sentences and shows either way (B6). Only ever for the learner: not the console, not a class."""
+    now = now or time.time()
+    meta = nx.nodes_meta(c)
+    name = lambda n: meta.get(n, {}).get('title', n)
+    label = lambda k: KIND_LABEL.get(k or '', '练习')
+    out = {'pair': None, 'waiting': None, 'recurring': None}
+    if nx.follows_records(nx.profile(c, uid)):
+        out['recurring'] = [{'node': x['node'], 'title': name(x['node']), 'outputs': x['outputs'], 'days': x['days']}
+                            for x in recurring(c, uid, now) if x['node'] in meta][:3]
+    got = [p for p in pairs(c, uid, now) if p['node'] in meta]
+    if got:
+        p = got[0]
+        out['pair'] = {'node': p['node'], 'title': name(p['node']),
+                       'before': {**p['before'], 'label': label(p['before']['kind']), 'date': _md(p['before']['at'])},
+                       'after': {**p['after'], 'label': label(p['after']['kind']), 'date': _md(p['after']['at'])}}
+    else:
+        listed = {x['node'] for x in out['recurring'] or []}
+        rows = [r for r in c.execute("SELECT node, text, context, extra, created, pack, skill FROM next_cards WHERE user_id=? AND kind='fix' "
+                                     "AND source='mistake' AND node IS NOT NULL AND COALESCE(skill,'')!='speaking' AND created>=? "
+                                     'ORDER BY created DESC, id DESC LIMIT 20', (uid, now - WAIT_DAYS * 86400))
+                if r['node'] in meta and (r['context'] or '').strip()]
+        for r in sorted(rows, key=lambda r: r['node'] in listed):  # stable: the newest not already listed, else the newest
+            extra = json.loads(r['extra'] or '{}')
+            kind = extra.get('kind') or r['skill'] or ''
+            pack = r['pack'] if r['pack'] and nx._pack_row(c, uid, r['pack']) else None
+            out['waiting'] = {'node': r['node'], 'title': name(r['node']), 'sentence': r['context'], 'from': extra.get('from', ''),
+                              'to': r['text'], 'date': _md(r['created']), 'kind': kind, 'label': label(kind), 'pack': pack}
+            break
     return out
 
 
@@ -440,6 +556,10 @@ def compose(c, uid, name, now, origin):
             rows.append(('轻松读', f"{e['texts']} 篇，共 {e['words']} 个词" + (f"，每分钟 {e['wpm']} 词。" if e['wpm'] else '。')))
         if sp['scenes_week']:
             rows.append(('口语情景', f"练了 {sp['scenes_week']} 个，一共完成 {sp['scenes_done']} / {sp['scenes_total']}。"))
+        pr = week_progress(c, uid, now)['pair']
+        if pr:  # the point's name only: the sentences stay on the page, a mail lies in the inbox for good (B6)
+            rows.append(('这周的一次进步', f"「{pr['title']}」之前要 AI 改，这周{HOW.get(pr['after']['assisted'], '')}用对了一次。"
+                         '前后两句在下面的「这周的完整报告」里。'))
         up = [m for m in more['radar']['moves'] if m['before'] is not None and m['now'] > m['before']]
         if up:
             rows.append(('能力雷达上涨', '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up) + '。'))

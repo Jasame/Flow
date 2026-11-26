@@ -561,8 +561,18 @@ document.documentElement.classList.add('js');
     }), { threshold: [0, 0.45, 0.8] }).observe(stage);
   }
 
+  /* ---------- 鸿蒙 内测 (#download): only the 内测版 gets this button, and app.py fills data-harmony with the AppTest link
+     (「鸿蒙内测链接」 in the 内测版's console) or leaves it empty. With a link the button opens it to join the test in Huawei's AppTest;
+     without one it keeps 即将开放. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
+  function harmony() {
+    const b = $('[data-harmony]'); if (!b) return;
+    const u = b.getAttribute('data-harmony') || '';
+    if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
+    b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

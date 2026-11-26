@@ -104,6 +104,24 @@ class EvidenceTests(Db):
         ps.note_evidence(self.c, self.uid, 'They have gone out.', [], 'essay', 'e10', None, NOW)
         self.assertEqual([r[0] for r in self.c.execute('SELECT sentence FROM next_evidence')], ['They have gone out.'])  # the old two are past 90 days
 
+    def test_a_form_the_text_itself_has_is_copied_not_known(self):
+        self.corrected('r1', NOW - 10 * DAY, GONE)
+        text = 'The team have gone home early.'
+        self.assertEqual(ps.note_evidence(self.c, self.uid, text, [], 'retell', 'r2', None, NOW, source='By six, the team have gone home early.'), 0)
+        self.assertEqual(ps.note_evidence(self.c, self.uid, text, [], 'retell', 'r3', None, NOW, source='The team left early.'), 1)
+        for fn, mod in (('retell', 'output_service'), ('essay', 'output_service'), ('translate', 'output_service')):
+            self.assertIn("source=p.get('body', '')", inspect.getsource(getattr(__import__(mod), fn)), fn)
+
+    def test_old_rows_go_once_a_day_for_everyone(self):
+        self.corrected('old', NOW - 200 * DAY, GONE)
+        self.corrected('new', NOW - DAY, ART)
+        self.c.execute("INSERT INTO next_evidence(user_id,node,card,kind,sentence,source,assisted,created) VALUES(1,'tense-perfect',1,'essay','We have gone.','e',NULL,?)",
+                       (NOW - 100 * DAY,)); self.c.commit()
+        ps.prune(self.c, NOW)
+        self.assertEqual([r[0] for r in self.c.execute('SELECT source FROM next_corrections')], ['fix:new'])
+        self.assertEqual(self.count('next_evidence'), 0)
+        self.assertIn("progress_service').prune(c, now)", inspect.getsource(__import__('ai_routes').tick))
+
     def test_only_written_answers_are_kept(self):
         src = inspect.getsource(__import__('output_service').retell)
         self.assertIn('if not audio:', src)
@@ -125,3 +143,71 @@ class EvidenceTests(Db):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class WeekProgressTests(Db):
+    """周报 这周的一次进步 and 还要接着练, the Sunday mail's line, and 明天的语法复习先练它 (r29 第 3 项的页面)."""
+    TITLE = '完成时与时间线索'  # tense-perfect in the grammar map
+
+    def records(self, on):  # 按我的学习记录推荐 (我的 → 设置)
+        p = patch.object(nx, 'follows_records', lambda prof: on); p.start(); self.addCleanup(p.stop)
+
+    def test_the_pair_with_its_dates_and_practices_on_the_report(self):
+        self.corrected('r1', NOW - 10 * DAY, GONE)
+        ps.note_evidence(self.c, self.uid, 'We have gone over the notes.', [], 'rewrite', 'r9', False, NOW)
+        g = ps.week_progress(self.c, self.uid, NOW + 60)
+        p = g['pair']
+        self.assertEqual((p['title'], p['before']['date'], p['before']['label'], p['after']['date'], p['after']['label'], p['after']['assisted']),
+                         (self.TITLE, '11月16日', '写作', '11月26日', '仿写', 0))
+        self.assertIsNone(g['waiting'])
+        self.assertEqual(sk.report(self.c, self.uid, NOW + 60)['progress']['pair']['node'], 'tense-perfect')
+
+    def test_no_pair_yet_names_the_last_written_correction_and_where_to_try_again(self):
+        self.assertEqual(ps.week_progress(self.c, self.uid, NOW)['waiting'], None)  # nothing corrected: the page says how it works
+        self.corrected('r1', NOW - 14 * DAY, GONE)
+        w = ps.week_progress(self.c, self.uid, NOW)['waiting']
+        self.assertEqual((w['title'], w['date'], w['label'], w['from'], w['to'], w['sentence']),
+                         (self.TITLE, '11月12日', '写作', 'have went', 'have gone', 'I have went to the library.'))
+        self.assertIsNone(w['pack'])  # the text is not there (p1 was never saved): no 现在用它写一句
+        self.assertIsNone(ps.week_progress(self.c, self.uid, NOW + 20 * DAY)['waiting'])  # older than WAIT_DAYS
+
+    def test_what_was_said_is_never_shown(self):
+        with patch('time.time', return_value=NOW - DAY):
+            sk.mistakes_from_changes(self.c, self.uid, [GONE], 'I have went there.', 'speaking', 'p1', request_id='s1', kind='retell')
+        self.assertIsNone(ps.week_progress(self.c, self.uid, NOW)['waiting'])
+        ps.note_evidence(self.c, self.uid, 'They have gone home.', [], 'essay', 'e1', False, NOW)
+        self.assertEqual(ps.pairs(self.c, self.uid, NOW + 60), [])
+
+    def test_points_that_keep_coming_back_go_first_tomorrow_only_when_the_records_may_pick(self):
+        import grammar_bank as gb
+        art = dict(ART, node='det-article')
+        for k, t in enumerate((NOW - 4 * DAY, NOW - 3 * DAY, NOW - 2 * DAY)):
+            self.corrected(f'x{k}', t, art)
+        self.records(True)
+        rec = ps.week_progress(self.c, self.uid, NOW)['recurring']
+        self.assertEqual([(r['node'], r['outputs']) for r in rec], [('det-article', 3)])
+        self.assertEqual(gb.mix_nodes(self.c, self.uid, NOW)[:1], ['det-article'])
+        self.records(False)  # patched over the one before
+        self.assertIsNone(ps.week_progress(self.c, self.uid, NOW)['recurring'])  # advice from the records: not written
+        self.assertNotIn('det-article', gb.mix_nodes(self.c, self.uid, NOW))
+
+    def test_the_sunday_mail_names_the_point_and_never_the_sentences(self):
+        self.corrected('r1', NOW - 10 * DAY, GONE)
+        self.c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,?,?)", (self.uid, 'p1', 'read', NOW - 3600))
+        ps.note_evidence(self.c, self.uid, 'We have gone over the notes.', [], 'rewrite', 'r9', False, NOW - 1800)
+        self.c.commit()
+        subject, text, html, _ = ps.compose(self.c, self.uid, 'lin', NOW, 'https://flow.test')
+        self.assertIn(f'「{self.TITLE}」之前要 AI 改，这周自己用对了一次', text)
+        for s in ('library', 'have went', 'over the notes'):
+            self.assertNotIn(s, text); self.assertNotIn(s, html)
+
+    def test_the_page_and_the_guide(self):
+        root = Path(__file__).resolve().parents[1] / 'public'
+        js, css = (root / 'next.js').read_text(encoding='utf-8'), (root / 'src' / 'next' / '97-week-pair.css').read_text(encoding='utf-8')
+        for s in ('weekPairHTML(r.progress)', '这周的一次进步', '这周还看不出来', '现在用它写一句', '还要接着练', '明天的语法复习先练它',
+                  '偶尔出一次的小错，当场提示过就算了，不放在这里。', 'data-tap="week-try"', 'tryHintHTML(id)', 'S.tryNode = null'):
+            self.assertIn(s, js)
+        self.assertIn('.wp .wp-s s', css)
+        guide = (root / 'guide' / 'guide.md').read_text(encoding='utf-8')
+        for s in ('**这周的一次进步**', '**还要接着练**', '你写的句子不放进邮件'):
+            self.assertIn(s, guide)

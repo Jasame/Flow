@@ -21,6 +21,18 @@ from urllib.parse import urlsplit, parse_qs
 import survey_service as survey
 
 PREFIX = '/flow/api'
+# One console page and one API for both sites (2026-11-26, the owner: 「内测后台和正式版后台都要完善，要区分开」): 语流's
+# console is xmc.hk/flow/, the 内测版's xmc.hk/flow-beta/ (each nginx location reaches its own site's loopback admin
+# port). The API answers under either prefix; which site it is comes from FLOW_CHANNEL (/me: env), never from the path.
+PREFIXES = (PREFIX, '/flow-beta/api')
+
+
+def site():
+    """Which site this console runs for: env 'beta' (the 内测版, FLOW_CHANNEL=beta) or 'prod' (语流), and its address, so
+    the page can say so on every tab and ask before a change on 语流's (xmc-admin/admin.js)."""
+    import app
+    host = os.getenv('FLOW_PUBLIC_URL', '').strip().rstrip('/').split('//')[-1] or ('flow.jasa.hk' if app.CHANNEL == 'beta' else 'flowlang.cn')
+    return {'env': app.CHANNEL, 'site': host}
 
 
 def server_label():
@@ -33,7 +45,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv', '/teacher-links'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
@@ -65,6 +77,8 @@ def schema(c):
     __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
     __import__('class_service').schema(c)  # 班级试用: classes, who is in which (2026-11-24)
     __import__('teacher_service').schema(c)  # 老师账号 and the one-use 老师注册链接 (2026-11-26)
+    __import__('beta_invites').schema(c)  # 内测版邀请码 (2026-11-26)
+    __import__('beta_tools').schema(c)  # 内测版的测试账号 (2026-11-26)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -87,6 +101,8 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
+                'invite-create': '生成内测版邀请码', 'invite-revoke': '作废内测版邀请码',
+                'test-account': '造测试账号', 'test-reset': '重置测试数据（删掉全部测试账号）',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
                 'account-purge-held': '暂停满 30 天的账号（备份不在，没删）'}
@@ -176,7 +192,7 @@ TAP_LABEL = {
     'home-sprint': '今日 · 考试倒计时', 'home-remind-once': '今日 · 计划完成后约复习时间', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
-    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
+    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
     'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
@@ -188,7 +204,7 @@ TAP_LABEL = {
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
     'notice-week': '今日 · 提醒：上周小结', 'notice-goal-lower': '今日 · 提醒：建议调低每周目标', 'me-habit': '我的 · 每周目标',
     'study-keep': '学习页 · 存到手机',
-    'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
+    'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享', 'week-try': '这周报告 · 现在用它写一句',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'me-info-list': '我的 · 个人信息收集清单（安卓 App）',
     'me-sharing-list': '我的 · 第三方信息共享清单（安卓 App）', 'me-withdraw': '我的 · 撤回同意（安卓 App）', 'me-permissions': '我的 · 系统权限（安卓 App）', 'words-export': '单词 · 导出单词本',
     'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
@@ -197,6 +213,7 @@ TAP_LABEL = {
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
     'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版', 'about-dl-linux-appimage': '认识语流 · 下载 Linux 测试版（AppImage）', 'about-dl-linux-deb': '认识语流 · 下载 Linux 测试版（deb）',
+    'about-harmony-apply': '认识语流 · 鸿蒙申请内测（去问题反馈）', 'about-harmony-join': '认识语流 · 鸿蒙加入内测（AppTest，仅内测版）',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
@@ -204,6 +221,9 @@ TAP_LABEL = {
     'home-extra': '今日 · 还有时间的话', 'home-week-task': '今日 · 本周任务',
     'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
+    'two-play': '听两句、答一句 · 听这两句', 'two-hint': '听两句、答一句 · 给我一点提示', 'two-next': '听两句、答一句 · 下一步',
+    # 从提醒点进来 (r29): counted per day and kind, no account (99-boot.js remindOpen)
+    'remind-review': '从复习提醒邮件点进来', 'remind-once': '从「这次什么时候复习」的提醒点进来', 'remind-weekly': '从周报邮件点进来', 'remind-other': '从其他提醒链接点进来',
 }
 
 
@@ -356,6 +376,10 @@ def console_get(c, path, one, op):
         return __import__('class_service').console_list(c)
     if path == '/teacher-links':
         return __import__('teacher_service').links(c)
+    if path == '/beta-invites':
+        return __import__('beta_invites').listing(c)
+    if path == '/beta-tests':
+        return __import__('beta_tools').listing(c)
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
@@ -454,6 +478,35 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'teacher-link-revoke', tgt)
         return body, status
+    # 内测版的测试账号 (beta_tools): made and all deleted only on the 内测版's console (FLOW_CHANNEL=beta)
+    if path in ('/beta-test/create', '/beta-test/reset'):
+        bt = __import__('beta_tools')
+        if not bt.beta():
+            return {'error': '测试账号只在内测版的后台里造和删'}, 409
+        if path == '/beta-test/create':
+            body, status, tgt = bt.make(c, data.get('kind'), who)
+            if status == 200:
+                log_action(c, op, 'test-account', tgt, body['label'])
+            return body, status
+        body, status, tgt = bt.reset(c, data)
+        if status == 200:
+            log_action(c, op, 'test-reset', tgt)
+        return body, status
+    # 内测版邀请码 (beta_invites): made and revoked only on the 内测版's console (FLOW_CHANNEL=beta)
+    if path in ('/beta-invite/create', '/beta-invite/revoke'):
+        import app
+        if app.CHANNEL != 'beta':
+            return {'error': '邀请码只在内测版的后台里发'}, 409
+        bi = __import__('beta_invites')
+        if path == '/beta-invite/create':
+            body, status, tgt = bi.make(c, data, who)
+            if status == 200:
+                log_action(c, op, 'invite-create', tgt, f"能用 {body['uses']} 次，到 {body['expires']}")
+            return body, status
+        body, status, tgt = bi.revoke(c, data)
+        if status == 200:
+            log_action(c, op, 'invite-revoke', tgt)
+        return body, status
     if path in CLASS_POSTS:
         what = path.rsplit('/', 1)[1]
         body, status, tgt, detail = __import__('class_service').change(c, {**data, '_what': what})
@@ -490,9 +543,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         url = urlsplit(self.path)
         path, qs = url.path, parse_qs(url.query)
         one = lambda k, d='': (qs.get(k) or [d])[0]
-        if not path.startswith(PREFIX + '/'):
+        base = next((x for x in PREFIXES if path.startswith(x + '/')), None)
+        if base is None:
             return self._send({'error': '接口不存在'}, 404)
-        path = path[len(PREFIX):]
+        path = path[len(base):]
         op = operator(self.headers)
         if op is None:
             return self._send({'error': '没有通过 Cloudflare Access 的登录核对，请重新打开后台'}, 403)
@@ -504,7 +558,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if path in ADMIN_GET and op['role'] != 'admin':
                     return self._send({'error': '需要管理员权限：你现在的身份是「只看数据」'}, 403)
                 if path == '/me':
-                    return self._send({**op, 'server': server_label()})
+                    return self._send({**op, 'server': server_label(), **site()})
                 if path == '/overview':
                     return self._send(overview(c))
                 if path == '/learning':
@@ -544,7 +598,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd

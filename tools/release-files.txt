@@ -38,6 +38,7 @@ flow/ai_check.py
 flow/ai_eval.py
 flow/ai_help_service.py
 flow/ai_jobs.py
+flow/ai_quota.py
 flow/ai_routes.py
 flow/ai_stream.py
 flow/aigc_label.py
@@ -45,6 +46,8 @@ flow/app.py
 flow/attempt_service.py
 flow/audio_validation.py
 flow/auth_service.py
+flow/beta_invites.py
+flow/beta_tools.py
 flow/chat_service.py
 flow/class_service.py
 flow/coach_service.py
@@ -244,6 +247,7 @@ flow/public/about.css
 flow/public/about.html
 flow/public/about.js
 flow/public/about/app-android.jpg
+flow/public/about/app-harmony.jpg
 flow/public/about/app-linux.jpg
 flow/public/about/app-mac.jpg
 flow/public/about/app-windows.jpg
@@ -336,6 +340,7 @@ flow/tests/test_admin_roles.py
 flow/tests/test_ai_cost.py
 flow/tests/test_ai_eval.py
 flow/tests/test_ai_mark.py
+flow/tests/test_ai_quota.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
@@ -345,6 +350,8 @@ flow/tests/test_audio_lines.py
 flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
+flow/tests/test_beta_invites.py
+flow/tests/test_beta_tools.py
 flow/tests/test_channels.py
 flow/tests/test_chat.py
 flow/tests/test_class_signup.py
@@ -410,6 +417,7 @@ flow/tests/test_time_budget.py
 flow/tests/test_tour.py
 flow/tests/test_trial_survey.py
 flow/tests/test_tts.py
+flow/tests/test_two_lines.py
 flow/tests/test_updates.py
 flow/tests/test_ux_round.py
 flow/tests/test_vertex.py
@@ -428,6 +436,7 @@ flow/tools/revise_pedagogy.py
 flow/topic_guard.py
 flow/tour_service.py
 flow/tts_service.py
+flow/two_lines.py
 flow/updates_service.py
 flow/upgrade.sh
 flow/user_guide.py

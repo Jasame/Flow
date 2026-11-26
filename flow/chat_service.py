@@ -46,33 +46,40 @@ def _exempt(c,uid):
  return bool(row and row[0])
 
 def remaining(c,uid):
- """Calls left today for this learner, or None when no per-account ceiling applies."""
- limit=daily_limit('FLOW_AI_USER_DAILY_LIMIT')
- if not limit or _exempt(c,uid):return None
+ """Calls left today for this learner, or None when no per-account ceiling applies (ai_quota.limit_for: an account's
+ own quota set in a console over FLOW_AI_USER_DAILY_LIMIT; admins none)."""
+ limit,_=__import__('ai_quota').limit_for(c,uid)
+ if not limit:return None
  row=c.execute('SELECT count FROM ai_usage WHERE user_id=? AND day=?',(uid,_today())).fetchone()
  return max(0,limit-(row[0] if row else 0))
 
 DAY_FULL='今天的 AI 用量已满，北京时间早上 8 点恢复。'  # ai_routes.day_full: the ¥10 stop (code ai_day_full)
 
 def refusal(problem,c,uid):
- """The 429 body for a refused call: the stop of the day carries code ai_day_full, the page words it (语流 B6)."""
- return {'error':problem,'remaining':remaining(c,uid),**({'code':'ai_day_full'} if problem==DAY_FULL else {})}
+ """The 429 body for a refused call: the stop of the day carries code ai_day_full, a paused account ai_paused; the page
+ words them (语流 B6)."""
+ code='ai_day_full' if problem==DAY_FULL else 'ai_paused' if problem==__import__('ai_quota').PAUSED else ''
+ return {'error':problem,'remaining':remaining(c,uid),**({'code':code} if code else {})}
 
-def reserve(c,uid):
- """Count one model call inside the caller's write transaction.
+def reserve(c,uid,kind=None):
+ """Count one model call inside the caller's write transaction (kind: the task, counted beside the total, ai_quota).
 
- Returns an error message (and counts nothing) when the site-wide
- ceiling (site_limit: FLOW_AI_DAILY_LIMIT grown with the learners) or the per-account FLOW_AI_USER_DAILY_LIMIT is reached.
- Both reset at 00:00 UTC; 0 disables a ceiling; admins skip the per-account one.
+ Returns an error message (and counts nothing) when, in this order: the day's ¥10 stop is reached; the site-wide
+ ceiling (site_limit: FLOW_AI_DAILY_LIMIT grown with the learners); the account is paused (ai_quota, set in a console);
+ its own ceiling (ai_quota.limit_for: its override over FLOW_AI_USER_DAILY_LIMIT). Ceilings reset at 00:00 UTC; 0
+ disables one; admins have no ceiling of their own but can be paused.
  """
+ import ai_quota
  if __import__('ai_routes').day_full(c):return DAY_FULL
  day=_today();c.execute('INSERT OR IGNORE INTO ai_usage VALUES(?,?,0)',(uid,day))
  site=site_limit(c)
  if site and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?',(day,)).fetchone()[0]>=site:
-  return '本站今日 AI 调用额度已用完，请明天再来。'
+  return ai_quota.SITE_FULL
+ if ai_quota.paused(c,uid):return ai_quota.PAUSED
  if remaining(c,uid)==0:
-  return f"你今天的 {daily_limit('FLOW_AI_USER_DAILY_LIMIT')} 次 AI 调用已用完，北京时间早上 8 点重置。"
+  return f"你今天的 {ai_quota.limit_for(c,uid)[0]} 次 AI 调用已用完，北京时间早上 8 点重置。"
  c.execute('UPDATE ai_usage SET count=count+1 WHERE user_id=? AND day=?',(uid,day))
+ ai_quota.note(c,uid,day,kind)
  return None
 
 def history(c,uid,topic):
@@ -557,7 +564,7 @@ def chat(c,uid,data):
   c.rollback();return {'error':'已有提问正在处理，请稍候再试。'},409
  enabled=ai_enabled()
  if enabled:
-  problem=reserve(c,uid)
+  problem=reserve(c,uid,'chat')
   if problem:c.rollback();return refusal(problem,c,uid),429
  now=time.time()
  if row:c.execute("UPDATE chat_turns SET status='pending',error='',updated=? WHERE id=?",(now,row['id']))

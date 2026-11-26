@@ -89,9 +89,18 @@
     Object.assign(S.user, r); S.homeFresh = false; await refreshHome();
   }
   // #/ and every page but the guide, while the account has not agreed: one short page (asked) or the paused page.
-  // The 用户协议 and 隐私和数据 tick (privacy_service.TERMS_TEXT): at sign-up next to the storage one, never merged with it;
-  // both names open the full text.
+  // The 用户协议 and 隐私和数据 tick (privacy_service.TERMS_TEXT): on its own only where the storage is agreed already
+  // (a new version of the two texts); both names open the full text.
   const TERMS = '/#/guide/terms';
+  // One tick for both (the owner chose D2's plan B, 2026-11-26): it opens with the separate consent to the storage in Hong
+  // Kong, in bold, then the two texts it needs; one grey line under it says why and how to withdraw. Never ticked
+  // beforehand; both answers are still kept apart (privacy_service: storage and terms, each with its time), and the one
+  // for Hong Kong is still withdrawn on its own (我的 → 账号 → 数据存放). 不满 14 岁: the guardian keeps a tick of its own.
+  const CONSENT_LEAD = '我单独同意语流把我的账号和学习数据存放在香港的服务器上';
+  function consentField() {
+    return `<div class="storagefs"><label class="checkline">${tickbox('consent')}<span><b>${CONSENT_LEAD}</b>，并已阅读同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}。</span></label>
+      <span class="hint">账号本身就存在那里，不同意就注册不了；以后可以在「我的 → 账号 → 数据存放」撤回。</span></div>`;
+  }
   function termsField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('terms')}<span>我已阅读并同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}</span></label></div>`;
   }
@@ -147,7 +156,7 @@
     view.innerHTML = `<div class="stack storage-page"><div><span class="kicker">${termsOnly ? '用户协议和隐私说明' : '数据存放'}</span><h1 class="h1">${paused ? '这个账号已暂停' : '补一个同意'}</h1></div>
       ${paused ? `<div class="card flat stack-s"><p>你没有同意（或者撤回了同意）在香港的服务器上存放和处理你的数据，所以语流暂停了这个账号的学习：不会再给你发邮件，班级的数字里也不算你。</p>
         <p>你的数据还在，没有删除。30 天内重新同意，就能接着学${S.user.storage_until ? `（${esc(S.user.storage_until)} 以前）` : ''}；30 天后还没有重新同意，语流会删除这个账号和数据，备份里的副本 14 天内清除。</p></div>` : ''}
-      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>我们更新了《用户协议》和《隐私和数据》，勾选同意后继续。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms ? termsField() : ''}${needStorage ? storageField() : ''}
+      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>我们更新了《用户协议》和《隐私和数据》，勾选同意后继续。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms && needStorage ? consentField() : needTerms ? termsField() : ''}${needStorage && !needTerms ? storageField() : ''}
         <button class="btn primary" type="submit">${paused ? '同意，继续学习' : termsOnly ? '继续' : '同意并继续'}</button><p class="err" id="stoErr" role="alert"></p></form>
       ${termsOnly ? `<p class="tiny muted sto-quiet">不想同意：<a class="doc-link" href="/api/next/export/records.json" download>导出我的数据</a> · <button class="doc-link" id="stoDel" type="button">注销账号</button> · <button class="doc-link" id="stoOut" type="button">退出登录</button></p>`
         : `<div class="card flat stack-s">${paused ? '<b>不想继续</b>' : '<b>不同意存放在香港的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
@@ -157,8 +166,10 @@
     const f = document.getElementById('stoF'), err = document.getElementById('stoErr');
     f.onsubmit = async e => {
       e.preventDefault(); err.textContent = '';
-      if (needTerms && !f.terms.checked) return fieldError(f, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
-      if (needStorage && !f.storage.checked) return fieldError(f, err, { message: '勾选同意以后才能继续', field: 'storage' });
+      const both = needTerms && needStorage;  // the one tick for both (consentField)
+      if (both && !f.consent.checked) return fieldError(f, err, { message: '请先勾选同意：数据存放在香港，以及《用户协议》和《隐私和数据》', field: 'consent' });
+      if (!both && needTerms && !f.terms.checked) return fieldError(f, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
+      if (!both && needStorage && !f.storage.checked) return fieldError(f, err, { message: '勾选同意以后才能继续', field: 'storage' });
       const b = f.querySelector('[type=submit]'); b.disabled = true;
       try {
         if (needTerms) Object.assign(S.user, await api('/api/account/terms', { agree: true }));

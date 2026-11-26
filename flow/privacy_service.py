@@ -37,6 +37,7 @@ NEED_GUARDIAN = '不满 14 岁需要先告诉家长（或监护人）并得到�
 # AI pages, ai_stream.PATHS, which all carry the learner's own words)
 GUARDED = {'/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/shadow', '/api/next/retell',
            '/api/next/dialog', '/api/next/essay', '/api/next/translate', '/api/next/say', '/api/next/ielts', '/api/next/import/enrich',
+           '/api/next/two/ask', '/api/next/two/check',
            '/api/ai/help', '/api/chat', '/api/coach/chat', '/api/lab/feedback', '/api/lab/audio', '/api/vocab/feedback'}
 
 
@@ -124,7 +125,8 @@ def info(u):
 # ---------------------------------------------------------------- 数据存放在香港 (the separate consent)
 
 STORAGE_TEXT = '我同意语流在香港的服务器上存放和处理我的账号和学习数据'
-STORAGE_VERSION = '2026-11-25'  # the wording agreed to (STORAGE_TEXT and its note in 81-privacy.js); a new wording, a new version
+STORAGE_VERSION = '2026-11-26'  # the wording agreed to (81-privacy.js: CONSENT_LEAD at sign-up and on the asked page, STORAGE_TEXT
+# alone where only the storage is missing); a new wording, a new version. Older answers keep theirs: nobody is asked again.
 PAUSE_DAYS = 30
 STORAGE_OPEN = {'/api/account/storage', '/api/account/terms', '/api/account/delete', '/api/logout', '/api/password'}
 STORAGE_HELD = ({'error': '这个账号还没有同意把数据存放在香港的服务器上，学习暂停了。同意以后就能继续；也可以导出数据或注销账号。',

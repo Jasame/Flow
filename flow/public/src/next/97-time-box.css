@@ -2,7 +2,7 @@
 .today-plan .tp-over{margin:0;padding:10px 12px;border-radius:12px;background:var(--amber-soft);color:var(--ink);border-left:3px solid var(--amber-fill)}
 .today-plan .tp-more{display:grid;gap:8px}
 .today-plan .tp-extra,.today-plan .tp-week{display:grid;gap:6px}
-.today-plan .tp-extra>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:0 10px;
+.today-plan .tp-extra>summary{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;padding:0 10px;font-size:15.5px;
   border-radius:12px;background:var(--sunk);cursor:pointer;font-weight:600;list-style:none}
 .today-plan .tp-extra>summary::-webkit-details-marker{display:none}
 .today-plan .tp-extra>summary>span:first-child::after{content:'›';display:inline-block;margin-left:8px;color:var(--muted);transform:rotate(90deg);transition:transform .2s}

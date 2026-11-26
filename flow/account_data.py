@@ -15,9 +15,13 @@ from urllib.parse import quote
 
 CN = datetime.timezone(datetime.timedelta(hours=8))
 LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures', 'users'}
-LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt'}
+WHO_TABLES = ('tts_usage', 'tts_import')  # AI 朗读's characters a day name the account `who` (0 the site, -1 overnight)
+LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt', 'changed_by'}  # changed_by: the staff member who set an AI quota (B6)
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
+    'ai_usage_kind': 'AI 用量：每天各项 AI 功能用了几次', 'ai_quota': '你的 AI 额度（管理员调整过才有：每天次数、暂停、到期时间和原因）',
+    'ai_quota_log': 'AI 额度的调整记录（什么时候、改成什么）', 'tts_usage': 'AI 朗读：每天合成了多少字',
+    'tts_import': 'AI 朗读：每天为你导入的文章合成了多少字',
     'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_corrections': 'AI 改错记录：哪一次练习里改了哪个语法点（看哪些问题反复出现）',
     'next_evidence': '周报「这周的一次进步」：后来你自己写对的句子（每个语法点最多两句，90 天后删）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
     'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标、我的考试和日期、朗读声音、主题色',
@@ -27,6 +31,7 @@ GUIDE = {
     'feedback': '你发过的问题反馈（截图不在文件里）', 'lab_packs': '你导入的文章',
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
+    'beta_invite_uses': '内测版注册时用的邀请码和使用时间（只在内测版）',
 }
 
 
@@ -145,7 +150,8 @@ def records(c, u):
         if t in LEFT_OUT_TABLES:
             continue
         cols = _columns(c, t)
-        key = 'user_id' if 'user_id' in cols else 'owner' if t in ('lab_packs', 'lexicon', 'kg_nodes') and 'owner' in cols else None
+        key = ('user_id' if 'user_id' in cols else 'owner' if t in ('lab_packs', 'lexicon', 'kg_nodes') and 'owner' in cols
+               else 'who' if t in WHO_TABLES and 'who' in cols else None)
         if not key:
             continue
         keep = [x for x in cols if x not in LEFT_OUT_COLUMNS]
@@ -263,6 +269,9 @@ def forget(c, uid, data_dir=None):
         if stored['email']:
             n += c.execute('DELETE FROM email_codes WHERE email=?', (stored['email'],)).rowcount
         c.execute('DELETE FROM login_failures WHERE key IN (?, ?, ?)', (key, 'class:%d' % uid, 'pw:%d' % uid))  # and the invite-code and own-password pauses
+        for t in WHO_TABLES:  # AI 朗读's characters: `who`, not user_id (B6, 2026-11-26); the site's own rows stay
+            if t in _tables(c):
+                n += c.execute(f'DELETE FROM "{t}" WHERE who=?', (uid,)).rowcount
         if 'mail_limits' in _tables(c):
             c.execute('DELETE FROM mail_limits WHERE key=?', ('bind:%d' % uid,))
         c.commit()

@@ -518,17 +518,20 @@ def persona_exam(cl):
     check(who, 'calendar reminder file', s == 200 and b'BEGIN:VCALENDAR' in (ics if isinstance(ics, bytes) else b''), ics[:80] if isinstance(ics, bytes) else ics)
     s, j = cl.post('/api/next/vocab/reminder', {'enabled': False, 'hour': hr})
     check(who, 'turn reminder off', s == 200, j)
-    # mistakes from writing come back in review as "fix" cards
+    # mistakes from writing come back in review as "fix" cards; since #344 they are in the 错题和句型 review
+    # (?part=other), and the word review holds words and phrases only
     s, mc = cl.get('/api/next/cards?f=mistake')
     kinds = [x.get('kind') for x in mc.get('items', [])] if isinstance(mc, dict) else []
     check(who, 'writing mistakes became fix cards', 'fix' in kinds, kinds)
-    s, q = cl.get('/api/next/review')
-    fixes = [x for x in q.get('items', []) if x.get('mode') == 'fix']
-    check(who, 'fix cards are in today\'s review', bool(fixes) or 'fix' not in kinds, [x.get('mode') for x in q.get('items', [])][:12])
+    s, qo = cl.get('/api/next/review?part=other')
+    other = qo.get('items', []) if isinstance(qo, dict) else []
+    fixes = [x for x in other if x.get('mode') == 'fix']
+    check(who, 'fix cards are in today\'s 错题和句型 review', bool(fixes) or 'fix' not in kinds, [x.get('mode') for x in other][:12] if isinstance(qo, dict) else (s, qo))
     for it in fixes[:3]:
         s, _ = cl.post('/api/next/review', {'id': it['id'], 'rating': 'good', 'ms': 6000})
         check(who, 'review a fix card', s == 200, s)
-    words = [x for x in q.get('items', []) if x.get('mode') not in ('fix', 'question', 'sound')]
+    s, q = cl.get('/api/next/review')
+    words = [x for x in q.get('items', []) if x.get('mode') not in ('fix', 'question', 'sound')] if isinstance(q, dict) else []
     if words:
         s, j = cl.post('/api/next/vocab/known', {'id': words[0]['id'], 'known': True})
         check(who, 'mark a word as already known', s == 200, j)

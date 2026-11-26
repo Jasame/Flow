@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)
   __import__('word_extras').schema(c)  # AI 常用搭配和近义词 (单词详细模式)
+  __import__('two_lines').schema(c)  # 听两句、答一句: the day's shared questions
+  __import__('ai_quota').schema(c)  # each account's AI quota, set in a console; calls by task
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -138,7 +140,7 @@ CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'pro
 # 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
 # of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
 # tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
-AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking','/api/next/two/check')
 TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):
@@ -157,10 +159,23 @@ def shell_file(name):
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测')
   for i in m.get('icons',[])+[x for c in m.get('shortcuts',[]) for x in c.get('icons',[])]:i['src']=i['src'].replace('.png','-beta.png')
   return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return beta_icons(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode()))
+ if name=='about.html':return beta_icons(about_parts(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())))
  if name not in ('next.html','sw.js'):return body
  body=body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  return beta_icons(body) if name=='next.html' else body
+def about_parts(page):
+ """认识语流 is one page for both sites; a part between <!--channel:beta--> and <!--/channel:beta--> goes to the 内测版 only
+ and one in <!--channel:prod--> to 语流 only, the other site never gets it (not even hidden). So far the 鸿蒙 card:
+ 语流 says the app is in 内测 and how to ask to join; the 内测版 has the AppTest link (the owner, 2026-11-26)."""
+ other=b'prod' if CHANNEL=='beta' else b'beta'
+ page=__import__('re').sub(rb'<!--channel:'+other+rb'-->.*?<!--/channel:'+other+rb'-->\n?',b'',page,flags=__import__('re').S)
+ page=__import__('re').sub(rb'<!--/?channel:(?:beta|prod)-->\n?',b'',page)
+ return page.replace(b'__HARMONY_TEST__',harmony_test_url().encode())
+def harmony_test_url():
+ """The 鸿蒙 内测 link for 认识语流: on the 内测版 only, from its console (「鸿蒙内测链接」, console_ops.harmony_test_url,
+ checked there: a whole https link); empty keeps 即将开放. 语流 never gets it, whatever the settings say."""
+ if CHANNEL!='beta':return ''
+ return __import__('console_ops').harmony_test_url().replace('&','&amp;')
 def beta_icons(page):
  """On the 内测版: the home-screen icon and the tab's icon (the inline SVG's fill) in its orange; 语流's page as it is."""
  if CHANNEL!='beta':return page
@@ -220,7 +235,7 @@ def session_info(u):
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
  # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
  # teacher: a 老师账号 (teacher_service): its home is the teacher page, it makes classes and never joins one.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),'teacher':__import__('teacher_service').is_teacher(u),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),'teacher':__import__('teacher_service').is_teacher(u),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'invite':__import__('beta_invites').on(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -347,7 +362,7 @@ class Handler(BaseHTTPRequestHandler):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
   # consent: the 用户协议 and 隐私和数据 version a sign-up agrees to now (privacy_service; the release check's test accounts use it)
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'invite':__import__('beta_invites').on(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
   # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
   # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
   if path=='/api/version':return self.send({'asset':asset_version()})
@@ -792,6 +807,9 @@ if __name__=='__main__':
   def remind_loop():
    # Daily vocabulary reminder emails, at each learner's chosen hour (Asia/Shanghai), and the Sunday progress mail.
    while True:
+    try:
+     with db() as c:__import__('progress_service').count_returns(c)  # 没人提醒自己回来: yesterday's counts (no account), before today's mails
+    except Exception as exc:print('return counts failed:',type(exc).__name__,flush=True)
     try:
      with db() as c:
       __import__('progress_service').send_weekly(c)  # Sunday evening, before the daily reminder: it says the words due too

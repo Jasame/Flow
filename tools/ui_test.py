@@ -2402,11 +2402,14 @@ def class_run(pw):
         # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
         cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        asked = []  # the test site's console is 语流's (正式版): a change asks first, naming the site (#402)
+        cp.on('dialog', lambda d: (asked.append(d.message), d.accept()))
         cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
         cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
         cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
         made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
         check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        check(dev, '后台（正式版）: the change asks first, and the question names 正式版', any('这是正式版' in m and '老师注册链接' in m for m in asked), asked)
         cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
         # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
         pctx = browser.new_context(**phone)
@@ -2418,7 +2421,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]'); pg.check('#authForm [name=terms]')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=consent]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -2497,13 +2500,15 @@ def privacy_run(pw):
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
         gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
-        no_terms = gp.text_content('#authErr') or ''
+        no_tick = gp.text_content('#authErr') or ''
         links = gp.evaluate("[...document.querySelectorAll('#authForm .storagefs a')].map(a => a.getAttribute('href'))")
-        check(dev, '注册: 「我已阅读并同意《用户协议》和《隐私和数据》」 is required, both names open the text',
-              '用户协议' in no_terms and '/#/guide/terms' in links and '/#/guide/privacy' in links, (no_terms, links))
-        gp.check('#authForm [name=terms]'); gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
-        no_store = gp.text_content('#authErr') or ''
-        check(dev, '注册: the separate 香港 tick is required too, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        lead = gp.text_content('#authForm .storagefs b') or ''
+        # D2's plan B, the owner's pick (2026-11-26): one tick, led in bold by the separate consent to the storage in Hong
+        # Kong, then the two texts (both names open them); required, said before any request, never ticked beforehand
+        check(dev, '注册: one tick led by the separate 香港 consent in bold, then 《用户协议》《隐私和数据》; required and not pre-ticked',
+              '香港' in no_tick and '用户协议' in no_tick and '/#/guide/terms' in links and '/#/guide/privacy' in links
+              and lead.startswith('我单独同意') and '香港' in lead and not gp.is_checked('#authForm [name=consent]')
+              and gp.locator('#authForm [name=storage], #authForm [name=terms]').count() == 0, (no_tick, links, lead))
         ctx.close()
         # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
         # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
@@ -2514,13 +2519,13 @@ def privacy_run(pw):
         asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
         pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
         # not agreed yet, the names still open the text, over the page; 返回 leaves the form as it was
-        pg.check('#stoF [name=storage]')
+        pg.check('#stoF [name=consent]')
         pg.click('#stoF a[data-doc=terms]'); pg.wait_for_selector('.doc-over .doc-body h3', timeout=8000)
         over = '语流用户协议' in (pg.text_content('.doc-over .doc-bar') or '') and len(pg.text_content('.doc-over .doc-body') or '') > 500
         pg.screenshot(path=str(OUT / 'privacy-terms-over.png'))
         pg.click('.doc-over .doc-bar [data-doc-close]'); pg.wait_for_timeout(200)
-        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=storage]') and not pg.is_checked('#stoF [name=terms]')
-        pg.uncheck('#stoF [name=storage]')
+        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=consent]')
+        pg.uncheck('#stoF [name=consent]')
         check(dev, '补勾页: 《用户协议》 opens over the page before agreeing, 返回 keeps the ticks', over)
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         other = '补一个同意' in (pg.text_content('h1') or '')
@@ -2529,10 +2534,8 @@ def privacy_run(pw):
         pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
         pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
         err = pg.text_content('#stoErr') or ''
-        both = pg.is_visible('#stoF [name=terms]') and pg.is_visible('#stoF [name=storage]')
-        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
-        err = err + ' / ' + (pg.text_content('#stoErr') or '')  # the 用户协议 tick is asked for too
-        pg.check('#stoF [name=terms]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        both = pg.is_visible('#stoF [name=consent]') and pg.locator('#stoF [name=storage], #stoF [name=terms]').count() == 0  # one tick for both
+        pg.check('#stoF [name=consent]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
@@ -3177,12 +3180,12 @@ CARD_JS = r"""() => {
 # 今日 from the top: 好句, 热点, the plan, 这周进步; nothing in the 好句 card cut off; its buttons big enough to tap
 FOLD_JS = """() => { const q = s => document.querySelector(s), r = e => e.getBoundingClientRect();
   const tabs = q('.tabs'), cs = tabs && getComputedStyle(tabs), tabTop = tabs && cs.position === 'fixed' && cs.display !== 'none' ? r(tabs).top : innerHeight;
-  const lc = q('#lineCard'), nc = q('#view .news-card'), h1 = q('#tpTitle'), go = q('#view .today-plan .go-next'), say = q('#lcSay'), ai = nc && nc.querySelector('.ai-mark');
+  const lc = q('#lineCard'), nc = q('#view .news-card:not(.mine-card)'), h1 = q('#tpTitle'), go = q('#view .today-plan .go-next'), say = q('#lcSay'), ai = nc && nc.querySelector('.ai-mark');
   return { lineH: lc ? Math.round(r(lc).height) : null, newsH: nc ? Math.round(r(nc).height) : null, newsAI: !!(ai && r(ai).height > 0 && r(ai).bottom <= r(nc).bottom),
     planInView: !!(h1 && go && r(h1).top >= 0 && r(go).bottom <= tabTop), say: !!(say && say.offsetParent !== null), foldShown: !!(q('#lcFold') && q('#lcFold').offsetParent !== null) }; }"""
 TOP_JS = r"""() => {
   const r = el => el.getBoundingClientRect();
-  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
+  const blocks = [['lineCard', '#lineCard'], ['news', '#view .news-card:not(.mine-card)'], ['mine', '#view .mine-card'], ['plan', '#view .today-plan'], ['week', '#weekCard']]
     .map(([k, sel]) => [k, document.querySelector(sel)]).filter(([, el]) => el).sort((a, b) => r(a[1]).top - r(b[1]).top).map(([k]) => k);
   const card = document.getElementById('lineCard');
   return { order: blocks, wide: document.scrollingElement.scrollWidth - innerWidth,
@@ -3319,8 +3322,14 @@ def progress_run(pw):
                 first_h = pg.evaluate("(() => { const h = document.querySelector('#view h1, #view h2, #view h3'); return h ? h.tagName + ' ' + h.textContent.trim() : null; })()")
                 check(dev, f'{tag}: 今日\'s first heading is its h1 (今日好句 names its section, it is not a heading before it)', bool(first_h) and first_h.startswith('H1'), first_h)
                 top = pg.evaluate(TOP_JS)
-                check(dev, f'{tag}: 今日 runs 好句, 今日一读, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
-                      top['order'] == (['plan', 'lineCard', 'news', 'week'] if h < 500 else ['lineCard', 'news', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                check(dev, f'{tag}: 今日 runs 好句, 今日一读, 我的材料, the plan, 这周进步 from the top (the plan first on a phone held sideways), nothing cut off or wider than the screen',
+                      top['order'] == (['plan', 'lineCard', 'news', 'mine', 'week'] if h < 500 else ['lineCard', 'news', 'mine', 'plan', 'week']) and not top['clipped'] and top['wide'] <= 0 and (not touch or top['small'] == []), top)
+                mine = pg.evaluate("() => { const m = document.querySelector('#view .mine-card'), n = document.querySelector('#view .news-card:not(.mine-card)'); "
+                                   "return m && { href: m.getAttribute('href'), text: m.querySelector('.nc-h').textContent.trim(), label: m.querySelector('.nc-title').textContent, "
+                                   "h: Math.round(m.getBoundingClientRect().height), newsH: n ? Math.round(n.getBoundingClientRect().height) : 0 }; }")
+                check(dev, f'{tag}: 我的材料 is a third row like 今日一读; with nothing of their own yet it asks for a text to paste in',
+                      mine and mine['href'] == '#/import' and mine['text'] == '贴课本或讲义进来练' and mine['label'] == '我的材料'
+                      and (w >= 760 or abs(mine['h'] - mine['newsH']) <= 2), mine)  # under 760 px both are one row
                 nc = pg.text_content('#view .news-card') or ''
                 check(dev, f'{tag}: the card is 今日一读, marked AI 生成, never an old 今日热点', '今日一读' in nc and 'AI 生成' in nc and '旧热点' not in nc, nc[:80])
                 # the plan's rows, 本周任务 included (an exam learner has one): nothing squashed, filled or out of its row
@@ -3333,11 +3342,11 @@ def progress_run(pw):
                 ec.close()
                 check(dev, f'{tag}: its four numbers are the learner\'s own (as the server counts them)', card and card['values'] == want, (card and card['values'], want))
                 path = home['path']; plan = pg.evaluate(PLAN_JS)
-                ring = pg.get_attribute('#view .today-plan .ring', 'aria-label') or ''
-                check(dev, f'{tag}: the ring says the steps done to a screen reader (the line under the title gives the minutes only)',
+                ring = pg.get_attribute('#view .today-plan .tp-count', 'aria-label') or ''
+                check(dev, f'{tag}: done / total beside the title says the steps done to a screen reader (the line gives the minutes)',
                       ring == f"今天的计划，已完成 {path['done']} 步，共 {path['total']} 步", ring)
                 grp = {g: [x for x in path['steps'] if x.get('group', 'must') == g] for g in ('must', 'extra', 'week')}
-                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else '都做完了' if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
+                head = (f"约 {path['must_minutes']} 分钟" if not path['done'] else ('今天学了约' if path.get('studied') else '都做完了') if path['done'] >= path['total'] else f"还要约 {path['left_minutes']} 分钟")
                 check(dev, f'{tag}: the plan shows 必做 (counted), 还有时间的话 folded and 本周任务 as the server packs them, its title the real minutes of 必做',
                       plan and (plan['must'], plan['extra'], plan['week']) == (path['total'], len(grp['extra']), len(grp['week'])) and head in plan['head']
                       and plan['wide'] <= 0 and (not grp['extra'] or (plan['summaryH'] >= 44 and plan['open'] == (path['done'] >= path['total']))), (plan, head))
@@ -3432,6 +3441,49 @@ def progress_run(pw):
         check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
               first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
         ctx.close()
+        # 听两句、答一句 (r29 第 2 项, the 5-minute 表达日): two sentences of the text to hear, a question the AI wrote (marked
+        # AI 生成, one grey line for the voice), 说出来 the one big button; 给我一点提示 marks the answer as helped. Typed here:
+        # met keeps the phrase in the word book with 撤销 and offers 再说一次 / 下一步; not yet gives 再说一次 and 先跳过 only.
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, color_scheme=theme,
+                                      locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []
+            pg.on('pageerror', lambda e: errors.append(str(e)))
+            pg.goto(BASE + f'/#/two/{PID}', wait_until='networkidle'); settle(pg)
+            pg.wait_for_function("() => { const q = document.getElementById('twQen'); return q && !q.querySelector('.spin') && q.textContent.trim(); }", timeout=8000)
+            ask = pg.evaluate("""() => ({ q: document.getElementById('twQen').textContent, zh: document.getElementById('twQzh').textContent,
+              ai: !!document.querySelector('#twQ .ai-mark'), voice: document.querySelectorAll('#view .ai-voice-note').length,
+              big: [...document.querySelectorAll('#view .btn.primary')].filter(b => !b.hidden).map(b => b.textContent.trim()),
+              hint: document.getElementById('twHint').hidden, wide: document.documentElement.scrollWidth - innerWidth })""")
+            check(dev, f'{theme}: 听两句、答一句 asks the AI\'s question in English and Chinese, marked AI 生成, one voice line, 说出来 the one big button',
+                  ask['q'].endswith('?') and ask['zh'] and ask['ai'] and ask['voice'] == 1 and ask['big'] == ['说出来'] and ask['hint'] and ask['wide'] <= 0, ask)
+            pg.screenshot(path=str(OUT / f'progress-two-ask-{theme}.png'))
+            pg.click('#twHelp'); pg.click('#twType'); pg.fill('#twText', "Sorry, I can't on Saturday. Can we do Sunday?")
+            with pg.expect_response(lambda r: '/api/next/two/check' in r.url) as resp:
+                pg.click('#twSend')
+            sent = json.loads(resp.value.request.post_data or '{}')
+            pg.wait_for_selector('#twAgain', timeout=8000); pg.wait_for_selector('#twUndo', timeout=8000)
+            met = pg.evaluate("""() => ({ h1: document.querySelector('#view h1').textContent, b: (document.querySelector('.two-fb b') || {}).textContent,
+              saved: document.getElementById('twSaved').textContent, next: !!document.querySelector('a[data-tap="two-next"]'),
+              hidden: ['#twAns', '#twQ'].every(s => document.querySelector(s).hidden) })""")
+            check(dev, f'{theme}: a helped, typed answer goes as assisted; met says so, bolds the phrase, keeps it in the word book with 撤销, offers 下一步',
+                  sent.get('assisted') is True and met['h1'] == '说到了' and met['b'] == "doesn't work for me" and '看了提示' in met['saved'] and '已存进单词本' in met['saved']
+                  and met['next'] and met['hidden'], (sent.get('assisted'), met))
+            pg.screenshot(path=str(OUT / f'progress-two-met-{theme}.png'))
+            pg.click('#twUndo'); pg.wait_for_function("() => !document.getElementById('twUndo')", timeout=8000)
+            cards = pg.evaluate("fetch('/api/next/cards?q=&page=1&f=').then(r => r.json())")
+            check(dev, f'{theme}: 撤销 takes the phrase out of the word book again', not any(x.get('text') == "doesn't work for me" for x in cards.get('items', [])), len(cards.get('items', [])))
+            pg.click('#twAgain'); pg.wait_for_function("() => { const q = document.getElementById('twQen'); return q && !q.querySelector('.spin') && q.textContent.trim(); }", timeout=8000)
+            pg.click('#twType'); pg.fill('#twText', 'On Saturday I will go to the library.'); pg.click('#twSend')
+            pg.wait_for_selector('.two-skip', timeout=8000)
+            no = pg.evaluate("""() => ({ h1: document.querySelector('#view h1').textContent, again: !!document.getElementById('twAgain'),
+              next: !!document.querySelector('a[data-tap="two-next"]'), undo: !!document.getElementById('twUndo'), saved: document.getElementById('twSaved').textContent })""")
+            check(dev, f'{theme}: not yet: 意思还没到, only 再说一次 and 先跳过，明天再练, nothing put in the word book, no hint seen this time',
+                  no['h1'] == '意思还没到' and no['again'] and not no['next'] and not no['undo'] and no['saved'] == '没看提示，自己说的', no)
+            pg.screenshot(path=str(OUT / f'progress-two-notyet-{theme}.png'))
+            check(dev, f'{theme}: 听两句、答一句 has no script errors', not errors, errors)
+            ctx.close()
     finally:
         browser.close()
 
@@ -3670,6 +3722,12 @@ def review_side_run(pw):
         ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
           rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
           undo: !!document.querySelector('#undo:not([disabled])') })"""
+        def steady(pg):  # the card drawn and left as it is for 700 ms: a new or redrawn card takes no tap for 600 ms (60-review.js)
+            for _ in range(8):
+                pg.wait_for_selector('#view .review [data-claim], #view .review.zoned', timeout=8000)
+                pg.evaluate("window.__steady = document.querySelector('#view .review')"); pg.wait_for_timeout(700)
+                if pg.evaluate("!!(window.__steady && window.__steady.isConnected)"):
+                    return
         def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
             r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
             pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
@@ -3678,7 +3736,7 @@ def review_side_run(pw):
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
         pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
-        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)  # a new card takes no tap in its first 600 ms
+        go(pg, '#/review'); steady(pg)  # a new card takes no tap in its first 600 ms
         z0 = pg.evaluate(ZONE_JS)
         labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
         pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
@@ -3739,11 +3797,12 @@ def review_side_run(pw):
         left_ok = pg.evaluate("() => [!!document.querySelector('#listSlot'), !document.querySelector('#view .review'), (document.querySelector('#view h1') || {}).textContent]")
         check(dev, 'leaving while an answer is saved: the next page stays, no review card drawn over it', left_ok[0] and left_ok[1], left_ok)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
-        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); steady(pg)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)
-        pg.click('#undo'); pg.wait_for_timeout(300)
-        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
+        if pg.query_selector('#undo:not([disabled])'):  # nothing to take back if the tap above did not answer (that check says so)
+            pg.click('#undo'); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); steady(pg)
         tap_card(pg, 0)
         check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
         check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])

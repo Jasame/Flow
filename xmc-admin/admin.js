@@ -1,9 +1,15 @@
-/* xmc.hk/flow · 语流 Flow 运营后台。数据来自 /flow/api/（只在 xmc.hk 的 Cloudflare Access 后面可达）。 */
+/* xmc.hk/flow（语流）和 xmc.hk/flow-beta（内测版）· 语流 Flow 运营后台。同一个页面，数据来自各自旁边的 api/（只在 xmc.hk 的 Cloudflare Access 后面可达）。 */
 (function () {
   'use strict';
-  var API = '/flow/api';
+  // the page's own folder: /flow/ is 语流's console, /flow-beta/ the 内测版's; each one's API is next to it
+  var BASE = location.pathname.replace(/\/[^\/]*$/, '') || '/flow';
+  var API = BASE + '/api';
   var main = document.getElementById('main');
   var ST = { tab: 'overview', filters: { role: '', level: '', flow: '' }, page: 1, q: '', def: null, me: null };
+  // Which site (/me): 'beta' only when the server says so; anything else is treated as 语流's, which asks before a change
+  function isBeta() { return !!(ST.me && ST.me.env === 'beta'); }
+  function siteName() { return (ST.me && ST.me.site) || (isBeta() ? 'flow.jasa.hk' : 'flowlang.cn'); }
+  function siteUrl(path) { return 'https://' + siteName() + (path || '/'); }
   // 管理员 sees everything and may change things; 只看数据 sees the numbers only (the server enforces it, the page just
   // leaves out what would answer 403).
   function isAdmin() { return !ST.me || ST.me.role === 'admin'; }
@@ -25,14 +31,37 @@
       });
     });
   }
+  // 正式版: a change that reaches learners asks first, naming the site (the 内测版's console looks alike; the band at the
+  // top and this question keep a change meant for the 内测版 off 语流). Survey and feedback housekeeping does not ask.
+  var PROD_ASK = { '/learner/disable': '停用或恢复这个账号', '/learner/signout': '让这个账号在所有设备上退出登录',
+    '/learner/level': '改这个学员的水平', '/learner/daily-new': '改这个学员每天的新词数', '/learner/staff': '改员工账号',
+    '/learner/teacher': '改老师账号', '/users/reset-link': '生成重设密码链接', '/material/hide': '下架或恢复这篇材料',
+    '/settings/ai-limits': '改 AI 额度', '/settings/ai-budget': '改 AI 预算和上限', '/settings/ai-routes': '改各项任务用的 AI 模型',
+    '/daily/run': '生成今日一读', '/tasks/examples/start': '开始例句预生成', '/tasks/examples/stop': '停止例句预生成',
+    '/announcements/create': '发布公告（学员马上在「今日」看到）', '/announcements/end': '结束公告', '/class/create': '新建班级',
+    '/class/rename': '改班级名', '/class/teacher': '换班级的老师', '/class/code': '换班级邀请码', '/class/active': '停用或启用班级',
+    '/teacher-link/create': '生成老师注册链接', '/teacher-link/revoke': '作废老师注册链接', '/ai/samples/redo': '让 AI 重写这条内容' };
+  function cancelled() { var e = new Error('已取消，没有改动'); e.cancelled = true; return e; }
+  // The page's own questions (「停用这个账号？」…): on 正式版 they open with the site's name, and the change they lead to
+  // does not ask a second time.
+  var askedAt = 0;
+  function ask(msg) {
+    var ok = window.confirm((isBeta() ? '' : '这是正式版（' + siteName() + '），会马上影响真实学员。\n\n') + msg);
+    askedAt = ok ? Date.now() : 0;
+    return ok;
+  }
   function postJSON(path, body) {
+    var what = isBeta() ? '' : (PROD_ASK[path] || (/^\/(feedback|survey)\//.test(path) ? '' : '这次修改'));
+    if (what && Date.now() - askedAt < 5000) what = '';  // just asked, with the site named
+    askedAt = 0;
+    if (what && !window.confirm('这是正式版（' + siteName() + '）。\n' + what + '：会马上影响真实学员。\n\n确定要改吗？')) return Promise.reject(cancelled());
     return fetch(API + path, {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'xmc' },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }); });
   }
-  function fail(e) { main.innerHTML = '<div class="card"><p class="err">' + esc(e.message) + '</p><p class="muted">Flow 服务没有启动管理端口，或 nginx 的 /flow/api/ 转发没有配置。</p></div>'; }
+  function fail(e) { main.innerHTML = '<div class="card"><p class="err">' + esc(e.message) + '</p><p class="muted">Flow 服务没有启动管理端口，或 nginx 的 ' + esc(API) + '/ 转发没有配置。</p></div>'; }
 
   function bars(options, total, opts) {
     opts = opts || {};
@@ -60,7 +89,7 @@
     return new Date(t * 1000).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
   }
   function relDay(iso) { return iso ? rel(new Date(iso + 'T12:00:00+08:00').getTime() / 1000).replace(/\d+ (分钟|小时)前|刚刚/, '今天') : '—'; }
-  function busy(b, p) { b.disabled = true; return p.then(function (r) { b.disabled = false; return r; }, function (e) { b.disabled = false; alert(e.message); throw e; }); }
+  function busy(b, p) { b.disabled = true; return p.then(function (r) { b.disabled = false; return r; }, function (e) { b.disabled = false; if (!e.cancelled) alert(e.message); throw e; }); }
   var LEVEL = { A2: 'A2 入门', B1: 'B1 中级', B2: 'B2 中高级', C1: 'C1 高级' };
 
   /* ---------- 概览：几个最重要的数字，和要处理的事 ---------- */
@@ -82,7 +111,7 @@
       if (d.classes && d.classes.count) info.push([isAdmin() ? '#classes' : '#overview', '班级试用', n(d.classes.count) + ' 个班 · 试用 ' + n(d.classes.trial_people) + ' 人、' + n(d.classes.trial_days) + ' 人次']);
       var li = function (x) { return '<li><a href="' + x[0] + '"><b>' + x[1] + '</b><span class="muted">' + x[2] + ' →</span></a></li>'; };
       main.innerHTML =
-        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">flowlang.cn · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
+        '<div class="head-row"><div><h1>语流 Flow 概览</h1><p class="muted">' + esc(siteName()) + ' · ' + (d.server ? '数据来自' + esc(d.server) + ' · ' : '') + '更新于 ' + new Date(d.generated_at * 1000).toLocaleString('zh-CN') + '</p></div>' +
         '<div class="toolbar"><button class="btn" id="reload">刷新</button></div></div>' +
         '<div class="kpi-grid k5">' +
           kpi('注册用户', n(d.users), '填了学习档案 ' + n(d.profiles) + ' 人 · 还没开始学 ' + n(d.never_started) + ' 人') +
@@ -134,7 +163,7 @@
   }
   function surveyStats() {
     var qs = ST.sid ? '' : Object.keys(ST.filters).filter(function (k) { return ST.filters[k]; }).map(function (k) { return k + '=' + encodeURIComponent(ST.filters[k]); }).join('&');
-    var link = 'https://flowlang.cn/survey' + svParam('?');
+    var link = siteUrl('/survey') + svParam('?');
     Promise.all([svDef(), getJSON('/survey/summary' + (qs ? '?' + qs + svParam('&') : svParam('?')))]).then(function (res) {
       var def = res[0], s = res[1];
       var byId = {}; def.sections.forEach(function (sec) { sec.questions.forEach(function (q) { byId[q.id] = q; }); });
@@ -146,7 +175,7 @@
         '<div class="card toolbar">' + svSwitch() + (ST.sid ? '<span class="muted small">加入班级满 3 周的学员会在「今日」看到一次提示，可以关掉；回答不带账号，只看汇总。</span>'
           : filterSelect('role', byId.role) + filterSelect('level', byId.level) + filterSelect('flow', byId.flow) + (qs ? '<button class="btn" id="clearF">清除筛选</button>' : '')) + '</div>';
       if (!s.total) {
-        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : ST.sid ? '还没有人填写。加入班级满 3 周的学员会在「今日」看到提示。' : '还没有人填写。把问卷链接 https://flowlang.cn/survey 发出去吧。') + '</div>';
+        main.innerHTML = html + '<div class="card empty">' + (qs ? '这个筛选条件下还没有回答。' : ST.sid ? '还没有人填写。加入班级满 3 周的学员会在「今日」看到提示。' : '还没有人填写。把问卷链接 ' + esc(siteUrl('/survey')) + ' 发出去吧。') + '</div>';
         bindStats(); return;
       }
       if (s.by_day.length > 1) {
@@ -463,7 +492,7 @@
     var act = function (name, fn) { var b = drawer.querySelector('[data-act="' + name + '"]'); if (b) b.onclick = function () { fn(b); }; };
     var after = function (r) { openLearner(a.id); if (LR.shown && ST.tab === 'learners') learnersView(); return r; };
     act('reset', function (b) {
-      if (!confirm('给「' + a.username + '」生成重设密码的链接？\n\n先确认对方是本人。链接 24 小时内有效、只能用一次；生成新链接后，旧链接作废。')) return;
+      if (!ask('给「' + a.username + '」生成重设密码的链接？\n\n先确认对方是本人。链接 24 小时内有效、只能用一次；生成新链接后，旧链接作废。')) return;
       busy(b, postJSON('/users/reset-link', { user: a.username })).then(function (r) {
         var out = document.getElementById('drOut'); out.hidden = false;
         out.innerHTML = '<p><input class="input acc-link" id="accLink" readonly value="' + esc(r.link) + '"> <button class="btn" id="accCopy" type="button">复制</button></p>' +
@@ -475,25 +504,25 @@
       });
     });
     act('signout', function (b) {
-      if (!confirm('让「' + a.username + '」在所有设备上退出登录？\n\n手机丢了、账号借给了别人时用。对方用密码或邮箱验证码可以再登录。')) return;
+      if (!ask('让「' + a.username + '」在所有设备上退出登录？\n\n手机丢了、账号借给了别人时用。对方用密码或邮箱验证码可以再登录。')) return;
       busy(b, postJSON('/learner/signout', { id: a.id })).then(function (r) { alert('已退出 ' + r.sessions_ended + ' 台设备。'); after(); });
     });
     act('staff', function (b) {
-      if (!confirm(a.staff ? '取消「' + a.username + '」的员工账号？之后 AI 次数按普通学员的每日上限算。' : '把「' + a.username + '」设为员工账号？\n\n员工账号用 AI 不受每日次数限制，也不算进学员统计（漏斗、留存）。只给自己人。')) return;
+      if (!ask(a.staff ? '取消「' + a.username + '」的员工账号？之后 AI 次数按普通学员的每日上限算。' : '把「' + a.username + '」设为员工账号？\n\n员工账号用 AI 不受每日次数限制，也不算进学员统计（漏斗、留存）。只给自己人。')) return;
       busy(b, postJSON('/learner/staff', { id: a.id, staff: !a.staff })).then(after);
     });
     act('teacher', function (b) {
-      if (!confirm(a.teacher ? '取消「' + a.username + '」的老师账号？\n\n之后它是普通学生账号：不能再自己建班，也会算进学员统计；它已经在带的班不受影响。'
+      if (!ask(a.teacher ? '取消「' + a.username + '」的老师账号？\n\n之后它是普通学生账号：不能再自己建班，也会算进学员统计；它已经在带的班不受影响。'
         : '把「' + a.username + '」设为老师账号？\n\n之后打开语流先到「我的班级」，可以自己建班、看全班汇总；不能加入班级，也不算进学员统计（漏斗、留存）。随时可以取消。在班里的账号要先退出班级。')) return;
       busy(b, postJSON('/learner/teacher', { id: a.id, teacher: !a.teacher })).then(after);
     });
     act('disable', function (b) {
-      if (!a.disabled && !confirm('停用「' + a.username + '」？\n\n马上在所有设备上退出，之后不能再登录（会提示账号已停用）。学习记录都保留，随时可以恢复。')) return;
+      if (!a.disabled && !ask('停用「' + a.username + '」？\n\n马上在所有设备上退出，之后不能再登录（会提示账号已停用）。学习记录都保留，随时可以恢复。')) return;
       busy(b, postJSON('/learner/disable', { id: a.id, disabled: !a.disabled })).then(after);
     });
     act('level', function (b) {
       var lv = document.getElementById('drLevel').value; if (lv === p.level) return;
-      if (!confirm('把「' + a.username + '」的水平改成 ' + LEVEL[lv] + '？今日推荐和练习会按新水平挑。')) return;
+      if (!ask('把「' + a.username + '」的水平改成 ' + LEVEL[lv] + '？今日推荐和练习会按新水平挑。')) return;
       busy(b, postJSON('/learner/level', { id: a.id, level: lv })).then(after);
     });
     act('daily', function (b) {
@@ -504,7 +533,7 @@
   }
 
   /* ---------- 班级试用：建班级、邀请码、老师；每个班的人数、近 7 天在学和试用人次（class_service.py） ---------- */
-  var JOIN = 'https://flowlang.cn/#/invite/';
+  function joinLink(code) { return siteUrl('/#/invite/') + code; }
   var CL = { shown: false };
   function classesView() {
     return getJSON('/classes').then(function (d) {
@@ -574,11 +603,94 @@
         '<p class="muted small" style="margin:0">现在一共有 ' + n(d.teachers) + ' 个老师账号。</p>';
       box.querySelectorAll('[data-revoke]').forEach(function (b) {
         b.onclick = function () {
-          if (!confirm('作废这个老师注册链接？\n\n作废后马上不能再用来注册；已经注册的老师账号不受影响。')) return;
+          if (!ask('作废这个老师注册链接？\n\n作废后马上不能再用来注册；已经注册的老师账号不受影响。')) return;
           busy(b, postJSON('/teacher-link/revoke', { id: +b.dataset.revoke })).then(teacherLinks);
         };
       });
     }).catch(function (e) { box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
+  }
+  /* ---------- 内测邀请码（beta_invites.py）：内测版凭邀请码注册。发码、作废、看谁用了哪个码；开码以前的账号可以逐个停用 ---------- */
+  function invitesView() {
+    if (!isBeta()) { main.innerHTML = '<div class="card"><p>邀请码只在内测版的后台（xmc.hk/flow-beta）里发。正式版注册不用邀请码。</p></div>'; return Promise.resolve(); }
+    return getJSON('/beta-invites').then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>内测邀请码</h1><p class="muted">' + esc(siteName()) + ' · ' +
+          (d.on ? '注册要邀请码（已打开）' : '<span class="err">注册还不要邀请码：服务器上的开关没打开</span>') + '</p></div></div>' +
+        '<div class="grid2">' +
+        '<section class="card"><h2>发一个邀请码</h2><form id="invNew" class="stack-s">' +
+          '<label class="field">能用几次<input class="input" name="uses" type="number" min="1" max="' + d.max_uses + '" value="' + d.uses + '"></label>' +
+          '<label class="field">有效几天<input class="input" name="days" type="number" min="1" max="' + d.max_days + '" value="' + d.days + '"></label>' +
+          '<label class="field">备注（发给谁，自己看）<input class="input" name="note" maxlength="40" placeholder="比如 第二批内测、周三口语课（不写真名）"></label>' +
+          '<div class="row"><button class="btn primary">生成</button></div></form><div id="invOut"></div></section>' +
+        '<section class="card"><h2>开邀请码以前注册的账号</h2><p><b>' + n(d.before) + '</b> 个，照常能用。</p>' +
+          '<p class="muted small">想停用哪一个：到「学员」里筛「没用邀请码注册的」，点开账号，用「停用账号」。停用以后马上退出登录，也登不进来；随时可以恢复。</p>' +
+          '<p><a class="btn" href="#learners">去「学员」</a></p></section></div>' +
+        '<section class="card"><h2>发过的邀请码</h2>' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>邀请码</th><th>状态</th><th class="num">用了</th><th>谁用了</th><th class="opt">生成</th><th class="opt">有效到</th><th></th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr' + (x.status === 'open' ? '' : ' class="dim"') + '><td><code>' + esc(x.code) + '</code>' + (x.note ? '<span class="sub">' + esc(x.note) + '</span>' : '') + '</td>' +
+              '<td><span class="pill' + (x.status === 'open' ? '' : ' off') + '">' + esc(x.status_label) + '</span></td>' +
+              '<td class="num">' + n(x.used) + ' / ' + n(x.uses) + '</td>' +
+              '<td>' + (x.people.length ? x.people.map(function (p) { return '<a href="#learners/' + p.id + '">' + esc(p.username) + '</a><span class="sub">' + esc(p.at) + '</span>'; }).join('') : '<span class="muted">还没人用</span>') + '</td>' +
+              '<td class="opt">' + esc(x.created) + (x.by ? '<span class="sub">' + esc(x.by) + '</span>' : '') + '</td><td class="opt">' + esc(x.expires) + '</td>' +
+              '<td>' + (x.status === 'open' ? '<button class="btn" type="button" data-irevoke="' + x.id + '">作废</button>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">还没有发过邀请码。</p>') + '</section>';
+      var f = document.getElementById('invNew');
+      f.onsubmit = function (e) {
+        e.preventDefault();
+        var b = f.querySelector('button');
+        busy(b, postJSON('/beta-invite/create', { uses: +f.uses.value, days: +f.days.value, note: f.note.value })).then(function (r) {
+          var msg = '语流内测版邀请码：' + r.code + '（能用 ' + r.uses + ' 次，' + r.expires + ' 以前有效）。打开 ' + siteUrl('/') + '，点「注册」时填这个码。';
+          invitesView().then(function () {
+            var out = document.getElementById('invOut');
+            out.innerHTML = '<p class="inv-code"><code>' + esc(r.code) + '</code></p><p><input class="input acc-link" id="invMsg" readonly value="' + esc(msg) + '"> <button class="btn" type="button" id="invCopy">复制这段话</button></p>' +
+              '<p class="muted small">发给要内测的人。码在下面的列表里一直看得到，用完、过期或作废以后就不能再注册。</p>';
+            document.getElementById('invCopy').onclick = function () {
+              var i = document.getElementById('invMsg'); i.select();
+              (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(function () { document.getElementById('invCopy').textContent = '已复制'; }, function () { document.execCommand('copy'); });
+            };
+          });
+        }, function () { /* shown */ });
+      };
+      main.querySelectorAll('[data-irevoke]').forEach(function (b) {
+        b.onclick = function () {
+          if (!ask('作废这个邀请码？\n\n作废后马上不能再用来注册；已经用它注册的账号照常能用。')) return;
+          busy(b, postJSON('/beta-invite/revoke', { id: +b.dataset.irevoke })).then(invitesView, function () { /* shown */ });
+        };
+      });
+    }).catch(fail);
+  }
+  /* ---------- 测试账号（beta_tools.py，只在内测版）：一键造各种状态的账号；重置只删这些，真正内测的人一个都不动 ---------- */
+  function testsView() {
+    if (!isBeta()) { main.innerHTML = '<div class="card"><p>测试账号只在内测版的后台（xmc.hk/flow-beta）里造和删。</p></div>'; return Promise.resolve(); }
+    return getJSON('/beta-tests').then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>测试账号</h1><p class="muted">' + esc(siteName()) + ' · 一键造各种状态的账号，用完一起删掉。真正内测的人的账号不会被动到。</p></div></div>' +
+        '<section class="card"><h2>造一个</h2><div class="tk-kinds">' + d.kinds.map(function (k) {
+          return '<button class="btn" type="button" data-tkind="' + esc(k.key) + '">' + esc(k.label) + '</button>';
+        }).join('') + '</div><div id="tkOut"></div></section>' +
+        '<section class="card"><h2>现在的测试账号（' + n(d.items.length) + ' 个）</h2>' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>用户名</th><th>种类</th><th class="opt">造于</th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr><td><a href="#learners/' + x.id + '">' + esc(x.username) + '</a></td><td>' + esc(x.label) + '</td><td class="opt">' + esc(when(x.created)) + (x.by ? '<span class="sub">' + esc(x.by) + '</span>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' +
+          '<p><button class="btn danger" type="button" id="tkReset">重置测试数据：删掉这 ' + n(d.items.length) + ' 个测试账号</button></p>' +
+          '<p class="muted small">和「注销账号」一样，账号和它的学习记录全部删掉，不能恢复。只删这张表里的账号。</p>'
+          : '<p class="muted">现在没有测试账号。</p>') + '</section>';
+      main.querySelectorAll('[data-tkind]').forEach(function (b) {
+        b.onclick = function () {
+          busy(b, postJSON('/beta-test/create', { kind: b.dataset.tkind })).then(function (r) {
+            testsView().then(function () {
+              document.getElementById('tkOut').innerHTML = '<p><b>' + esc(r.label) + '</b> 造好了：</p><dl class="kv"><dt>用户名</dt><dd><code>' + esc(r.username) + '</code></dd>' +
+                '<dt>密码</dt><dd><code>' + esc(r.password) + '</code></dd></dl><p class="muted small">密码只显示这一次。在 ' + esc(siteUrl('/')) + ' 用这个用户名和密码登录就行。</p>';
+            });
+          }, function () { /* shown */ });
+        };
+      });
+      var rs = document.getElementById('tkReset');
+      if (rs) rs.onclick = function () {
+        if (!ask('删掉全部 ' + d.items.length + ' 个测试账号？\n\n账号和它们的学习记录都删掉，不能恢复。真正内测的人的账号不受影响。')) return;
+        busy(rs, postJSON('/beta-test/reset', { count: d.items.length })).then(function (r) { alert('删掉了 ' + r.deleted + ' 个测试账号。'); testsView(); }, function () { testsView(); });
+      };
+    }).catch(fail);
   }
   function openClass(id) {
     drawer.hidden = drawerBg.hidden = false;
@@ -593,7 +705,7 @@
     });
   }
   function drawClass(d) {
-    var link = JOIN + d.code, top = Math.max.apply(null, d.weeks.map(function (w) { return w.studied; }).concat([1]));
+    var link = joinLink(d.code), top = Math.max.apply(null, d.weeks.map(function (w) { return w.studied; }).concat([1]));
     drawer.innerHTML =
       '<div class="dr-head"><div><h2 id="drawerTitle">' + esc(d.name) + '</h2><div class="dr-pills"><span class="pill off">#c' + d.id + '</span>' +
         (d.active ? '<span class="pill">使用中</span>' : '<span class="pill danger">已停用</span>') +
@@ -632,15 +744,15 @@
     });
     act('teacher', function (b) {
       var v = document.getElementById('clTeacher').value.trim(); if (!v) return;
-      if (!confirm('把「' + d.name + '」的老师换成「' + v + '」？\n\n原来的老师马上看不到这个班的汇总。')) return;
+      if (!ask('把「' + d.name + '」的老师换成「' + v + '」？\n\n原来的老师马上看不到这个班的汇总。')) return;
       busy(b, postJSON('/class/teacher', { id: d.id, teacher: v })).then(after);
     });
     act('code', function (b) {
-      if (!confirm('给「' + d.name + '」换一个邀请码？\n\n旧邀请码和旧链接马上作废；已经在班里的人不受影响。')) return;
+      if (!ask('给「' + d.name + '」换一个邀请码？\n\n旧邀请码和旧链接马上作废；已经在班里的人不受影响。')) return;
       busy(b, postJSON('/class/code', { id: d.id })).then(after);
     });
     act('active', function (b) {
-      if (d.active && !confirm('停用「' + d.name + '」？\n\n之后不能再加入，老师也看不到汇总；班里的人照常学习，可以随时退出。可以重新启用。')) return;
+      if (d.active && !ask('停用「' + d.name + '」？\n\n之后不能再加入，老师也看不到汇总；班里的人照常学习，可以随时退出。可以重新启用。')) return;
       busy(b, postJSON('/class/active', { id: d.id, active: !d.active })).then(after);
     });
   }
@@ -712,7 +824,7 @@
               var u = API + '/feedback/image?id=' + x.id + '&n=' + encodeURIComponent(nm);
               return '<a href="' + u + '" target="_blank" rel="noopener" title="看原图"><img src="' + u + '" alt="截图" loading="lazy"></a>';
             }).join('') + '</div>' : '') +
-            '<dl class="fb-meta"><dt>页面</dt><dd>' + (x.page ? '<a href="https://flowlang.cn/' + esc(x.page) + '" target="_blank" rel="noopener">' + esc(x.page) + '</a>' : '—') + '</dd>' +
+            '<dl class="fb-meta"><dt>页面</dt><dd>' + (x.page ? '<a href="' + esc(siteUrl('/')) + esc(x.page) + '" target="_blank" rel="noopener">' + esc(x.page) + '</a>' : '—') + '</dd>' +
             '<dt>设备</dt><dd>' + esc(dev(v)) + '<div class="muted small fb-ua">' + esc(v.ua || '') + '</div></dd>' +
             (x.contact ? '<dt>联系方式</dt><dd>' + esc(x.contact) + '</dd>' : '') +
             (v.errors && v.errors.length ? '<dt>页面报错</dt><dd><code class="fb-err">' + v.errors.map(esc).join('<br>') + '</code></dd>' : '') +
@@ -805,7 +917,7 @@
         b.onclick = function () {
           var hide = b.dataset.v === '1', reason = '';
           if (hide) { reason = prompt('下架这篇材料？学员的书库、今日推荐、练习里都不再出现；正在学或学过的人还能从历史打开，学习记录都保留。\n\n下架原因（可以不填）：', ''); if (reason === null) return; }
-          else if (!confirm('恢复这篇材料？学员的列表里会重新出现。')) return;
+          else if (!ask('恢复这篇材料？学员的列表里会重新出现。')) return;
           busy(b, postJSON('/material/hide', { pack: b.dataset.hide, hidden: hide, reason: reason })).then(contentView);
         };
       });
@@ -852,14 +964,14 @@
           return '<tr><td>' + esc(x.text) + (x.link ? '<span class="sub">→ ' + esc(linkName(x.link)) + '</span>' : '') + '</td><td class="small">' + esc(when(x.starts)) + '<br>到 ' + esc(when(x.ended || x.ends)) + '</td><td>' + state + '</td><td class="opt small">' + esc(x.by) + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<p class="muted">还没有发过。</p>') + '</section>';
       var end = main.querySelector('[data-end]');
-      if (end) end.onclick = function () { if (confirm('现在结束这条公告？学员就看不到了。')) busy(end, postJSON('/announcements/end', { id: Number(end.dataset.end) })).then(announceView); };
+      if (end) end.onclick = function () { if (ask('现在结束这条公告？学员就看不到了。')) busy(end, postJSON('/announcements/end', { id: Number(end.dataset.end) })).then(announceView); };
       var f = document.getElementById('anF');
       if (f) {
         var t = document.getElementById('anText');
         t.oninput = function () { document.getElementById('anCount').textContent = t.value.trim().length + ' / 120'; };
         f.onsubmit = function (e) {
           e.preventDefault();
-          if (!confirm('发布这条公告？所有学员打开「今日」都会看到' + (cur ? '；现在这条会结束' : '') + '。')) return;
+          if (!ask('发布这条公告？所有学员打开「今日」都会看到' + (cur ? '；现在这条会结束' : '') + '。')) return;
           busy(f.querySelector('button'), postJSON('/announcements/create', { text: t.value, link: document.getElementById('anLink').value, days: Number(document.getElementById('anDays').value) })).then(announceView);
         };
       }
@@ -992,7 +1104,7 @@
         sel.onchange = function () {
           var k = sel.dataset.route, task = (cs.kinds.filter(function (x) { return x.kind === k; })[0] || {}).label || k, body = { routes: {} };
           body.routes[k] = sel.value;
-          if (!confirm('「' + task + '」改用 ' + label(sel.value) + '？马上生效。')) { aiView(); return; }
+          if (!ask('「' + task + '」改用 ' + label(sel.value) + '？马上生效。')) { aiView(); return; }
           sel.disabled = true;
           postJSON('/settings/ai-routes', body).then(aiView, function (e) { alert(e.message); aiView(); });
         };
@@ -1000,7 +1112,7 @@
       var allGo = document.getElementById('allGo');
       if (allGo) allGo.onclick = function () {
         var v = document.getElementById('allRoute').value;
-        if (!confirm('所有文字任务都改用 ' + label(v) + '？马上生效，每个任务单独的设置会清掉。')) return;
+        if (!ask('所有文字任务都改用 ' + label(v) + '？马上生效，每个任务单独的设置会清掉。')) return;
         busy(allGo, postJSON('/settings/ai-routes', { routes: { '*': v } })).then(aiView);
       };
       var bf = document.getElementById('budF');
@@ -1011,9 +1123,9 @@
         var tb = document.getElementById('budT'), tv = tb ? tb.value.trim() : '', tl = tv === '' ? null : Number(tv);
         if (!(v >= 0)) { alert('预算请填 0 或正数。'); return; }
         if (sl !== null && !(sl >= 0)) { alert('硬停线请填 0 或正数，留空用默认 ¥10。'); return; }
-        if (sl === 0 && !confirm('设成 0 就不硬停了：AI 花多少都不会自动暂停。确定吗？')) return;
+        if (sl === 0 && !ask('设成 0 就不硬停了：AI 花多少都不会自动暂停。确定吗？')) return;
         if (tl !== null && !(tl >= 0)) { alert('批量任务每晚上限请填 0 或正数，留空用默认 ¥15。'); return; }
-        if (tb && tl === 0 && !confirm('设成 0 就不设批量上限了：批量任务只在花到每日预算时停。确定吗？')) return;
+        if (tb && tl === 0 && !ask('设成 0 就不设批量上限了：批量任务只在花到每日预算时停。确定吗？')) return;
         if (!(disc > 0 && disc <= 1)) { alert('折扣请填 0–1 之间的小数，比如 0.65。'); return; }
         var body = { daily: v, stop: sl, nightly: night, discounts: { bailian: disc } };
         if (tb) body.batch = tl;  // only once the server reports the batch ceiling (#330)
@@ -1025,7 +1137,7 @@
         var val = function (id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
         var body = { user_limit: val('limU'), site_limit: val('limS') };
         if ([body.user_limit, body.site_limit].some(function (v) { return v != null && !(Number.isInteger(v) && v >= 0); })) { alert('请填 0 或正整数；留空表示用服务器配置。'); return; }
-        if (!confirm('把 AI 每日额度改成：每账号 ' + (body.user_limit == null ? '服务器配置' : body.user_limit || '不限') + '，全站 ' + (body.site_limit == null ? '服务器配置' : body.site_limit || '不限') + '？马上生效。')) return;
+        if (!ask('把 AI 每日额度改成：每账号 ' + (body.user_limit == null ? '服务器配置' : body.user_limit || '不限') + '，全站 ' + (body.site_limit == null ? '服务器配置' : body.site_limit || '不限') + '？马上生效。')) return;
         busy(f.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
       };
       var tf = document.getElementById('ttsF');
@@ -1034,7 +1146,7 @@
         var val = function (id) { var v = document.getElementById(id).value.trim(); return v === '' ? null : Number(v); };
         var body = { tts_user_chars: val('ttsU'), tts_site_chars: val('ttsS'), tts_import_chars: val('ttsI'), tts_import_percent: val('ttsP') };
         if (Object.keys(body).some(function (k) { var v = body[k]; return v != null && !(Number.isInteger(v) && v >= 0 && (k !== 'tts_import_percent' || v <= 100)); })) { alert('请填 0 或正整数（百分比 0–100）；留空表示用服务器配置。'); return; }
-        if (!confirm('保存 AI 朗读额度？马上生效。')) return;
+        if (!ask('保存 AI 朗读额度？马上生效。')) return;
         busy(tf.querySelector('button'), postJSON('/settings/ai-limits', body)).then(aiView);
       };
       main.querySelectorAll('[data-sample]').forEach(function (b) { b.onclick = function () { AIV.sample = b.dataset.sample; main.querySelectorAll('[data-sample]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); aiSamples(); }; });
@@ -1066,7 +1178,7 @@
       box.querySelectorAll('[data-redo]').forEach(function (b) {
         b.onclick = function () {
           var x = d.items[Number(b.dataset.redo)];
-          if (!confirm('把这条「' + d.label + '」删掉，让 AI 在下次有人用到时重写？会用 1 次 AI。')) return;
+          if (!ask('把这条「' + d.label + '」删掉，让 AI 在下次有人用到时重写？会用 1 次 AI。')) return;
           busy(b, postJSON('/ai/samples/redo', { kind: d.kind, key: x.key })).then(function () { b.textContent = '已删掉，下次重写'; b.disabled = true; });
         };
       });
@@ -1122,12 +1234,12 @@
         '</div>' + pausedCard(d.paused);
       document.getElementById('reload').onclick = tasksView;
       var stop = document.getElementById('exStop');
-      if (stop) stop.onclick = function () { if (confirm('停止例句预生成？已经写好的都保留，下次从没写的词接着做。')) busy(stop, postJSON('/tasks/examples/stop', {})).then(tasksView); };
+      if (stop) stop.onclick = function () { if (ask('停止例句预生成？已经写好的都保留，下次从没写的词接着做。')) busy(stop, postJSON('/tasks/examples/stop', {})).then(tasksView); };
       var f = document.getElementById('exF');
       if (f) f.onsubmit = function (e) {
         e.preventDefault();
         var book = document.getElementById('exBook').value, max = Number(document.getElementById('exMax').value || 0);
-        if (!confirm('开始例句预生成（' + (book ? '词书 ' + book : '全部词书') + (max ? '，最多 ' + max + ' 次请求' : '，不限次数') + '）？会用网站的 AI 额度。')) return;
+        if (!ask('开始例句预生成（' + (book ? '词书 ' + book : '全部词书') + (max ? '，最多 ' + max + ' 次请求' : '，不限次数') + '）？会用网站的 AI 额度。')) return;
         busy(f.querySelector('button'), postJSON('/tasks/examples/start', { books: book ? [book] : [], max_calls: max, offpeak: document.getElementById('exOff').checked })).then(tasksView);
       };
       var again = document.getElementById('dailyAgain'), run = document.getElementById('dailyRun');
@@ -1152,8 +1264,8 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, classes: classesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
-  var ADMIN_TABS = ['responses', 'learners', 'classes', 'feedback', 'errors', 'log'];
+    learners: learnersView, classes: classesView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
+  var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log', 'tests'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
     var h = (location.hash || '#overview').slice(1), cut = h.indexOf('/');
@@ -1193,16 +1305,29 @@
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('xmc-theme', next); } catch (e) { /* ignore */ }
   };
+  // The site, on every tab and in the browser tab (mainstream test-mode marks): the 内测版 gets an amber band at the top,
+  // 「【内测】」 in the title and an amber icon; 语流's keeps its look with a small 「正式版」 label, its title and the green icon.
+  function envMarks() {
+    var beta = isBeta(), bar = document.getElementById('envBar'), tag = document.getElementById('envTag');
+    document.documentElement.dataset.env = beta ? 'beta' : 'prod';
+    document.title = (beta ? '【内测】语流后台 · ' : '语流后台 · 正式版 · ') + siteName();
+    if (bar) { bar.hidden = !beta; bar.innerHTML = beta ? '<b>内测版后台</b> · ' + esc(siteName()) + ' · 数据和正式版分开，这里的改动不影响正式版学员' : ''; }
+    if (tag) { tag.textContent = beta ? '内测版' : '正式版'; tag.hidden = false; }
+    var icon = document.getElementById('favicon');
+    if (icon) icon.href = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="' + (beta ? '#d97706' : '#1f9d55') + '"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>');
+    var sv = document.getElementById('surveyLink'); if (sv) sv.href = siteUrl('/survey');
+  }
   // Who is signed in (Cloudflare Access) and with which role; which server the data comes from (香港 or 杭州), on
   // every tab: the two panels look alike, the data must not.
   function whoAmI() {
     return getJSON('/me').then(function (me) {
       ST.me = me;
+      envMarks();
       var w = document.getElementById('who');
       if (w) { w.textContent = (me.email || '未识别的账号') + ' · ' + me.label; w.hidden = false; }
       var el = document.getElementById('srv');
       if (el && me.server) { el.textContent = '数据来自' + me.server; el.hidden = false; }
-      document.querySelectorAll('.adm-tabs [data-admin], .adm-groups [data-admin]').forEach(function (a) { a.hidden = !isAdmin(); });
+      document.querySelectorAll('.adm-tabs [data-admin], .adm-groups [data-admin]').forEach(function (a) { a.hidden = !isAdmin() || (a.hasAttribute('data-beta') && !isBeta()); });
       if (isAdmin()) getJSON('/feedback?status=new&page=1').then(function (d) { fbBadge(d.counts.new); }).catch(function () { /* an older Flow */ });
     }).catch(function () { /* an older Flow without /me: everything as before */ });
   }

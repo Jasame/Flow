@@ -3,7 +3,7 @@
 .lc-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .lc-body{display:grid;gap:8px}
 .lc-fold{display:none}
-.lc-title{margin:0;font-size:13px;line-height:1.4;font-weight:700;color:var(--green-ink);letter-spacing:.02em}
+.lc-title{margin:0;font-size:13.5px;line-height:1.4;font-weight:700;color:var(--green-ink);letter-spacing:.02em}
 .lc-en{margin:2px 0 0;font-family:var(--serif);font-size:22px;line-height:1.4;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
 .lc-en.long{font-size:19px}
 .lc-en b{font-weight:600;background:linear-gradient(transparent 62%,var(--mark) 0)}
@@ -27,7 +27,7 @@
 .news-card:hover{background:var(--sunk);background:color-mix(in srgb,var(--paper) 90%,var(--amber-soft))}
 /* the darker amber (text on white needs 4.5:1; --amber gives 4.2) */
 .news-card .nc-title,.news-card .pill.amber{color:var(--amber-fill)}
-.nc-h{font-size:16.5px;line-height:1.45}
+.nc-h{font-size:17px;line-height:1.45}
 .nc-p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .news-card .nc-why{color:var(--green-ink);font-weight:600}  /* 和你的目标相关, in place of the topic: the card keeps its height */
 .nc-go{float:right;color:var(--green-ink);font-weight:600;font-size:13px}
@@ -61,7 +61,7 @@
   .news-card{display:flex;align-items:center;gap:8px;min-height:44px;padding-top:10px;padding-bottom:10px}
   .news-card .lc-head{display:contents}
   .news-card .nc-title{flex:none}
-  .news-card .nc-h{order:1;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+  .news-card .nc-h{order:1;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15.5px}
   .news-card .ai-mark{order:2;flex:none}
   .news-card .nc-p,.news-card .nc-meta{display:none}
   .news-card::after{content:"›";order:3;flex:none;color:var(--muted);font-size:20px;line-height:1}

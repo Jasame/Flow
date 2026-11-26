@@ -42,15 +42,15 @@
       const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
       // the line past the day's minutes goes under the button, so it never pushes 开始 / 继续 off the first screen
       top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
-        <div class="tp-head"><div><h1 class="h1" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1>
-          <span class="muted small">${planHeadText(p)}</span>${sprintLine(h)}</div>
-          <span class="ring" data-p="${Math.round(p.done / Math.max(1, p.total) * 100)}" role="img" aria-label="今天的计划，已完成 ${p.done} 步，共 ${p.total} 步"><b aria-hidden="true">${p.done}/${p.total}</b></span></div>
-        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}">${p.done ? '继续' : '开始'}第 ${nextK + 1} 步<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
+        <div class="tp-head"><h1 class="tp-t" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1><span class="muted small">${planHeadText(p)}</span>
+          <span class="tp-count" role="img" aria-label="今天的计划，已完成 ${p.done} 步，共 ${p.total} 步"><span aria-hidden="true">${p.done} / ${p.total}</span></span>${sprintLine(h)}</div>
+        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}" data-tap="home-start">${p.done ? '继续' : '开始'}今天的练习<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
           : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
             <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
             <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>
             <button class="link small hit44 tp-remind" type="button" id="remindOnce" data-tap="home-remind-once">今天或明天什么时候有空复习？</button></div>`}
         <div class="plist">${must.map((s, k) => planRowHTML(s, String(k + 1), s === next, s.key === 'read' ? art : null)).join('')}</div>
+        ${p.note ? `<p class="tiny muted tp-note">${esc(p.note)}</p>` : ''}
         ${extra.length ? `<details class="tp-extra"${next ? '' : ' open'}><summary><span>还有时间的话</span><span class="tiny muted">${extra.length} 项 · 不算进今天的计划</span></summary>
           <div class="plist">${extra.map(s => planRowHTML(s, '+', false, null, 'home-extra')).join('')}</div></details>` : ''}
         ${wk.length ? `<div class="tp-week"><div class="tp-week-head"><h2 class="h3">本周任务</h2><span class="tiny muted">这周哪天做都行，不占每天的时间</span></div>
@@ -71,16 +71,15 @@
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
         ${st && st.habit ? '' : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
       ${announceHTML(h) || updateCardHTML(h)}${trialSurveyHTML(h)}
-      ${short ? '' : lineCardHTML(h) + newsCardHTML(news)}
+      ${short ? '' : lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h)}
       ${top}
-      ${short ? lineCardHTML(h) + newsCardHTML(news) : ''}
+      ${short ? lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h) : ''}
       ${weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
       <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small hit44" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>${featLeftHTML(h)}
         <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
           <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
-    const ring = view.querySelector('.ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p + '%');  // CSP: no inline style attributes
     fillNotice(h);
     bindAnnounce(h); bindUpdateCard(h); bindTrialSurvey();  // 「语流更新了」 where a 公告 would be (83-updates.js)
     bindLine(h);  // 今日好句 (12-daily-line.js)
@@ -93,9 +92,19 @@
   // The plan's line under its title: 必做's real minutes before it starts, what is left once it has, and the day's
   // minutes from the learner's own records once it is done (time_budget, r28). An older server: the minutes chosen.
   function planHeadText(p) {
-    if (p.must_minutes == null) return `${p.total} 步 · 约 ${p.minutes} 分钟 · 已完成 ${p.done} / ${p.total}`;
-    if (p.done >= p.total) return `必做 ${p.total} 步都做完了${p.studied ? ` · 今天学了约 ${p.studied} 分钟` : ''}`;
-    return p.done ? `还要约 ${p.left_minutes} 分钟` : `约 ${p.must_minutes} 分钟`;  // the ring beside it says 1/3
+    if (p.must_minutes == null) return `${p.total} 步 · 约 ${p.minutes} 分钟`;
+    if (p.done >= p.total) return p.studied ? `今天学了约 ${p.studied} 分钟` : '都做完了';
+    return p.done ? `还要约 ${p.left_minutes} 分钟` : `必做 ${p.total} 步 · 约 ${p.must_minutes} 分钟`;  // done / total beside it (.tp-count)
+  }
+  // 练我自己的材料 (r29, the user's pick 2026-11-26: a third row under 今日好句 and 今日一读, the same look): the learner's own
+  // article to go on with (next_service.mine), or a way to paste one in. Signed in only: a guest has no articles.
+  function mineRowHTML(h) {
+    if (!S.user || !h.mine) return '';
+    const m = h.mine.item;
+    const href = m ? `#/m/${encodeURIComponent(m.id)}${m.started ? '/' + nextStep(m.steps) : ''}` : '#/import';
+    return `<a class="card news-card mine-card" href="${href}" data-tap="home-mine"><span class="lc-head"><span class="lc-title nc-title">我的材料</span></span>
+      <b class="nc-h">${m ? `${m.started ? '继续' : '练'}《${esc(m.title)}》` : '贴课本或讲义进来练'}</b>
+      <span class="small muted nc-p">${m ? `${esc(m.level || '')} · ${m.words} 词 · 你自己贴进来的` : '课本、讲义、面试题都行，用语流的四步来练'}</span></a>`;
   }
   // A step of the plan as a row: its number (+ for 还有时间的话, 周 for 本周任务), what to do and about how long.
   // 本周任务's row is .wtask, never .week: .week is the week-days bar (10-pages.css .week span = a 6 px grey bar), which

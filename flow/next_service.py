@@ -772,6 +772,32 @@ def read_fits(words, minutes, exam=False):
     return tb.read_minutes(words, b['read_mode']) <= b['read'] / b['texts'] + 1
 
 
+def mine(c, uid, prof=None):
+    """练我自己的材料 on 今日 (r29, the user's pick 2026-11-26): the learner's own article (我的文章) to go on with:
+    the one studied most recently and not finished (no 用出来 yet), else the newest not studied yet; with 按我的学习记录推荐
+    off, simply the newest. {count, item: {id, title, level, words, steps, started} or None}: None when there is none
+    to go on with (none imported, or all finished), and 今日 asks for one."""
+    rows = c.execute("SELECT content, created FROM lab_packs WHERE owner=? AND origin='import' ORDER BY created DESC", (uid,)).fetchall()
+    packs = [json.loads(r['content']) for r in rows]
+    if not packs:
+        return {'count': 0, 'item': None}
+    done = _done(c, uid)
+    if follows_records(prof):
+        touched = {r['pack']: r['t'] for r in c.execute(
+            'SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? '
+            'UNION ALL SELECT pack, created FROM next_step_log WHERE user_id=?) GROUP BY pack', (uid, uid))}
+        unfinished = [p for p in packs if 'output' not in done.get(p['id'], set())]
+        started = sorted((p for p in unfinished if p['id'] in touched), key=lambda p: -touched[p['id']])
+        pick = (started or unfinished or [None])[0]
+    else:
+        pick = packs[0] if 'output' not in done.get(packs[0]['id'], set()) else None
+    if not pick:
+        return {'count': len(packs), 'item': None}
+    steps = sorted(done.get(pick['id'], set()), key=lambda s: STEPS.index(s) if s in STEPS else len(STEPS))
+    return {'count': len(packs), 'item': {'id': pick['id'], 'title': pick['title'], 'level': pick.get('cefr') or pick.get('level'),
+                                          'words': len(WORD.findall(pick.get('body') or '')), 'steps': steps, 'started': bool(steps)}}
+
+
 def featured_left(c, uid, level, done=None):
     """How many of a level's featured texts the learner has not learned yet (every episode of a serial counts).
     今日 says so from seven down (r27 content line); other parts of 今日 can use it too (今日好句 avoids the last few)."""
@@ -930,7 +956,8 @@ def home(c, uid, level=None, themes=None):
            'announce': __import__('console_ops').current_announcement(c),
            'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
            'update': __import__('updates_service').latest(),  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
-           'personalized': bool(uid) and not plain}  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
+           'personalized': bool(uid) and not plain,  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
+           'mine': mine(c, uid, prof) if uid else None}  # 练我自己的材料 (r29): 今日's third row
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
@@ -1431,7 +1458,7 @@ def rewrite(c, uid, data):
             __import__('vocab_service').record_use(c, uid, r.get('word_use') or [], now)
             import skills_service as sk
             sk.log(c, uid, 'writing', 'rewrite', {'natural': 1.0, 'minor': 0.7, 'rewrite': 0.35}[r['verdict']], level, p['id'], commit=False)
-            __import__('progress_service').note_evidence(c, uid, answer, r['changes'], 'rewrite', rid, data.get('assisted'), now)
+            __import__('progress_service').note_evidence(c, uid, answer, r['changes'], 'rewrite', rid, data.get('assisted'), now, source=p.get('body', ''))
             sk.mistakes_from_changes(c, uid, r['changes'], answer, 'writing', p['id'], request_id=rid, kind='rewrite', assisted=data.get('assisted'))
         for ch in r['changes']:
             ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
@@ -1828,10 +1855,51 @@ def post_public(c, uid, path, data):
 
 AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
             '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say',
-            '/api/next/ielts')
+            '/api/next/ielts', '/api/next/two/ask', '/api/next/two/check')
+
+
+def _two_lines():
+    """B7's two_lines (the question and the marking of 听两句、答一句), None until it is on main."""
+    try:
+        import two_lines
+        return two_lines
+    except ImportError:
+        return None
+
+
+TWO_OFF = ({'error': '这一项马上就开，先学今天这篇吧'}, 503)
+
+
+def two_ask(c, uid, data):
+    """听两句、答一句 (r29, 5 分钟的表达日): the question on two sentences of today's text (two_lines.ask)."""
+    tl = _two_lines()
+    return tl.ask(c, uid, data) if tl else TWO_OFF
+
+
+def two_check(c, uid, data):
+    """The one sentence back, said or typed, marked by two_lines.check. A marked answer is that day's 用出来: one skill
+    event, kind 'two', speaking when recorded, writing when typed; met 1.0, not yet 0.4. A recording with nothing heard
+    (heard_nothing) is no answer: no event, the page asks again. The words heard are never kept."""
+    tl = _two_lines()
+    if not tl:
+        return TWO_OFF
+    _, _, err = __import__('output_service')._audio_or_text(data, 3, 300)  # the recording checked here, as on every route
+    if err:
+        return err
+    out, status = tl.check(c, uid, data)
+    r, pid = out.get('result') or {}, str(data.get('pack', ''))
+    if status == 200 and not out.get('replayed') and not r.get('heard_nothing'):
+        row = _pack_row(c, uid, pid)
+        __import__('skills_service').log(c, uid, 'speaking' if data.get('audio') else 'writing', 'two', 1.0 if r.get('met') == 'met' else 0.4,
+                                         cefr(json.loads(row['content'])) if row else None, pid)
+    return out, status
 
 
 def post(c, uid, path, data):
+    if path == '/api/next/two/ask':
+        return two_ask(c, uid, data)
+    if path == '/api/next/two/check':
+        return two_check(c, uid, data)
     if path in ('/api/next/class/create', '/api/next/class/rename'):
         ts = __import__('teacher_service')  # 老师账号: its own classes (teacher_service.py)
         return (ts.create_class if path.endswith('/create') else ts.rename_class)(c, uid, data)
