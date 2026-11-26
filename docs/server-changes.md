@@ -30,6 +30,37 @@
 
 ## 2026-11-26
 
+### 09:34 · 香港：Linux 0.1.1 测试版放进下载目录
+
+- **改了什么**：下载目录加了 Linux 的 AppImage、deb 和 `SHA256SUMS.txt`；`desktop/latest.json` 加了 linux-x86_64（Mac、Windows 不变），
+  `latest.json` 加了 linux-appimage、linux-deb。
+- **谁、为什么**：语流 A1·发版和服务器，桌面版 Linux（#310）。用户的原话：「放（推荐）」。
+- **备份**：两份清单的备份在 `/root/claude-ops/backup-*-20261126-093428.json`。
+- **撤回**：两份清单里删掉 linux 那几项；三个文件挪到 `/root/claude-ops`。
+
+### 09:34 · 香港：安卓 1.0.4 放进下载目录
+
+- **改了什么**：下载目录加了 1.0.4 的 apk（1,143,849 字节，sha256 `634fa483…`），`latest.json` 的 android 改成 1.0.4、code 5，
+  App 里会提示更新。
+- **谁、为什么**：语流 A1，安卓 1.0.4（#332）。用户的原话：「放（推荐）」。
+- **备份**：`latest.json` 的备份在 `/root/claude-ops/backup-*-20261126-093428.json`。
+- **撤回**：把 `latest.json` 的 android 改回 1.0.2（code 3）。1.0.2 的 apk 还在。
+
+### 09:21 · 香港：下载的 nginx 规则放宽
+
+- **改了什么**：`/www/server/panel/vhost/nginx/extension/flowlang.cn/download.conf`：下载文件名允许大写和下划线，放行 AppImage、deb，
+  加上 `/download/SHA256SUMS.txt`。`nginx -t` 通过以后 reload。
+- **谁、为什么**：语流 A1，给 Linux 测试版的文件名用。
+- **备份**：`/root/claude-ops/backup-download-conf-20261126-092156.conf`。
+- **撤回**：只改回下载那一条规则和 `SHA256SUMS.txt` 那一段，`nginx -t` 通过后 reload。
+
+### 09:17 · 香港：nginx 日志按天切，留 14 天
+
+- **改了什么**：新文件 `/etc/logrotate.d/flow-nginx`：`flow.jasa.hk.log` 和 `error.log` 每天切一次，留 14 天。
+- **谁、为什么**：语流 A1。两个站共用的访问日志一直没切，旧 iPhone 那次就是从它里面查出来的，留得太久也不必要。用户的原话：
+  「按天切，留 14 天（推荐）」。
+- **撤回**：删掉 `/etc/logrotate.d/flow-nginx`。
+
 ### 00:42 · 两个站：能力测评的口语题走 Omni（`FLOW_AUDIO_ROUTES` 加一段）
 
 - **改了什么**：香港 `/etc/flow.env` 第 41 行、`/etc/flow-beta.env` 第 50 行，`FLOW_AUDIO_ROUTES` 行尾加了 `,*=flow-audio-omni-flash`，
