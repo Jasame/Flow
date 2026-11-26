@@ -297,10 +297,22 @@ def run_device(pw, dev, opts):
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
     # ---- exam practice: a timed paper (its size set by the learner's minutes a day), handed in once, scored by part
+    # 考试练习 (B9's batch 3): the note as it was, small and grey; 我的考试 a white card and the one green button; the
+    # exams one white card, a row each with 「约 N 分钟 ›」
+    go(pg, '#/exam'); pg.wait_for_timeout(300)
+    ev = pg.evaluate("""() => { const n = document.querySelector('#view .ex-note'); return { hub: !!document.getElementById('spTypesH'), note: n ? [n.textContent, getComputedStyle(n).fontSize] : null,
+      cards: document.querySelectorAll('#view .ex-list').length, rows: document.querySelectorAll('#view .ex-list > .ex-row').length,
+      mins: [...document.querySelectorAll('#view .ex-row .m')].every(m => /^约 \\d+ 分钟 ›$/.test(m.textContent)), greens: document.querySelectorAll('#view .btn.primary').length,
+      invite: !!document.getElementById('exInvite'), wide: document.scrollingElement.scrollWidth - innerWidth }; }""")
+    if not ev['hub']:
+        check(dev, 'exam: the note under the title as it was (12 px), the exams in one white card with 「约 N 分钟 ›」, 设定我的考试 the one green button',
+              ev['note'] and '不是真题' in ev['note'][0] and ev['note'][1] == '12px' and ev['cards'] == 1 and ev['rows'] >= 7 and ev['mins']
+              and ev['invite'] and ev['greens'] == 1 and ev['wide'] <= 0, ev)
     go(pg, '#/exam/cet4')
-    ex = pg.evaluate("""() => { const c = document.querySelector('#view .opt[aria-pressed=true]'), d = document.getElementById('examCur');
-      return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .opt:not([aria-pressed=true])')).backgroundColor] : null; }""")
-    check(dev, 'exam: the chosen exam opens right under its card, 开始一套 in the primary style', ex and 0 <= ex[0] <= 40 and ex[1], ex)
+    ex = pg.evaluate("""() => { const c = document.querySelector('#view .ex-row[aria-pressed=true]'), d = document.getElementById('examCur');
+      return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .ex-row:not([aria-pressed=true])')).backgroundColor,
+        document.querySelectorAll('#view .btn.primary').length] : null; }""")
+    check(dev, 'exam: the chosen exam opens right under its row, 开始一套 in the primary style and the only one', ex and 0 <= ex[0] <= 40 and ex[1] and ex[2] == 1, ex)
     with pg.expect_response(lambda r: r.url.endswith('/api/next/exam/paper')) as got:
         pg.click('#exStart')
     paper = got.value.json()
