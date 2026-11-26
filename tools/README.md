@@ -296,6 +296,19 @@ GitHub's machines.
   workspace after every job. A fork's pull request is never sent there by the pick, and because a fork could edit the
   workflow itself, Settings → Actions → General keeps "Require approval for all outside collaborators": never approve a
   fork's run that changes `.github/workflows/` without reading it.
+- **Local code mirror** (2026-11-26, to spend less of the proxy): `~/ci-cache/flow.git` holds main (objects are only
+  added, `gc.auto=0`), refreshed every 10 minutes by cron (`~/ci-cache/update.sh`: first from msi-run's repository the
+  Macs push to over the LAN, then main's new commits from GitHub). Every runner's `.env` has
+  `GIT_ALTERNATE_OBJECT_DIRECTORIES` pointing at its objects, so a checkout downloads only what the mirror lacks
+  (12 MB → 0 for main), and `PIP_INDEX_URL` at mirrors.aliyun.com (direct, in `NO_PROXY`). Undo: the runners'
+  `.env.bak-20261126-mirror`, `crontab -r`. Reloading a runner's `.env` without sudo: kill its idle `Runner.Listener`
+  (never one with a `Runner.Worker` child); `RunnerService.js` starts it again within 5 s.
+- **Nightly whole-site check** (`tools/nightly_check.py`, run by `tools/nightly-msi.sh` from cron at 01:00 on main as it
+  is that night): every UI group, each page in Chinese and English on a phone and a desktop (screenshots, script
+  errors, Chinese left in the English pages, time to draw), each material's 读 and 听 pages, and `check_compat.py`
+  (static only: no old Safari on Linux). Local server and demo learners only; four cores at the lowest priority, waiting
+  while a CI job runs, stopping at 06:30. The report goes to `~/nightly/publish/<date>/`; read it from the Mac with
+  `ssh msi-flow cat ~/nightly/publish/$(date +%F)/report.md` (the shots it names are next to it).
 
 ## End-to-end test on the server (`qa_e2e.py`)
 
