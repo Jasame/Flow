@@ -171,7 +171,7 @@
       bar(); swipe = null;
       const after = (r, html) => {
         const ms = Date.now() - t0;
-        view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter">${html}<div class="row center"><button class="btn primary" id="go">下一个</button></div></div>`);
+        view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter">${html}<div class="row center"><button class="btn primary" id="go">下一个</button></div>${fromLine(c)}</div>`);  // 来自 … › (练习记录)
         document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
       };
       if (c.mode === 'question' && c.variant) {
@@ -213,7 +213,7 @@
           const ms = Date.now() - t0;
           view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter"><div class="small"><span class="muted">你写的：</span>${esc(v)}</div>
             <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted" data-zh>${esc(c.meaning)}</div>` : ''}
-            <div class="row center"><button class="btn" id="fixSame">我写的也对</button><button class="btn primary" id="fixMiss">没写对，记下了</button></div></div>`);
+            <div class="row center"><button class="btn" id="fixSame">我写的也对</button><button class="btn primary" id="fixMiss">没写对，记下了</button></div>${fromLine(c)}</div>`);
           document.getElementById('fixSame').onclick = () => rate('good', ms); document.getElementById('fixMiss').onclick = () => rate('again', ms);
         };
         document.getElementById('fixGo').onclick = () => done(inp.value.trim());

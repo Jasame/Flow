@@ -22,6 +22,14 @@
     return n === 0 ? '今天晚些时候复习' : n === 1 ? '明天复习' : `${n} 天后复习`;
   }
   const WEEKDAY = '日一二三四五六';
+  // 练习记录 (B9's practice-history, sheet A): where a mistake came from, one grey line at the bottom of its back and of its
+  // sheet in 错题本, a tap opens that record (#/history/<id>); nothing when the card has no from (an older card the
+  // record cannot be matched to, or a record deleted). Each part its own text, so the English table finds them.
+  function fromLine(c) {
+    const f = c && c.from; if (!f || !f.id) return '';
+    const d = new Date(f.at * 1000);
+    return `<a class="from-line" href="#/history/${encodeURIComponent(f.id)}"><span>来自</span> <span>${d.getMonth() + 1}月${d.getDate()}日</span> · <span>${esc(f.label || '')}</span>${f.title ? `：<span data-zh>${esc(f.title)}</span>` : ''}<span aria-hidden="true"> ›</span></a>`;
+  }
   // The 单词 page's tool row: [link or button id, label, icon paths].
   const WORD_TOOLS = [['#/vocab/plan', '背词计划', 'cal'], ['#/words/confuse', '词汇辨析', 'venn'], ['#/vocab/test', '测词汇量', 'gauge'], ['imp', '导入', 'inbox']];  // B9's icons (00-icons.js)
   // 「认识」放在 (我的 → 使用习惯; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
@@ -386,15 +394,16 @@
       ${wordHead(c.text, c.phonetic)}
       ${c.source === 'mistake' && (c.extra || {}).from ? `<div class="fixline"><del>${esc(c.extra.from)}</del> → <ins>${esc(c.text)}</ins></div>` : ''}
       ${c.meaning ? `<div class="mean" data-zh>${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
-      <div class="wd-meta">${[c.known ? '熟知' : c.state === 'new' ? '待学' : `${c.mastered ? '已掌握 · ' : ''}<span title="此刻记得的概率">记得 ${pct(c.recall)}</span>`,
+      <div class="wd-meta">${[c.known ? '熟知' : c.state === 'new' ? (c.source === 'mistake' ? dueText(c.due) : '待学') : `${c.mastered ? '已掌握 · ' : ''}<span title="此刻记得的概率">记得 ${pct(c.recall)}</span>`,
         c.stability ? `记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}` : '', c.state !== 'new' && !c.known ? dueText(c.due) : ''].filter(Boolean).join(' · ')}</div>
       ${curveSVG(c, d.retention)}
       <div id="exSlot">${examplesHTML(c) || (c.kind === 'word' && S.user ? '<p class="muted tiny"><span class="spin"></span> 正在找例句…</p>' : '')}</div>
       <div id="xtraSlot">${extrasHTML(c)}</div>
       ${(d.marked || []).length ? `<div class="xtra-marked tiny muted">你标为不对的：${d.marked.map(m => `<span><b>${esc(m.en)}</b> <button class="link small" type="button" data-xback="${m.id}" aria-label="放回 ${esc(m.en)}">放回</button></span>`).join('　')}</div>` : ''}
       ${d.history.length ? `<div class="tiny muted">复习记录：${d.history.slice(-8).map(h => `${new Date(h.created * 1000).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })} ${tl[h.rating] || h.rating}`).join(' · ')}</div>` : ''}
-      <div class="row"><button class="btn" id="known">${c.known ? '取消熟知，继续复习' : '标为熟知，不再复习'}</button><button class="btn ghost" id="del">删除</button><button class="btn ghost" data-close>关闭</button></div></div>`, card => {
+      <div class="row"><button class="btn" id="known">${c.known ? '取消熟知，继续复习' : '标为熟知，不再复习'}</button><button class="btn ghost" id="del">删除</button><button class="btn ghost" data-close>关闭</button></div>${fromLine(c)}</div>`, card => {
       card.querySelectorAll('#sayW, .tapsay').forEach(b => { b.onclick = () => CLIP.word(c); });
+      const fl = card.querySelector('.from-line'); if (fl) fl.addEventListener('click', () => closeSheet());  // the record opens on the page, not under the sheet
       bindExamples(card, c);
       bindExtras(card, c);
       card.querySelectorAll('[data-xback]').forEach(b => { b.onclick = async () => {  // 放回: shown again, the sheet drawn again
