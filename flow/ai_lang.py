@@ -53,6 +53,12 @@ def word():
     return '英文' if en() else '中文'
 
 
+def pick(zh, en_text):
+    """One part of a format string: as it was on a Chinese page, the English page's where a field named no language
+    (the eval, 2026-11-26: an explanation's structure came back in Chinese while its notes were English)."""
+    return en_text if en() else zh
+
+
 def voice(level, zh):
     """next_service's level line: zh as it is, or the English page's."""
     return VOICE.get(level, VOICE['B1']) if en() else zh

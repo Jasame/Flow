@@ -1403,8 +1403,8 @@ def rewrite(c, uid, data):
               '\n全部语法节点（id=名称）：' + _node_list(c) +
               '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（' + ai_lang.word() + '，先说优点）",'
               '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
-              '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+              '"changes":[{"from":"原文片段","to":"改后片段","why":"' + ai_lang.pick('为什么（简短）', '为什么（简短，英文）') + '","node":"相关语法节点 id，没有就写 null"}],'
+              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"' + ai_lang.pick('和原句的差别', '和原句的差别（英文）') + '"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
               '"used_well":["学习者用对了的语法节点 id"],'
               '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。'
               '\n\n学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + ai_lang.voice(level, _level_voice(level)) + ai_lang.tail())
@@ -1640,8 +1640,8 @@ def explain(c, uid, data):
     hints = [f"{k['node']}（{meta.get(k['node'], {}).get('title', '')}）：{k['quote']}" for k in p.get('knowledge', []) if k.get('quote') and k['quote'] in sentence]
     system = ('你是英语老师。讲解要短、准、能模仿。只输出 JSON。'
               '\n可用语法节点（id=名称）：' + _node_list(c) +
-              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
-              '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
+              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"' + ai_lang.pick('一句话拆解句子主干和修饰成分', '一句英文拆解句子主干和修饰成分') + '",'
+              '"points":[{"text":"句中原样片段","note":"' + ai_lang.pick('讲解（为什么这样用、语气、搭配）', '英文讲解（为什么这样用、语气、搭配）') + '","node":"相关语法节点 id 或 null"}],'
               '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。'
               '\n\n学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + ai_lang.voice(level, _level_voice(level)) + ai_lang.tail())
     user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else ''))
