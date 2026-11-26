@@ -135,6 +135,18 @@
     if (LONG.r || audioBusy()) return;
     S.homeFresh = true; route(true, true);
   }
+  // Back in front after a while (the phone unlocked the next morning, a tab left open): the page still said what was
+  // true when it was drawn, yesterday's 已完成 3 / 3, a tab's dot for words reviewed since on another device (B9's
+  // audit, 2026-11-26: 提醒和真实状态对不上). The home data is asked for again: the tabs' dots follow at once, and 今日 and
+  // 练习, which are made of it, are drawn again quietly if anything changed. A short look away asks nothing.
+  const AWAY = { at: 0, long: 5 * 60000 };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { AWAY.at = Date.now(); return; }
+    if (!AWAY.at || Date.now() - AWAY.at < AWAY.long || !S.home) return;
+    AWAY.at = 0;
+    const drawnFor = location.hash, name = parts()[0];
+    refreshHome().then(changed => { if (changed && (name === '' || name === 'practice')) redrawQuietly(drawnFor); }).catch(() => { /* offline: the page stays */ });
+  });
   function needLogin(reason) { openLogin(reason); return false; }
   /* ---------- sign in, sign up, a forgotten password ---------- */
   // With mail configured (production), sign-up, code login and a forgotten password use an emailed 6-digit code;

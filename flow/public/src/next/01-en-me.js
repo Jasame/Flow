@@ -9,7 +9,7 @@
     // 49-practice.js
     '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed drill', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
     '{n} 个生活和校园情景，和 AI 对话': '{1} scenes with AI',
-    '做错的题、句型和整句': 'Missed questions, patterns and sentences', '都复习完了': 'All reviewed',
+    '做错的题、句型和整句': 'Missed questions, patterns and sentences', '现在没有到期的': 'Nothing due now',
     '第一次用？看操作指南 ›': 'New here? Read the guide ›',
     '需要留意：{x}': 'Needs work: {1}', '该复习：{x}': 'Due for review: {1}', '已点亮 {n} / {n}': '{1} / {2} lit',
     '今天建议': 'Suggested for today',
