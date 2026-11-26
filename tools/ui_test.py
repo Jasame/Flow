@@ -2655,6 +2655,24 @@ def privacy_run(pw):
         pg.check('#guardF [name=guardian]'); pg.click('#guardF [type=submit]'); pg.wait_for_timeout(600)
         pg.click('#go'); pg.wait_for_selector('#finSum, .rw-result, .fb', timeout=15000)
         check(dev, '不满 14 岁: 仿写 waits for the tick, then goes on', '勾选' in unticked and pg.evaluate("document.getElementById('sheet').hidden"), unticked)
+        ctx.close()
+        # 切换账号 (account_switch.py, the owner 2026-11-26): two accounts remembered here; 我的 says so and puts 「切换 ›» by
+        # the name; the sheet ticks the one in use; a tap switches without a password (the server's account changes too)
+        ctx = browser.new_context(**phone)
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['student']['token'], 'url': BASE},
+                         {'name': 'flow_more', 'value': CFG['learners']['teacher']['token'], 'url': BASE}])
+        pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg.wait_for_function("document.getElementById('meSwitchV') && !document.querySelector('#meSwitchV .spin')", timeout=8000)
+        row = (pg.text_content('#meSwitchV') or '').strip()
+        pg.click('#meSwitchTop'); pg.wait_for_selector('.sw-sheet', timeout=8000)
+        ticked = pg.locator('.sw-main[aria-current]').count() == 1 and pg.locator('.sw-more').count() == 1 and '公用电脑' in (pg.text_content('.sw-note') or '')
+        pg.screenshot(path=str(OUT / 'privacy-switch-sheet.png'))
+        pg.click('.sw-main:not([aria-current]):not(.sw-add)'); pg.wait_for_timeout(2000)
+        now = pg.evaluate("fetch('/api/session', {credentials: 'same-origin'}).then(r => r.json()).then(j => j.user && j.user.username)")
+        bar = pg.is_visible('.easy-bar') and '已切换到' in (pg.text_content('.easy-bar') or '')
+        check(dev, '切换账号: two remembered, 我的 says so, the sheet ticks the one in use, a tap switches', row == '这台设备 2 个账号'
+              and ticked and now == 'ui-teacher' and bar, (row, ticked, now, bar))
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

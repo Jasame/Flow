@@ -74,7 +74,7 @@
         appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '',
         u && S.home && S.home.profile ? personalizeRow() : ''],  // last in the group: the grey line under it is about it (81-privacy.js)
         u && S.home && S.home.profile ? PERSONALIZE_FOOT : ''],
-      u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+      u && ['账号', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
       // 内测版 (flow.jasa.hk) only: what the line under the top bar said, kept here (the line can be closed): the
@@ -91,6 +91,7 @@
       ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
+        ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
         ${st ? `<div class="me-nums">${[[st.habit ? st.habit.done : st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
           : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
@@ -131,7 +132,10 @@
       document.getElementById('meAge').onclick = () => ageSheet(false);
       document.getElementById('meStorage').onclick = storageSheet;
       document.getElementById('meDelete').onclick = deleteAccountSheet;
-      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+      document.getElementById('meSwitch').onclick = () => switchSheet(); const swt = document.getElementById('meSwitchTop'); if (swt) swt.onclick = () => switchSheet();
+      fillSwitchRow();  // 切换账号 (81-switch.js)
+      // 退出登录: only this account; with others remembered here, they are offered (none is opened by itself)
+      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; accountChanged(); await refreshHome(); toast('已退出'); route(); switchSheet(true); };
     }
   }
   // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)

@@ -126,7 +126,7 @@ SESSION_DAYS=30
 # r20: the classic site is archived (archive/classic/). The learner site serves only what the learning site (next.html),
 # the survey, sign-in and the account need, and the operations checks; every other /api/ path answers 404. Operator
 # functions live in the xmc.hk console (flow_admin.py, port FLOW_ADMIN_PORT), never on the learner site.
-OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/account/ai','/api/next/'),
+OPEN_API={'GET':('/api/health','/api/version','/api/survey','/api/deploy-status','/api/session','/api/account','/api/account/ai','/api/account/list','/api/next/'),
  'POST':('/api/survey','/api/feedback','/api/next/','/api/recovery/','/api/teacher/check','/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/logout','/api/password','/api/account/')}
 SIGN_IN_ROUTES=('/api/login','/api/register','/api/auth/code','/api/auth/reset','/api/recovery/request','/api/recovery/reset','/api/teacher/check')
 def ai_path(path):
@@ -274,7 +274,8 @@ class Handler(BaseHTTPRequestHandler):
   quota=self.ai_quota_now()
   if quota:self.send_header('X-Flow-AI-Quota',quota)  # 00-head.js: once a day, a line when little or none is left
   renew,self.renew=getattr(self,'renew',None),None
-  if cookie:self.send_header('Set-Cookie',cookie)
+  if cookie:
+   for one in (cookie if isinstance(cookie,list) else [cookie]):self.send_header('Set-Cookie',one)  # 切换账号: two at once
   elif renew:self.send_header('Set-Cookie',session_cookie(renew))  # a session in use stays signed in (user())
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def ai_quota_now(self):
@@ -350,6 +351,26 @@ class Handler(BaseHTTPRequestHandler):
    try:self.send_header('AIGC',__import__('aigc_label').value('-'.join(aigc)).decode())
    except ValueError:pass
   self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+ def cookie_value(self,name):
+  jar=SimpleCookie()
+  try:jar.load(self.headers.get('Cookie',''))
+  except Exception:return ''
+  return jar[name].value if name in jar else ''
+ def switch_post(self,path,data):
+  # 切换账号 (account_switch.py): may be signed out (after 退出登录 the device still remembers others), so no CSRF then;
+  # a header of our own keeps another site's form from posting here (it cannot send it without the browser asking first)
+  import account_switch as sw
+  if self.headers.get('X-Requested-With')!='flow':return self.send({'error':'安全校验失败，请刷新页面'},403)
+  with db() as c:
+   cur=self.user(c)
+   if cur and not hmac.compare_digest(self.headers.get('X-CSRF-Token',''),cur['csrf']):return self.send({'error':'安全校验失败，请刷新页面'},403)
+   raw=self.cookie_value(sw.COOKIE)
+   if path=='/api/account/switch':
+    body,status,token,keep=sw.switch(c,cur,raw,data.get('id'))
+    cookies=[sw.cookie(keep,SESSION_DAYS,SECURE)]+([session_cookie(token)] if token else [])
+    return self.send(body,status,cookie=cookies)
+   body,status,keep=sw.forget(c,cur,raw,data.get('id'))
+   return self.send(body,status,cookie=sw.cookie(keep,SESSION_DAYS,SECURE))
  def user(self,c):
   self.renew=None
   jar=SimpleCookie()
@@ -378,6 +399,16 @@ class Handler(BaseHTTPRequestHandler):
   # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
   # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
   if path=='/api/version':return self.send({'asset':asset_version()})
+  if path=='/api/account/list':
+   # 切换账号 (account_switch.py): the accounts this device remembers, names and roles only; signed out too (after 退出
+   # 登录 the others stay); tokens that no longer open an account are dropped from the cookie
+   import account_switch as sw
+   with db() as c:
+    cur=self.user(c);raw=self.cookie_value(sw.COOKIE)
+    body,keep=sw.listing(c,cur,raw)
+    cookies=([sw.cookie(keep,SESSION_DAYS,SECURE)] if keep!=sw.tokens(raw) else [])+([session_cookie(self.renew)] if self.renew else [])
+    self.renew=None
+    return self.send(body,cookie=cookies or None)
   if path=='/robots.txt':
    body=('User-agent: *\nDisallow: /\n' if CHANNEL=='beta' else 'User-agent: *\nDisallow: /api/\nAllow: /\n').encode()
    self.send_response(200);self.headers_common('text/plain; charset=utf-8');self.send_header('Cache-Control','public, max-age=3600')
@@ -664,17 +695,28 @@ class Handler(BaseHTTPRequestHandler):
      times=[t for t in RATE.get(key,[]) if t>now-60];RATE[key]=times
      if len(times)>=LOGIN_PER_MINUTE:return self.send({'error':'操作过于频繁，请稍后再试'},429)
      times.append(now)
-   import auth_service
+   import auth_service, account_switch as sw
    with db() as c:
     if path=='/api/auth/code':return self.send(*auth_service.request(c,data,key))
+    # 切换账号 → 添加账号 (add: true, never with a password reset): the account in use stays on this device
+    add=data.get('add') is True and path!='/api/auth/reset'
+    cur=self.user(c) if add else None;raw=self.cookie_value(sw.COOKIE) if add else ''
+    if add and path=='/api/register':
+     full=sw.adding(c,cur,raw,None)  # before the account is made
+     if full:return self.send(*full)
     # 3.6: sign-up needs a verified email code; login accepts username/email + password or email + code.
     # r19: a forgotten password is reset with an emailed code, which also signs the learner in.
     u,problem=auth_service.register(c,data,password,key) if path=='/api/register' else auth_service.reset(c,data,password,key) if path=='/api/auth/reset' else auth_service.login(c,data,verify,key)
     if problem:return self.send(*problem)
     if 'disabled' in u.keys() and u['disabled']:return self.send({'error':'这个账号已停用。如有疑问，请联系语流。','code':'disabled'},403)
+    if add and path=='/api/login':
+     refused=sw.adding(c,cur,raw,u)
+     if refused:return self.send(*refused)
     token=secrets.token_urlsafe(32);csrf=secrets.token_urlsafe(24)
     c.execute('DELETE FROM sessions WHERE expires<?',(time.time(),));c.execute('INSERT INTO sessions VALUES(?,?,?,?)',(token,u['id'],csrf,time.time()+SESSION_DAYS*86400))
-   return self.send({'ok':True,'username':u['username']},cookie=session_cookie(token))
+    more=sw.cookie(sw.after_add(c,cur,raw,u),SESSION_DAYS,SECURE) if add else None
+   return self.send({'ok':True,'username':u['username']},cookie=[session_cookie(token)]+([more] if more else []))
+  if path in ('/api/account/switch','/api/account/forget'):return self.switch_post(path,data)  # 切换账号, signed out too
   with db() as c:
    u=self.user(c)
    if not u:return self.send({'error':'登录已过期'},401)

@@ -75,7 +75,8 @@
   async function request(path, body, quiet) {
     const opt = { credentials: 'same-origin', headers: {} };
     if (uiLang() === 'en') opt.headers['X-Flow-Lang'] = 'en';  // the server answers in English too (ui_lang.py)
-    if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
+    // X-Requested-With: our own header (切换账号 needs it signed out too: another site's form cannot send it, account_switch.py)
+    if (body !== undefined) { opt.method = 'POST'; opt.headers['Content-Type'] = 'application/json'; opt.headers['X-Requested-With'] = 'flow'; if (S.csrf) opt.headers['X-CSRF-Token'] = S.csrf; opt.body = JSON.stringify(body); }
     let r;
     const waiting = aiWait(path, body);
     try { r = await fetch(path, opt); } catch (x) { waiting(); noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
