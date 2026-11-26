@@ -2,7 +2,7 @@
    no green but the dot of 松绿 itself; ink and grey for what is chosen. */
 .hb-h{display:flex;align-items:center;gap:2px;margin:2px 0 14px;font-size:20px;font-weight:600;line-height:1.3}
 .hb-back{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:44px;margin-left:-8px;color:var(--ink);text-decoration:none;font-size:26px;font-weight:400}
-.hb-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.hb-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .hb-card{background:var(--paper);border-radius:16px;padding:12px 12px 13px;min-width:0}
 .hb-name{display:block;margin:0 0 8px 2px;font-size:13.5px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* a two-part switch: tap a side and that is it (the same look as 背单词's 简 | 详) */
@@ -14,10 +14,14 @@
 .hb-dot[data-c=green]{background:#1f9d55}
 .hb-dot[data-c=indigo]{background:#3461d1}
 /* 字号: three stops on a line, the name of each under it, a sample that follows */
-.hb-size{margin-top:10px}
-.hb-row{display:flex;justify-content:space-between;align-items:baseline}
+.hb-size{margin:8px 0 12px}
+.hb-row{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:34px}
 .hb-row .hb-name{margin-bottom:0}
-#hbSizeV{font-weight:500;font-size:15px;color:var(--ink)}
+#hbSizeV{font-weight:500;color:var(--ink)}
+/* 行距 by the title: a smaller switch of the same kind */
+.hb-lh{display:flex;align-items:center;gap:8px;flex:none}
+.hb-lh .hb-seg{width:118px;height:32px}
+.hb-lh .hb-seg button{font-size:14px}
 .hb-slide{display:flex;align-items:center;gap:10px;margin:6px 0 0}
 .hb-a{flex:none;width:24px;text-align:center;font-size:14px;line-height:1;color:var(--muted)}
 .hb-a.big{font-size:26px;color:var(--ink2)}
