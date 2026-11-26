@@ -561,14 +561,18 @@ document.documentElement.classList.add('js');
     }), { threshold: [0, 0.45, 0.8] }).observe(stage);
   }
 
-  /* ---------- 鸿蒙 内测 (#download): only the 内测版 gets this button, and app.py fills data-harmony with the AppTest link
-     (「鸿蒙内测链接」 in the 内测版's console) or leaves it empty. With a link the button opens it to join the test in Huawei's AppTest;
-     without one it keeps 即将开放. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
+  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this button. The page never carries the AppTest link: the button
+     asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学). Signed in
+     with a link: 「加入内测」 opens it; signed in, no link yet: 即将开放 stays; not signed in: 「登录内测版后显示」 goes to
+     the site to sign in. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
   function harmony() {
-    const b = $('[data-harmony]'); if (!b) return;
-    const u = b.getAttribute('data-harmony') || '';
-    if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
-    b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+    const b = $('[data-harmony]'); if (!b || !window.fetch) return;
+    fetch('/api/next/harmony-test', { credentials: 'same-origin', cache: 'no-store' }).then(r => r.json().then(j => [r.status, j], () => [r.status, {}])).then(([st, j]) => {
+      if (st === 401) { b.href = '/'; b.removeAttribute('aria-disabled'); b.textContent = '登录内测版后显示'; return; }
+      const u = (st === 200 && j && typeof j.url === 'string') ? j.url : '';
+      if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
+      b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+    }).catch(() => { /* 即将开放 stays */ });
   }
 
   function start() {
