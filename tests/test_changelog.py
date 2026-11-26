@@ -161,6 +161,23 @@ class LedgerTests(unittest.TestCase):
         row = cl.rows('b3', 'b3')
         self.assertIn(f'| `{fix[:7]}` | 热修：在 `{self.m6[:7]}` 上加了 `{fix[:7]}` |', row)
 
+    def test_a_squash_merged_pr_counts_but_a_branch_commit_with_a_number_does_not(self):
+        # #461 on 2026-11-26: 「Squash and merge」 left one plain commit on main, and r39 / b138 missed it
+        self.sh('git', 'checkout', '-q', '-b', 'desktop')
+        self.commit('desktop/src-tauri/src/bridge.rs', 'desktop: account.changed')
+        self.sh('git', 'checkout', '-q', 'main')
+        self.sh('git', 'merge', '-q', '--squash', 'desktop')
+        self.sh('git', 'commit', '-qm', '桌面版：切换账号以后提醒跟着现在的账号 (#8)', '-m', '* desktop: account.changed')
+        squash = self.sha('HEAD')
+        self.sh('git', 'checkout', '-q', '-b', 'words3')
+        self.commit('flow/vocab_service.py', '单词：另一个 PR 的提交 (#9)')  # on a PR branch: not a PR of its own
+        self.sh('git', 'checkout', '-q', 'main')
+        self.sh('git', 'merge', '-q', '--no-ff', 'words3', '-m', 'Merge pull request #10 from Jasame/words3', '-m', '单词：长词缩小')
+        got = cl.prs(self.m6, self.sha('HEAD'))
+        self.assertEqual([(p['num'], p['title'], p['areas']) for p in got],
+                         [(8, '桌面版：切换账号以后提醒跟着现在的账号', cl.areas(['desktop/src-tauri/src/bridge.rs'])), (10, '单词：长词缩小', ['单词'])])
+        self.assertEqual([p['num'] for p in cl.prs(None, squash)], [8])
+
     def test_the_reason_a_check_failed_is_logged_when_the_server_gives_it(self):
         d = self.status('b2', failed=1)
         self.assertIn('没过：b1: dialog end gives feedback，', cl.checks(d))  # an older autodeploy: names only
