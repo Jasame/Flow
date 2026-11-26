@@ -116,7 +116,7 @@ export class Consent {
   static readonly WITHDRAW_TITLE: string = '撤回同意';
   static readonly WITHDRAW_BODY: string = '撤回以后，这台手机上的语流会：\n• 退出登录，清掉这台手机上的登录信息、缓存、朗读进度和提醒；\n' +
     '• 回到第一次打开时的样子，再问你一次。\n\n账号里的学习记录还在服务器上，再同意、再登录就能接着学。' +
-    '账号上的同意（「数据存放在香港」和《用户协议》）在网页的「我的 → 账号」里管理。';
+    '账号上的同意（「数据存放在香港」和《用户协议》）在网页的「我的 → 账号和隐私」里管理。';
 
   /** The question's text: why (a feature asked for it in 基本模式), the body, the lists when there, the close and tail. */
   static question(why: string, first: boolean, lists: boolean): string {

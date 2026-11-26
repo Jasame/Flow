@@ -374,7 +374,7 @@ product `default`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）�
   - 「不同意」再确认一次，进入基本模式：页面顶上一行说明和「同意」；登录、注册的请求由 `onInterceptRequest` 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次；录音（桥的 `rec` 和网页自己的 getUserMedia）先问同意。
   - 能力 `privacy` 的命令和安卓一样。`privacy.state().store` 是 true（鸿蒙只从华为的渠道装）；`privacy.settings({what: 'mic'})` 打开「设置 → 应用和元服务 → 语流」。
   - 撤回同意：停掉朗读和录音，清掉 cookie、网页存储、缓存、朗读进度和提醒，再回到第一次打开的弹窗。
-- **切换账号 `account.changed`**（第 5 节；切到另一个账号、添加账号登录成功、退出登录）：
+- **切换账号 `account.changed`**（第 5 节；切到另一个账号、添加账号登录成功、退出登录、注销账号）：
   - 停掉朗读，清掉本机各篇的朗读进度（是上一个账号的）；
   - 按现在这个账号的 `/api/next/vocab` 重排提醒，403 `storage` 就不排（`notify` 还没开，所以眼下只是清空）；
   - 马上把 cookie 写进磁盘。`flow_session` 和 `flow_more` 都是 HttpOnly、带 Max-Age，ArkWeb 一样长期保存；切到后台时也写一次，免得刚登录或刚切换就划掉 App 时丢了；
