@@ -21,15 +21,6 @@
 /* the single notice slot */
 .notice.guide-hint{display:grid;grid-template-columns:minmax(0,1fr) 14px;gap:10px;align-items:center;text-decoration:none;color:inherit}
 .notice.guide-hint b{font-size:15.5px}
-/* 我的: a header card, then groups of one-line rows; a row opens a page or a sheet */
-.me-head{display:grid;gap:14px}
-.me-id{display:flex;align-items:center;gap:14px;min-width:0}
-.me-id .t{display:grid;gap:2px;min-width:0}
-.me-id .h1{margin:0;overflow:hidden;text-overflow:ellipsis}
-.avatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--green-soft);color:var(--green-ink);font-size:22px;font-weight:700}
-.me-nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-top:6px}  /* 简洁化: no line above the numbers */
-.me-nums div{display:grid;justify-items:center;gap:2px;text-align:center}
-.me-nums b{font-size:20px;font-variant-numeric:tabular-nums}
 .gsec{margin-top:22px}
 .ghead{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.04em;margin:0 12px 6px}
 .grow{position:relative;grid-template-columns:auto minmax(0,1fr) 14px}

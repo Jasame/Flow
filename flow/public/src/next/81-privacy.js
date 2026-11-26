@@ -96,11 +96,11 @@
   // One tick for both (the owner chose D2's plan B, 2026-11-26): it opens with the separate consent to the storage in Hong
   // Kong, in bold, then the two texts it needs; one grey line under it says why and how to withdraw. Never ticked
   // beforehand; both answers are still kept apart (privacy_service: storage and terms, each with its time), and the one
-  // for Hong Kong is still withdrawn on its own (我的 → 账号 → 数据存放). 不满 14 岁: the guardian keeps a tick of its own.
+  // for Hong Kong is still withdrawn on its own (我的 → 账号和隐私 → 数据存放). 不满 14 岁: the guardian keeps a tick of its own.
   const CONSENT_LEAD = '我单独同意语流把我的账号和学习数据存放在香港的服务器上';
   function consentField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('consent')}<span><b>${CONSENT_LEAD}</b>，并已阅读同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}。</span></label>
-      <span class="hint">账号本身就存在那里，不同意就注册不了；以后可以在「我的 → 账号 → 数据存放」撤回。</span></div>`;
+      <span class="hint">账号本身就存在那里，不同意就注册不了；以后可以在「我的 → 账号和隐私 → 数据存放」撤回。</span></div>`;
   }
   function termsField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('terms')}<span>我已阅读并同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}</span></label></div>`;
@@ -227,7 +227,7 @@
   // to the 隐私说明 and has no buttons of its own any more.
   const personalizeOn = () => !(S.home && S.home.profile && S.home.profile.personalize === false);
   function personalizeRow() {
-    return `<label class="grow gswitch" for="mePersSw"><span class="t">按我的学习记录推荐</span><input type="checkbox" class="sw-in" id="mePersSw" role="switch"${personalizeOn() ? ' checked' : ''} aria-describedby="mePersFoot"><span class="sw" aria-hidden="true"></span></label>`;
+    return `<label class="grow gswitch gi" for="mePersSw">${fiTile('compass')}<span class="t">按我的学习记录推荐</span><input type="checkbox" class="sw-in" id="mePersSw" role="switch"${personalizeOn() ? ' checked' : ''} aria-describedby="mePersFoot"><span class="sw" aria-hidden="true"></span></label>`;
   }
   const PERSONALIZE_FOOT = '<span id="mePersFoot">关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。</span><button class="link tiny" type="button" id="mePersInfo">了解更多</button>';
   function personalizeWire() {
@@ -251,7 +251,7 @@
       <a class="link small" href="#/guide/personalize" data-doc="personalize">用到了哪些记录（隐私说明）</a>
       <button class="btn ghost" data-close type="button">完成</button></div>`);
   }
-  // 我的 → 账号 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
+  // 我的 → 账号和隐私 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
   function storageSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">数据存放</h2>
       <p class="small">你已经同意语流在香港的服务器上存放和处理你的账号和学习数据。${STORAGE_WHY}</p>

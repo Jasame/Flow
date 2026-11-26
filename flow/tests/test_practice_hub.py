@@ -38,7 +38,9 @@ class PracticeHubTests(unittest.TestCase):
             self.assertIn(f"name === '{name}') {{ setNav('practice')", shell)
         # 我的 is a grouped list: progress, settings, account and help; practice lives in its tab, not in a list here
         me = (SRC / '81-me.js').read_text(encoding='utf-8')
-        for href in ('#/growth', '#/report', '#/cards/mistake', '#/welcome/edit', '#/guide'):
+        for href in ('#/growth', '#/report', '#/cards/mistake'):  # 进步's three tiles (B9's batch 1)
+            self.assertIn(f"meTile('{href}'", me)
+        for href in ('#/welcome/edit', '#/guide'):
             self.assertIn(f"grow('{href}'", me)
         self.assertNotIn("grow('#/radar'", me)  # 能力雷达 is the 「能力」 tab (2026-11-26), not a row here too
         self.assertNotIn('#/easy', me); self.assertNotIn('abilityHTML', me)
