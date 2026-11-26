@@ -11,7 +11,7 @@
   }
   function lineBodyHTML(l) {
     return `<p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${lineEnHTML(l)}</p>
-      <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
+      <p class="lc-zh" data-zh>${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note" data-zh>${esc(l.note)}</p>` : ''}
       <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.label ? ' · ' + esc(l.label) : ''}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
       <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
@@ -63,11 +63,11 @@
           const x = (await api('/api/next/shadow', body)).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency] || '';
           const sc = x.score;  // 发音分 (r27 C, the same as 听 → 跟读): accuracy, fluency and how much of the line was said
-          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter">${aiMark('发音分和点评由 AI 估计，仅供参考')}${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
+          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter" data-ex-block>${aiMark('发音分和点评由 AI 估计，仅供参考')}${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
             <div class="small">${x.words.map(w => `<span class="${w.ok ? '' : 'miss'}" lang="en">${esc(w.w)}</span>`).join(' ')}</div>
             <div class="tiny muted">AI 听到：<span lang="en">${esc(x.transcript || '（没听清）')}</span> · 读到 ${x.matched}/${x.words.length} 个词${flu && !sc ? ' · ' + flu : ''}</div>
-            ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：${esc(sd.note)}${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
-            ${x.issues.map(it => `<div class="small"><b lang="en">${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}${x.tip ? `<div class="small">建议：${esc(x.tip)}</div>` : ''}</div>`;
+            ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：<span data-ex>${esc(sd.note)}</span>${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
+            ${x.issues.map(it => `<div class="small"><b lang="en">${esc(it.word)}</b>：<span data-ex>${esc(it.note)}</span></div>`).join('')}${x.tip ? `<div class="small">建议：<span data-ex>${esc(x.tip)}</span></div>` : ''}</div>`;
         } catch (e) { toast(e.message); }
         ai.disabled = false; ai.textContent = '✦ AI 点评';
       };

@@ -56,6 +56,9 @@ def fake(messages, audio=None, grounding=False):
     """Plausible answers for every prompt Flow sends, keyed on the prompt's role line."""
     system, prompt = messages[0]['content'], messages[-1]['content']
     J = lambda o: (json.dumps(o, ensure_ascii=False), 'stop')
+    if '你是翻译。把英语学习反馈' in system:  # 看中文 under an English explanation (ai_lang.to_zh): each line back, marked as Chinese
+        texts = json.loads(prompt.split('\n', 1)[1].split('\n\n输出', 1)[0])['texts']
+        return J({'zh': ['（中文）' + t[:40] for t in texts]})
     if '评估老师' in system:  # the radar's speaking and writing assessments
         dims = ('fluency', 'accuracy', 'range', 'pronunciation') if '口语' in system else ('content', 'organization', 'accuracy', 'range')
         return J({'transcript': 'I went to Hangzhou last spring with my parents.' if '口语' in system else '', 'level': 'B1', 'position': 0.6,
@@ -152,6 +155,9 @@ def fake(messages, audio=None, grounding=False):
 
 
 chat_service.request_model = fake
+# 看中文 (ai_lang.ask) calls the text service itself, not request_model: its prompt is answered here too
+_text_service = chat_service._request_text_service
+chat_service._request_text_service = lambda messages, *a, **k: (fake(messages) if '你是翻译。把英语学习反馈' in messages[0]['content'] else _text_service(messages, *a, **k))
 
 # The server voice (tts_service): on, answered by a CosyVoice sample instead of the gateway; files in this run's folder.
 os.environ['FLOW_TTS_MODEL'] = 'flow-tts'

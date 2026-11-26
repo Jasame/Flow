@@ -1,0 +1,5 @@
+/* 看中文 under the AI's English explanations (31-ex-zh.js): the Chinese under its line, grey; the button row under the block */
+.ex-zh{display:block;margin-top:3px;font-size:13.5px;line-height:1.5;color:var(--muted)}
+[data-exzh=off] .ex-zh{display:none}
+.ex-zh-row{display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+.ex-zh-row .busy{opacity:.55}

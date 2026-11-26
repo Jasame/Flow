@@ -48,9 +48,7 @@ def backup(env_required=True):
   env,env_error=save_env(folder)
   (folder/'manifest.json').write_text(json.dumps({'version':'2.1','created':time.time(),'integrity':'ok','restore_copy_checked':True,'env':env}))
   status={'ok':True,'created':time.time()};print('备份与恢复副本校验通过：'+str(folder))
-  # Only remove completed backups created by this tool, keeping the most recent 14.
-  completed=sorted([p for p in BACKUPS.glob('flow-*') if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
-  for old in completed[14:]:shutil.rmtree(old)
+  prune_backups()
   prune_deploy_copies(channel=CHANNEL)
   if env_error:
    print(env_error)
@@ -62,6 +60,33 @@ def backup(env_required=True):
  finally:
   status_file=ROOT/'data/backup-status.json';temp=status_file.with_suffix('.tmp');temp.write_text(json.dumps(status));temp.chmod(0o644);temp.replace(status_file)
  return folder
+
+KEEP=14  # the daily backups kept: today's and the 13 before it (the 隐私说明: 最近 14 天, here and in 杭州's copy)
+STAMP=re.compile(r'flow-(\d{8}-\d{6})(?:-|$)')
+def made_at(folder):
+ """When a backup was made: the time in its name (flow-YYYYMMDD-HHMMSS-…, backup()'s own stamp, local time), which no
+ later change inside the folder moves (A1 2026-11-26: deleting an old flow.env set four folders' mtime to that day);
+ else manifest.json's created; else, last, the folder's mtime."""
+ m=STAMP.match(folder.name)
+ if m:
+  try:return datetime.datetime.strptime(m.group(1),'%Y%m%d-%H%M%S').timestamp()
+  except ValueError:pass
+ try:return float(json.loads((folder/'manifest.json').read_text())['created'])
+ except (OSError,ValueError,KeyError,TypeError):return folder.stat().st_mtime
+def prune_backups(now=None,keep=KEEP,say=print):
+ """After a backup that just succeeded (so at least that one stays): this tool's backups beyond the newest KEEP go, as
+ before, and so does any of its folders made more than KEEP - ½ days ago, a failed one too (it may hold a copy of the
+ database), so no copy outlives the 14 days even when days were skipped. Newest and age are by made_at (the name's
+ time), never by mtime. With one backup a day the two agree: today's and the 13 before it stay. 杭州's copy follows
+ (rsync --delete, and its own 14-day cap). Returns the folders removed."""
+ now=time.time() if now is None else now
+ folders={p:made_at(p) for p in BACKUPS.glob('flow-*') if p.is_dir() and not p.is_symlink()}
+ completed=sorted([p for p in folders if (p/'manifest.json').is_file()],key=lambda p:folders[p],reverse=True)
+ gone=set(completed[keep:])|{p for p,t in folders.items() if now-t>(keep-0.5)*86400}
+ for old in sorted(gone):
+  made=datetime.datetime.fromtimestamp(folders[old]).strftime('%Y-%m-%d %H:%M')
+  shutil.rmtree(old);say('prune backup %s (%s%s)'%(old.name,made,'' if old in completed else ', unfinished'))
+ return sorted(gone)
 
 def age_recipients():
  """FLOW_BACKUP_AGE_RECIPIENT: from the environment, or else as systemd would read it from flow.env itself (the backup

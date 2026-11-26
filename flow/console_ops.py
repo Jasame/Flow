@@ -244,16 +244,16 @@ def save_settings(update, by, drop_none=False):
     _CACHE.update(path=None)  # read again at once (two writes within one mtime tick)
 
 
-# 鸿蒙内测链接 (the owner, 2026-11-26): the public link of the 鸿蒙 内测 in Huawei's AppTest. Set in the 内测版's console
-# only (语流's console never shows it); 认识语流 on the 内测版 (app.about_parts) shows 「加入内测」 with it and 「即将开放」
-# without, at once, no release. Any whole https link is kept for now: Huawei's docs show the public link only as
-# http://xx.xx.xx?taskId=… (C4, 2026-11-26), so the console shows the link's domain (harmony_test_host) for the
-# operator to check; once the real link is known, check its domain here too. Huawei's new console gives an invite
-# link that lasts 30 days (C4, 2026-11-26), so expect to paste a new one about once a month.
-HARMONY_TEST_KEY = 'harmony_test_url'
+# 鸿蒙内测 (the owner, 2026-11-26): how invited people join the 鸿蒙 内测 in Huawei's AppTest. Huawei's new console gives
+# an invite code (a short string, valid 30 days, renewed about monthly; C4, 2026-11-26), not a link; a link (a whole
+# https address) is still taken should one appear. Set in the 内测版's console only (语流's console never shows it);
+# 认识语流 on the 内测版 gives it only to someone signed in there (app: /api/next/harmony-test), at once, no release.
+# The code itself is never written anywhere public (notes, PRs, screenshots, pages without sign-in).
+HARMONY_TEST_KEY = 'harmony_test_url'  # named when it was a link; holds a link or an invite code
 
 
 def harmony_test_ok(u):
+    """A whole https link we would show as 「加入内测」."""
     if not isinstance(u, str) or not u or len(u) > 500 or any(c in u for c in ' \t\r\n"\'<>\\`'):
         return False
     from urllib.parse import urlsplit
@@ -261,26 +261,48 @@ def harmony_test_ok(u):
     return parts.scheme == 'https' and bool(parts.hostname) and '.' in parts.hostname
 
 
+def harmony_test_kind(v):
+    """'url' for a link, 'code' for an invite code (4–32 letters or digits, shown as is), '' for anything else."""
+    if harmony_test_ok(v):
+        return 'url'
+    return 'code' if isinstance(v, str) and re.fullmatch(r'[A-Za-z0-9]{4,32}', v) else ''
+
+
+def harmony_test_value():
+    """The saved link or invite code, or '' (none, or not one we accept)."""
+    v = settings().get(HARMONY_TEST_KEY)
+    return v if harmony_test_kind(v) else ''
+
+
+def harmony_test_url():
+    """The saved 鸿蒙 内测 link, or '' (none, or an invite code is saved instead)."""
+    v = harmony_test_value()
+    return v if harmony_test_kind(v) == 'url' else ''
+
+
+def harmony_test_code():
+    """The saved 鸿蒙 内测 invite code, or '' (none, or a link is saved instead)."""
+    v = harmony_test_value()
+    return v if harmony_test_kind(v) == 'code' else ''
+
+
 def harmony_test_host(u=None):
-    """The domain of the saved (or given) 鸿蒙 内测 link, for the console to show next to it ('' if none)."""
+    """The domain of the saved (or given) 鸿蒙 内测 link, for the console to show next to it ('' if none or a code)."""
     from urllib.parse import urlsplit
     u = harmony_test_url() if u is None else u
     return (urlsplit(u).hostname or '') if harmony_test_ok(u) else ''
 
 
-def harmony_test_url():
-    """The 鸿蒙 内测 link saved in the console, or '' (none, or not a link we accept)."""
-    v = settings().get(HARMONY_TEST_KEY)
-    return v if harmony_test_ok(v) else ''
-
-
 def set_harmony_test_url(u, by):
-    """Save the 鸿蒙 内测 link (empty: remove it, the button goes back to 即将开放). Raises ValueError for anything that is
-    not an https link on huawei.com / hicloud.com, so the console can say so."""
+    """Save the 鸿蒙 内测 invite code or link (empty: remove it, the card goes back to 即将开放). Raises ValueError for
+    anything else, so the console can say so."""
     u = (u or '').strip()
-    if u and not harmony_test_ok(u):
-        raise ValueError('请粘贴华为 AppTest 的公开链接：https 开头的完整地址')
+    if u and not harmony_test_kind(u):
+        raise ValueError('请粘贴华为 AppTest 的邀请码（字母和数字），或 https 开头的完整链接')
     save_settings({HARMONY_TEST_KEY: u or None}, by, drop_none=True)
+
+
+set_harmony_test = set_harmony_test_url  # the name for an invite code or a link
 
 
 def set_ai_budget(data, by):

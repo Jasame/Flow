@@ -1096,23 +1096,35 @@
       var hf = document.getElementById('hmF');
       if (hf) {
         var hu = document.getElementById('hmUrl'), hh = document.getElementById('hmHost');
-        hu.oninput = function () { var h = ''; try { h = new URL(hu.value.trim()).hostname; } catch (x) { h = ''; } hh.textContent = h ? '域名：' + h : ''; };
+        hu.oninput = function () { hh.textContent = harmonyKind(hu.value); };
         hf.onsubmit = function (e) { e.preventDefault(); busy(hf.querySelector('button'), postJSON('/settings/harmony-link', { url: hu.value })).then(announceView, function () { /* shown */ }); };
         var hc = document.getElementById('hmClear');
-        if (hc) hc.onclick = function () { if (ask('清空鸿蒙内测链接？内测版下载页的鸿蒙卡片回到「即将开放」。')) busy(hc, postJSON('/settings/harmony-link', { url: '' })).then(announceView, function () { /* shown */ }); };
+        if (hc) hc.onclick = function () { if (ask('清空鸿蒙内测邀请码？内测版下载页的鸿蒙卡片回到「即将开放」。')) busy(hc, postJSON('/settings/harmony-link', { url: '' })).then(announceView, function () { /* shown */ }); };
       }
     }).catch(fail);
   }
-  // 内测版后台 only (GET /announcements carries it there): with this link the 内测版's download page shows 「加入内测」 on
-  // the 鸿蒙 card, without it 「即将开放」 (console_ops, D3 #415). Huawei's invite links may end after 30 days (C4).
+  // 内测版后台 only (GET /announcements carries it there): 鸿蒙内测邀请码 (the owner, 2026-11-26 evening: Huawei gives an
+  // invite code, 30 days, a new one each month; 「登录后显示」). One field takes the code or, should Huawei give one, a
+  // whole https link (console_ops). With either, the 内测版's download page shows it to signed-in learners on the 鸿蒙
+  // card; without, 「即将开放」 (D3). 只看数据 sees that a code is there, not the code.
+  function harmonyKind(v) {
+    v = String(v || '').trim();
+    if (!v) return '';
+    if (/^[A-Za-z0-9]{4,32}$/.test(v)) return '邀请码（' + v.length + ' 位）';
+    var h = ''; try { h = new URL(v).protocol === 'https:' ? new URL(v).hostname : ''; } catch (x) { h = ''; }
+    return h ? '链接，域名：' + h : '格式不对：邀请码是 4–32 个字母或数字，链接要 https 开头';
+  }
   function harmonyCard(h) {
     var saved = h.saved ? '上次保存：' + esc(when(h.saved.at)) + (h.saved.by ? ' · ' + esc(h.saved.by) : '') : '还没有填过';
-    return '<section class="card"><h2>下载页 · 鸿蒙内测链接</h2>' +
-      (isAdmin() ? '<form class="form" id="hmF"><label><span>华为 AppTest 的公开链接</span><input class="input" id="hmUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://…" value="' + esc(h.url) + '"></label>' +
-        '<p class="muted small" id="hmHost">' + (h.host ? '域名：' + esc(h.host) : '') + '</p>' +
-        '<div class="row"><button class="btn primary">保存</button>' + (h.url ? '<button class="btn" type="button" id="hmClear">清空</button>' : '') + '</div></form>'
-        : '<p>' + (h.url ? esc(h.url) + (h.host ? ' <span class="muted small">（' + esc(h.host) + '）</span>' : '') : '<span class="muted">没有填</span>') + '</p>') +
-      '<p class="muted small">填了，内测版下载页的鸿蒙卡片显示「加入内测」；空着显示「即将开放」。华为的邀请链接可能 30 天后失效，到时在这里换一个新的。</p>' +
+    var now = h.code ? h.code : h.url;
+    var shown = h.code_len && !h.code ? '已填邀请码（' + h.code_len + ' 位，只有管理员看得到）'
+      : h.url ? esc(h.url) + (h.host ? ' <span class="muted small">（' + esc(h.host) + '）</span>' : '') : '';
+    return '<section class="card"><h2>下载页 · 鸿蒙内测邀请码</h2>' +
+      (isAdmin() ? '<form class="form" id="hmF"><label><span>华为 AppTest 给的邀请码（以后给了链接，也填在这里）</span><input class="input" id="hmUrl" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="邀请码，或 https://…" value="' + esc(now) + '"></label>' +
+        '<p class="muted small" id="hmHost">' + esc(harmonyKind(now)) + '</p>' +
+        '<div class="row"><button class="btn primary">保存</button>' + (now ? '<button class="btn" type="button" id="hmClear">清空</button>' : '') + '</div></form>'
+        : '<p>' + (shown || '<span class="muted">没有填</span>') + '</p>') +
+      '<p class="muted small">填了，内测版下载页的鸿蒙卡片对登录的学员显示它；没登录的人和语流（正式版）都看不到。空着显示「即将开放」。华为的邀请码 30 天有效、每月换一个，到时在这里换新的。</p>' +
       '<p class="muted small">' + saved + '</p></section>';
   }
 

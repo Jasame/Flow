@@ -12,6 +12,7 @@ While the English pages are being done it is open only on the 内测版 (and on 
 | `flow/public/src/next/01-en-*.js` | the tables, one per area: `enTable({ '中文': 'English', … })` |
 | `flow/public/src/next/07-lang.js` | the switch (`langSwitchHTML()` + `langSwitchWire(root)`), `setLang()`, kept with the account, the line to undo a switch |
 | `flow/public/src/next/00-lang.css` | Latin fonts first under `html[lang=en]`, English for words in CSS `content:`, the switch and the undo line |
+| `flow/public/src/next/31-ex-zh.js` | 看中文: under each block of AI feedback in English mode, a button that brings each explanation line's Chinese (`/api/next/zh`, ai_lang.py) |
 | `flow/ui_lang.py` | the request's language (`X-Flow-Lang: en`), `L(zh, en)`, English for the server's error messages (`ERRORS`) |
 | `next_service.set_lang` | `/api/next/lang` → `next_profiles.lang` → `profile.lang` |
 | `tools/check_i18n.py` | lists the Chinese in the front end and the server's error messages that have no English yet |
@@ -39,6 +40,10 @@ the account after signing in. For 10 s after a switch a line offers to undo it, 
 - Chinese meant to stay Chinese in English mode — a word's meaning, a translation, a Chinese source sentence, what the
   learner wrote — goes in an element with `data-zh`. It is not looked up, a screen reader reads it with a Chinese
   voice, and the missing-English check does not count it. `translate="no"` also leaves a part alone (the switch).
+- AI feedback is in English on an English page (ai_lang.py). Mark the block that holds one answer (a result, a
+  look-up's explanation, a dialog's chat) with `data-ex-block` and each line of explanation in it with `data-ex`
+  (not the learner's text, not the model sentences, not a meaning or translation that is Chinese anyway): the
+  「Show Chinese · 看中文」 button comes by itself (31-ex-zh.js).
 - Counts: `qty(n, '天', 'day')` → 「3 天」 / "3 days" (`qty(2, '个', 'box', 'boxes')` for an irregular plural).
   Dates: `dayMonth(d)` → 「11月26日」 / "Nov 26", `dayMonth(d, true)` with the year, `weekday(d)` → 「周四」 / "Thu".
   Lists: `listJoin(['听', '读'])`. Do not use `Intl.PluralRules`, `Intl.RelativeTimeFormat`, `Intl.ListFormat` or

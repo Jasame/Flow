@@ -171,8 +171,8 @@ def shell_file(name):
 def about_parts(page):
  """认识语流 is one page for both sites; a part between <!--channel:beta--> and <!--/channel:beta--> goes to the 内测版 only
  and one in <!--channel:prod--> to 语流 only, the other site never gets it (not even hidden). So far the 鸿蒙 card:
- 语流 says the app is in 内测 and how to ask to join; the 内测版 has the AppTest steps, and its button asks
- /api/next/harmony-test for the link, which only someone signed in to the 内测版 gets (the owner: 只发同学, 2026-11-26)."""
+ 语流 says the app is in 内测 and how to ask to join; the 内测版 has the AppTest steps and asks
+ /api/next/harmony-test for the invite code (or link), which only someone signed in to the 内测版 gets (只发同学, 2026-11-26)."""
  other=b'prod' if CHANNEL=='beta' else b'beta'
  page=__import__('re').sub(rb'<!--channel:'+other+rb'-->.*?<!--/channel:'+other+rb'-->\n?',b'',page,flags=__import__('re').S)
  return __import__('re').sub(rb'<!--/?channel:(?:beta|prod)-->\n?',b'',page)
@@ -439,11 +439,11 @@ class Handler(BaseHTTPRequestHandler):
     u=self.user(c)
     if path=='/api/session':return self.send(session_info(u))
     if path=='/api/next/harmony-test':
-     # 鸿蒙 内测 (认识语流 on the 内测版): the AppTest link from the 内测版's console (「鸿蒙内测链接」), only for someone
+     # 鸿蒙 内测 (认识语流 on the 内测版): the AppTest invite code (or link) from the 内测版's console, only for someone
      # signed in to the 内测版, so it reaches invited people only, not whoever opens /about (the owner, 2026-11-26)
      if CHANNEL!='beta':return self.send({'error':'接口不存在'},404)
      if not u:return self.send({'error':'登录内测版后显示'},401)
-     return self.send({'url':__import__('console_ops').harmony_test_url()})
+     co=__import__('console_ops');return self.send({'url':co.harmony_test_url(),'code':co.harmony_test_code()})
     if path.startswith('/api/next/export/'):
      # 我的 → 我的数据: the word book for Excel or Anki, or every record of the account (account_data.py)
      if not u:return self.send({'error':'请先登录'},401)
