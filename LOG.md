@@ -1254,3 +1254,11 @@
   - #511 Word sounds always at 1×; 语速 is for the whole text and 伴读（单词、听和说、开局和考试、操作指南）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45853152712
+
+### b152 · 2026-11-27 00:08
+- main `68d6eb2`，构建 `437184d`
+- 新合并的 PR（自 b151 起）：
+  - #512 服务器变动：单词搭配的定时批量暂停，今晚手动全量（发版和构建）
+  - #508 单词搭配：两次模型调用都在写数据库之前（AI）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45855713544
