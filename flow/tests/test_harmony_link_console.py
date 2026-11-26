@@ -1,7 +1,8 @@
-"""鸿蒙内测链接 in the 内测版's console (2026-11-26, D3 #415: the 内测版's download page shows 「加入内测」 with it,
-「即将开放」 without): a 管理员 saves or clears it under 公告; the domain and the last save (from the operator log) are
-shown; anything not a full https link is refused with console_ops' own words; 只看数据 sees it without who saved it;
-语流's console has no such field and refuses the change."""
+"""鸿蒙内测邀请码 in the 内测版's console (2026-11-26, D3 #415: the 内测版's download page shows 「加入内测」 with it,
+「即将开放」 without; that evening the owner: Huawei gives an invite code, not a link, 「登录后显示」): a 管理员 saves or
+clears a code or a whole https link under 公告; the link's domain, or the code's length, and the last save (from the
+operator log) are shown; anything else is refused with console_ops' own words; the operator log never carries the code;
+只看数据 sees a link and that a code is there, never the code nor who saved it; 语流's console has no such field."""
 import json, os, sys, tempfile, threading, unittest, urllib.error, urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -38,7 +39,7 @@ class HarmonyLinkConsole(unittest.TestCase):
             return e.code, json.loads(e.read() or b'{}')
 
     def test_a_link_is_saved_shown_with_its_domain_and_cleared(self):
-        self.assertEqual(self.call('/announcements')[1]['harmony'], {'url': '', 'host': '', 'saved': None})
+        self.assertEqual(self.call('/announcements')[1]['harmony'], {'url': '', 'host': '', 'code': '', 'code_len': 0, 'saved': None})
         link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=abc&invitationCode=xyz'
         st, body = self.call('/settings/harmony-link', {'url': link})
         self.assertEqual((st, body['url'], body['host']), (200, link, 'appgallery.huawei.com'))
@@ -50,6 +51,23 @@ class HarmonyLinkConsole(unittest.TestCase):
         self.assertEqual(self.call('/settings/harmony-link', {'url': ''})[0], 200)
         self.assertEqual(co.harmony_test_url(), '')
         self.assertEqual(self.call('/log')[1]['items'][0]['detail'], '清空')
+
+    def test_an_invite_code_is_saved_kept_out_of_the_log_and_hidden_from_viewers(self):
+        code = 'Test1234'  # made up: the real code goes in the console only
+        st, body = self.call('/settings/harmony-link', {'url': ' ' + code + ' '})
+        self.assertEqual((st, body['code'], body['url'], body['code_len']), (200, code, '', 8))
+        self.assertEqual((co.harmony_test_code(), co.harmony_test_url()), (code, ''))  # what the 内测版's API reads
+        log = self.call('/log')[1]['items']
+        self.assertEqual((log[0]['action'], log[0]['detail']), ('harmony-link', '邀请码（8 位）'))
+        self.assertNotIn(code, json.dumps(self.call('/log')[1], ensure_ascii=False))
+        h = self.call('/announcements', who=PEEK)[1]['harmony']
+        self.assertEqual((h['code'], h['code_len'], h['url']), ('', 8, ''))
+        self.assertNotIn(code, json.dumps(self.call('/announcements', who=PEEK)[1], ensure_ascii=False))
+        for bad in ('abc', 'A' * 33, 'AB-1234', 'Test 1234', 'Test1234<'):  # too short, too long, not letters and digits
+            st, body = self.call('/settings/harmony-link', {'url': bad})
+            self.assertEqual((st, body['field']), (400, 'url'))
+            self.assertIn('邀请码', body['error'])
+        self.assertEqual(co.harmony_test_code(), code)  # a refused one leaves the saved code alone
 
     def test_a_wrong_link_is_refused_in_console_ops_words(self):
         st, body = self.call('/settings/harmony-link', {'url': 'http://example.com/x'})
