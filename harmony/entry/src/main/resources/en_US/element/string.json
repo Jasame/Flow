@@ -1,0 +1,7 @@
+{
+  "string": [
+    {"name": "mic_reason", "value": "Records your voice for read-aloud and speaking practice"},
+    {"name": "reminder_reason", "value": "Reminds you to review words at the time you set"},
+    {"name": "background_reason", "value": "Keeps reading the article aloud after the screen locks"}
+  ]
+}
