@@ -456,6 +456,13 @@ class WordCapTests(unittest.TestCase):
             with patch('exam_sprint.countdown', return_value={'need': 20, 'book': 'core', 'plan_book': 'core'}):
                 per = vs.ANSWERS_PER_NEW + vs.MONTH_REVIEWS_PER_NEW[0.9] * vs.ANSWERS_PER_REVIEW
                 self.assertEqual(vs.word_cap(self.c, 1, self.now), -(-20 * per * vs.ANSWER_SECONDS // 60))  # 20 new a day to make the exam
+            # 19 days before the exam with most of the book left: ~300 new a day would be needed. The sprint page says
+            # that is too many and suggests EASY_MAX; the words get the minutes of that pace, not of the impossible one
+            import exam_sprint
+            with patch('exam_sprint.countdown', return_value={'need': 294, 'book': 'core', 'plan_book': 'core', 'too_many': True, 'suggest': exam_sprint.EASY_MAX}):
+                cap = vs.word_cap(self.c, 1, self.now)
+                self.assertEqual(cap, -(-exam_sprint.EASY_MAX * per * vs.ANSWER_SECONDS // 60))
+                self.assertLess(cap, 90)  # (it said 单词每天 475 分钟)
 
     def test_after_a_break_the_most_urgent_40_then_the_rest_over_5_days_without_new_words(self):
         self.plan(5, daily=10)
