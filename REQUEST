@@ -1,3 +1,3 @@
-73e9837fe082884dff3ccb13ec86296ddd96114b ca115fb934de961a08c3792fcabfc0bbc7d3acdde21db9e02413946b86ea9e14 e2e light ref=build-286db26906b7 tag=b149 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
-# b149 main: 今日「调整顺序」：拖动的那一块一直在手指下面 (#507) = build of 286db26906b7
+1ac48f0bcabfec31a667c848f2d5bf6445668a77 2cf0943eb380f97fa36cea67bc3458abb9a87e590d6b722fe0db6bdd8b0c957c e2e light ref=build-5cb927170231 tag=b150 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
+# b150 main: Merge pull request #509 from Jasame/updates-r40 = build of 5cb927170231
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
