@@ -1,5 +1,7 @@
 import JavaScriptCore
 import MediaPlayer
+import Security
+import WebKit
 import XCTest
 @testable import Flow
 
@@ -848,5 +850,56 @@ final class AccountChangeTests: XCTestCase {
         XCTAssertNil(SharedStore.load(), "the widgets' card goes at once (the new account's comes after)")
         XCTAssertEqual(Shell.shared.reminders.input.due, 0, "nobody's words until the site says whose")
         XCTAssertEqual(Shell.shared.player.progress("acct-test") == nil, true)
+    }
+}
+
+/// 「切换账号」 keeps the other remembered accounts in a second cookie (flow_more, B6): the app's Keychain copy follows
+/// it both ways — written when the site sets it, deleted when the site clears it (Max-Age=0: one account left, or all
+/// removed), while the session's copy stays. Done on a private cookie store with made-up values.
+final class CookieKeychainTests: XCTestCase {
+    private func saved(_ host: String, _ name: String) -> Bool {
+        let q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "cn.flowlang.app.session",
+                                kSecAttrAccount as String: CookieKeeper.account(host, name), kSecMatchLimit as String: kSecMatchLimitOne]
+        return SecItemCopyMatching(q as CFDictionary, nil) == errSecSuccess
+    }
+
+    private func cookie(_ host: String, _ name: String) -> HTTPCookie {
+        HTTPCookie(properties: [.domain: host, .path: "/", .name: name, .value: "test-" + name, .secure: "TRUE",
+                                .expires: Date().addingTimeInterval(3600), HTTPCookiePropertyKey("HttpOnly"): "TRUE"])!
+    }
+
+    @MainActor private func until(_ ok: @escaping () -> Bool) async -> Bool {
+        for _ in 0..<40 { if ok() { return true }; try? await Task.sleep(for: .milliseconds(100)) }
+        return ok()
+    }
+
+    @MainActor func testTheOtherAccountsCopyGoesWhenTheSiteClearsIt() async throws {
+        let host = AppConfig.origin.host!.lowercased()
+        // an unsigned simulator build (CI's, and `CODE_SIGNING_ALLOWED=NO`) has no Keychain at all: run it signed
+        // (`CODE_SIGN_IDENTITY=-`), as the app on a phone always is
+        let probe: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "cn.flowlang.app.probe",
+                                    kSecAttrAccount as String: "x", kSecValueData as String: Data([1])]
+        SecItemDelete(probe as CFDictionary)
+        let status = SecItemAdd(probe as CFDictionary, nil)
+        SecItemDelete(probe as CFDictionary)
+        if status == errSecMissingEntitlement { throw XCTSkip("no Keychain in an unsigned build") }
+        let cfg = WKWebViewConfiguration()
+        cfg.websiteDataStore = .nonPersistent()
+        let web = WKWebView(frame: .zero, configuration: cfg)  // a cookie store keeps cookies only with a web view of its own
+        defer { _ = web }
+        let store = cfg.websiteDataStore.httpCookieStore
+        let keeper = CookieKeeper()
+        await keeper.start(store, host: host)
+        await store.setCookie(cookie(host, "flow_session"))
+        await store.setCookie(cookie(host, "flow_more"))
+        let both = await until { self.saved(host, "flow_session") && self.saved(host, "flow_more") }
+        XCTAssertTrue(both, "both cookies kept in the Keychain")
+        await store.deleteCookie(cookie(host, "flow_more"))  // the site's Max-Age=0
+        let gone = await until { !self.saved(host, "flow_more") }
+        XCTAssertTrue(gone, "the other accounts' copy deleted with the cookie")
+        XCTAssertTrue(saved(host, "flow_session"), "the session's copy stays")
+        await store.deleteCookie(cookie(host, "flow_session"))  // signed out: nothing left behind by the test
+        let clean = await until { !self.saved(host, "flow_session") }
+        XCTAssertTrue(clean)
     }
 }

@@ -142,6 +142,7 @@ App 打开、回到前台、切到后台、以及 iOS 每天叫醒它几次时�
   - 专注模式过滤 `ReminderFocusFilter` 不设开关：学员在系统设置里给某个专注模式加上才起作用。通知带 `filterCriteria`（`review` / `plan`），系统按它过滤。
   - 红线：不用 `IndexedEntity`（Apple Intelligence 的语义索引）、助手模式（AssistantSchemas）和 model delegation。
   - 在系统搜索里找生词（第 7 项，默认关）：B2 的接口带 `?v=`，没变就不重建索引；截图用内测版启动参数 `-FlowWordSearchSample YES` 放三个样例词。
+  - 钥匙串：没签名的模拟器包（`CODE_SIGNING_ALLOWED=NO`，CI 也是）根本用不了钥匙串（-34018），所以 `CookieKeychainTests` 在那里自动跳过；要真测就用签名的包跑（`CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM=`）。
   - 模拟器上的坑：没签名的包（`CODE_SIGNING_ALLOWED=NO`）装到放了语流控制中心按钮的模拟器时，系统的 AppIntentsLiveEntityService 会崩，连带 FlowWidgets 崩（WidgetKit「Can't create CHSIntentReference」）；签名的包（`CODE_SIGN_IDENTITY=-`）不会，真机也不会。测试跑着时别往放了按钮的模拟器装没签名的包：XCTest 会把这次崩记到正在跑的那个测试头上。
 
 ## 隐私
