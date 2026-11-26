@@ -237,7 +237,7 @@ class Page:
 
     def go(self, hash_, settle=1.2):
         self.js(f'location.hash = {json.dumps(hash_)}')
-        self.until("!document.querySelector('#view .skel, #view .skeleton')", 8); time.sleep(settle)
+        self.until("!document.querySelector('#view .skel, #view .skeleton, #view[data-busy]')", 8); time.sleep(settle)
         self.login = self.no_login()
 
     def no_login(self):

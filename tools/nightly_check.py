@@ -145,7 +145,7 @@ DEVICES = {
     'phone': dict(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2),
     'desktop': dict(viewport={'width': 1440, 'height': 900}, is_mobile=False, has_touch=False, device_scale_factor=1),
 }
-SETTLE = ['#view .skeleton', '#splash']
+SETTLE = ['#view .skeleton', '#view[data-busy]', '#splash']  # data-busy: a page seen before, on its way (no skeleton)
 LEFT_CHINESE = """() => {
   const out = [], seen = new Set();
   const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

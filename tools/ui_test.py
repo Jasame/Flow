@@ -82,6 +82,8 @@ def check(dev, name, ok, detail=''):
 def settle(pg, sel='#view h1, #view .review, #view .empty, #view .done-card', timeout=8000):
     # waits that poll without eval, so they work under the page's CSP in WebKit too (it does not honour bypass_csp)
     pg.wait_for_selector('#view .skeleton', state='detached', timeout=timeout)
+    # a page seen before has no skeleton: the page left stays, marked, until that one is drawn (02-shell.js route)
+    pg.wait_for_selector('#view[data-busy]', state='detached', timeout=timeout)
     pg.wait_for_selector('#splash', state='detached', timeout=timeout)  # 启动动画 (09-start.js) has left
     try:
         pg.wait_for_selector(sel, timeout=timeout)
@@ -4476,6 +4478,45 @@ def shell_run(pw):
               tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due == 0 and not tb['dot'] and tb['label'] is None and me_radar == 0, (tb, due, me_radar))
         check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
               min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
+        # Coming to a page seen before (the user, 2026-11-26: 从一个页面返回到另外一个页面的时候，整个页面就会稍微抖动一下……
+        # 没必要抖动): no skeleton in between, no rise, and 返回 puts the page where it was left, all in one frame.
+        # One record a frame: how far down, the title, where the title is, rises running, #view marked busy, its opacity.
+        WATCH = """() => { const view = document.getElementById('view'), R = window.__nav = { f: [], skel: 0, shift: 0, on: true };
+          new MutationObserver(() => { if (R.on && view.querySelector('.skeleton')) R.skel++; }).observe(view, { childList: true, subtree: true });
+          try { new PerformanceObserver(l => { for (const e of l.getEntries()) if (R.on) R.shift += e.value; }).observe({ type: 'layout-shift' }); } catch (e) { R.shift = -1; }
+          const tick = () => { if (!R.on) return; const h = view.querySelector('h1');
+            R.f.push([Math.round(scrollY), h ? h.textContent.trim() : '', h ? Math.round(h.getBoundingClientRect().top) : -1,
+                      document.getAnimations().filter(a => a.animationName === 'rise' && a.playState === 'running').length,
+                      view.hasAttribute('data-busy') ? 1 : 0, +getComputedStyle(view).opacity]);
+            requestAnimationFrame(tick); };
+          requestAnimationFrame(tick); }"""
+        WATCHED = "() => { const R = window.__nav; R.on = false; return R; }"
+        title = "(h => h ? h.textContent.trim() : '')(document.querySelector('#view h1'))"
+
+        def watched(act, wait=700):
+            pg.evaluate(WATCH); pg.wait_for_timeout(120); act(); pg.wait_for_timeout(wait)
+            return pg.evaluate(WATCHED)
+
+        def calm(r, name, y, others):  # the page called `name` is at y from its first frame on, still, and no other page or skeleton came between
+            mine = [f for f in r['f'] if f[1] == name]
+            return (r['skel'] == 0 and bool(mine) and all(f[0] == y and f[3] == 0 for f in mine) and len({f[2] for f in mine}) == 1
+                    and {f[1] for f in r['f']} <= {name, *others} and r['f'][-1][1] == name and r['f'][-1][4:] == [0, 1])
+        ctx, pg = open_(False, 375, 560, '#/library'); lib = pg.evaluate(title)
+        y = pg.evaluate("(() => { scrollTo(0, 160); return Math.round(scrollY); })()")
+        go(pg, '#/practice'); prac = pg.evaluate(title)
+        check(dev, 'a page opened for the first time comes in as before (the rise)', pg.evaluate("document.getElementById('view').classList.contains('enter')") and pg.evaluate('scrollY') == 0)
+        r = watched(lambda: pg.go_back())
+        check(dev, '返回 to the page before: no skeleton in between, it is where it was left from its first frame, it does not rise, nothing shifts',
+              y >= 60 and lib and prac and lib != prac and calm(r, lib, y, [prac]) and 0 <= r['shift'] < 0.02, (y, r['skel'], r['shift'], r['f'][:3], r['f'][-3:]))
+        r = watched(lambda: pg.evaluate("location.hash = '#/practice'"))
+        check(dev, 'a page seen before, by a link or a tab: no skeleton, no rise, from the top', calm(r, prac, 0, [lib]) and 0 <= r['shift'] < 0.02, (r['skel'], r['shift'], r['f'][:3], r['f'][-3:]))
+        # its data late (answers kept two minutes are now too old, the server takes 0.9 s): the page left goes pale, still no skeleton
+        pg.evaluate("(() => { const n = Date.now; Date.now = () => n() + 180000; const f = window.fetch; window.fetch = (...a) => new Promise(r => setTimeout(r, 900)).then(() => f(...a)); })()")
+        r = watched(lambda: pg.go_back(), 2000)
+        pale = [f for f in r['f'] if f[1] == prac and f[4] and f[5] < 0.8]
+        check(dev, '返回 with slow data: the page left stays, marked busy, and goes pale; then the page before, where it was left; no skeleton at any time',
+              calm(r, lib, y, [prac]) and bool(pale), (r['skel'], len(pale), r['f'][:2], r['f'][-2:]))
+        ctx.close()
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

@@ -349,6 +349,17 @@
   /* ---------- router ---------- */
   function setNav(name) { document.querySelectorAll('[data-nav]').forEach(a => a.dataset.nav === name ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')); homeBack(name); }
   function parts() { return location.hash.replace(/^#\/?/, '').split('/'); }
+  // Coming to a page already seen: 返回 (the page's own line, the browser's, the phone's), a tab tapped again (the
+  // user, 2026-11-26: 从一个页面返回到另外一个页面的时候，整个页面就会稍微抖动一下……可以知道是刷新了，但是没必要抖动).
+  // Such a page gets no skeleton in between and does not rise: the page left stays on screen until the one come to is
+  // drawn, and the scroll moves in that same frame: to where the page was left when this is the way back to the page
+  // before, else to the top. Meanwhile #view says data-busy="again": taps on the page left do nothing, and if the data
+  // takes long it goes pale (after 0.4 s, 20-motion-graph.css); still no skeleton, so nothing jumps. A page opened for
+  // the first time is drawn as before (skeleton, then the rise). The tests wait for both to be gone (ui_test.py settle).
+  const SEEN = new Map();  // route → how far down it was when it was left
+  let landing = null;      // from hashchange, for the route() it starts: { again, y }
+  let routeTurn = 0;       // a route() still waiting for its data when the next page is asked for leaves the page alone
+  try { history.scrollRestoration = 'manual'; } catch (e) { /* a browser without it puts the scroll back itself */ }
   async function route(keepScroll, quiet) {
     if (/^#reset=/.test(location.hash)) {  // an older password-reset email
       const token = decodeURIComponent(location.hash.slice(7)); history.replaceState(null, '', location.pathname + location.search + '#/');
@@ -360,7 +371,12 @@
     const last = S.lastRoute.split('/');
     const sameMaterial = name === 'm' && last[0] === 'm' && last[1] === a && !!view.querySelector('#pane');
     S.prevRoute = S.lastRoute; S.lastRoute = parts().join('/');  // 问题反馈 says which page it came from
-    if (!sameMaterial && !quiet) view.innerHTML = skeleton();
+    const land = landing; landing = null;
+    const again = !!land && land.again && !sameMaterial && !quiet;
+    if (!quiet) { routeTurn++; view.removeAttribute('data-busy'); }
+    const turn = routeTurn;
+    if (again) { view.classList.remove('enter'); view.setAttribute('data-busy', 'again'); }  // 'enter' off: else what is drawn into it would rise
+    else if (!sameMaterial && !quiet) view.innerHTML = skeleton();
     let fresh = S.homeFresh; S.homeFresh = false;  // home data fetched just before this page: today() need not ask again
     try {
       if (!S.home) { await refreshHome(); fresh = true; }
@@ -407,11 +423,13 @@
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }
       else if (name === 'updates') { setNav('me'); await updatesView(); }  // 更新记录 (83-updates.js)
       else { setNav('today'); await today(fresh); }
-      if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
+      if (again) { if (turn === routeTurn) window.scrollTo(0, land.y); }
+      else if (!sameMaterial && name !== 'welcome' && !quiet) enter(view);
       if (!sameMaterial && !quiet) { const h = view.querySelector('h1'); announce(h ? h.textContent : document.title); }
       homeBackLink();  // 主屏 App: the page's own 「← 上一级」 line gives way to the top bar's 返回 (04-home-app.js)
       if (!quiet) tourMaybe();  // 新手引导: 今日 (or 我的班级) the first time a new account opens it (08-tour.js)
     } catch (e) {
+      if (again && turn === routeTurn) window.scrollTo(0, 0);
       const kept = e.network ? OFF.list() : [];  // offline: what can still be studied
       view.innerHTML = `<div class="empty"><div class="big">⚠︎</div><p>${esc(e.message)}</p><button class="btn" id="retry">重试</button>
         ${kept.length ? `<p class="small">没网时，这些已存到本机的材料还能学：</p><div class="mlist">${kept.map(k => mrow(k, null, '', '')).join('')}</div>` : ''}
@@ -419,15 +437,22 @@
       // an older front end than the server's may be what failed: a new version first (04-home-app.js), then the page again
       document.getElementById('retry').onclick = async ev => { ev.currentTarget.disabled = true; if (!(await retryOrUpdate())) route(); };
       errorPageUpdate();
-    } finally { if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
+    } finally { if (again && turn === routeTurn) view.removeAttribute('data-busy'); if (!keepScroll && !sameMaterial && !quiet) view.focus({ preventScroll: true }); }
   }
   // How the page changed (the Navigation API where there is one; else a longer history means a link, and a back or a
   // redirect cannot be told apart, so neither closes a sheet)
   const NAV = { type: '', len: history.length };
   if (window.navigation && navigation.addEventListener) navigation.addEventListener('navigate', e => { NAV.type = e.navigationType || ''; });
   window.addEventListener('hashchange', () => {
-    const [name, a] = parts(), last = S.lastRoute.split('/');
-    if (!(name === 'm' && last[0] === 'm' && last[1] === a)) window.scrollTo(0, 0);
+    const [name, a] = parts(), last = S.lastRoute.split('/'), to = parts().join('/');
+    const inMaterial = name === 'm' && last[0] === 'm' && last[1] === a;
+    // The way back to the page before: the browser says so (traverse), or the page come to is the one before the page
+    // being left (04-home-app.js's HIST: its own listener runs after this one, so here it still ends with that page).
+    const back = NAV.type === 'traverse' || (HIST.length > 1 && HIST[HIST.length - 2] === (location.hash || '#/'));
+    SEEN.set(S.lastRoute, window.scrollY);
+    const again = !inMaterial && SEEN.has(to);
+    landing = { again, y: back && again ? SEEN.get(to) : 0 };
+    if (!inMaterial && !again) window.scrollTo(0, 0);
     // another page the learner went to (a link, 返回, the browser's or the phone's back): a sheet of the page left closes
     // with it (one waiting for an answer stays). The app's own redirects (location.replace: #/join → #/ → #/welcome) keep
     // the sheet a route opened on the way (#/join's 注册). A tip the page left showed is put away, one said on the way

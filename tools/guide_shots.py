@@ -165,7 +165,7 @@ def main(only):
             ctx.grant_permissions(['microphone'], origin=base)
             pg = ctx.new_page()
             pg.goto(base + '/' + route)
-            pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
+            pg.wait_for_function("() => !document.querySelector('#view .skeleton, #view[data-busy]') && !document.querySelector('#view .loading')", timeout=15000)
             pg.wait_for_selector('#view h1, #view .review, #view .empty', timeout=10000)
             pg.wait_for_timeout(700)
             keep = step(pg) == 'keep' if step else False
