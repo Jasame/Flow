@@ -3934,12 +3934,11 @@ def review_side_run(pw):
         # note hides that item for this learner (B7's reported() counts it), the word's detail lists it, 放回 brings it back
         go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot .xtra-wrap', timeout=8000)
-        ai = pg.evaluate("() => !!document.querySelector('#xtraSlot .xtra-wrap summary .ai-mark')")
-        pg.click('#xtraSlot .xtra-wrap summary'); pg.wait_for_timeout(200)
+        ai = 'AI 生成' in (pg.text_content('#xtraSlot .xtra-ai') or '')  # a grey line, no coloured tag (the user, 2026-11-26)
         first = pg.text_content('#xtraSlot .xtra li b') or ''
-        pg.click('#xtraSlot [data-xbad] >> nth=0'); pg.wait_for_selector('#xNote', timeout=4000)
+        pg.click('#xtraSlot .xbad-open'); pg.wait_for_selector('[name=xpick]', timeout=4000)
         hint = pg.text_content('#sheet') or ''
-        pg.fill('#xNote', '不常这样说'); pg.click('#xGo'); pg.wait_for_timeout(600)
+        pg.check('[name=xpick] >> nth=0'); pg.fill('#xNote', '不常这样说'); pg.click('#xGo'); pg.wait_for_timeout(600)
         bar = pg.text_content('.easy-bar') or ''
         go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot', timeout=8000); pg.wait_for_timeout(300)

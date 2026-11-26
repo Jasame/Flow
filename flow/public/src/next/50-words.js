@@ -313,30 +313,40 @@
   // learner from then on, a note to 语流's admins with no name, an undo; 放回 in the word's sheet)
   function extrasHTML(c) {
     const xs = (c && c.extras) || []; if (!xs.length) return '';
-    const li = x => `<li data-xid="${x.id}"><span class="xt"><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}${x.diff ? `<span class="muted">（${esc(x.diff)}）</span>` : ''}</span><button class="link small xbad" type="button" data-xbad="${x.id}" aria-label="这条不对：${esc(x.en)}">这条不对</button></li>`;
-    const part = (kind, title) => { const g = xs.filter(x => x.kind === kind); return g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : ''; };
-    return `<details class="conf-wrap xtra-wrap"><summary class="conf-line"><span>搭配和近义词</span><span class="xtra-ai">${aiTag()}<span class="how">看看 ›</span></span></summary>
-      <div class="xtra-body"><p class="xtra-note">由 AI 生成，仅供参考 · <a class="link small xtra-svc" href="#/guide/ai-service">AI 服务说明 ›</a></p>${part('colloc', '常用搭配')}${part('near', '近义词')}</div></details>`;
+    // the user, 2026-11-26 (「视觉压力小」): no new box or line, no coloured tag — 「AI 生成」 in grey words; a few of each, the rest folded
+    const li = x => `<li data-xid="${x.id}"><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}${x.diff ? `<span class="xd"> · ${esc(x.diff)}</span>` : ''}</li>`;
+    const col = xs.filter(x => x.kind === 'colloc'), near = xs.filter(x => x.kind === 'near'), SHOW = { colloc: 3, near: 2 };
+    const part = (g, kind, title) => g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : '';
+    const more = col.slice(SHOW.colloc).length + near.slice(SHOW.near).length;
+    return `<section class="xtra-wrap" aria-label="常用搭配和近义词（AI 生成）"><p class="xtra-ai">常用搭配和近义词 · AI 生成，仅供参考</p>
+      ${part(col.slice(0, SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(0, SHOW.near), 'near', '近义词')}
+      ${more ? `<details class="xtra-more"><summary>更多 ${more} 条</summary>${part(col.slice(SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(SHOW.near), 'near', '近义词')}</details>` : ''}
+      <p class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button> · <a class="link small" href="#/guide/ai-service">AI 服务说明</a></p></section>`;
   }
   function bindExtras(root, c) {
-    root.querySelectorAll('[data-xbad]').forEach(b => { b.onclick = e => { e.stopPropagation(); extraBad(c, +b.dataset.xbad, root); }; });
+    const b = root.querySelector('.xbad-open'); if (b) b.onclick = e => { e.stopPropagation(); extraBad(c, root); };
   }
-  function extraBad(c, id, root) {
-    const x = (c.extras || []).find(y => y.id === id); if (!x) return;
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">这条不对</h2>
-      <p><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</p>
-      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="3" maxlength="100" placeholder="比如：意思不对、不常这样说"></textarea></label>
+  // 「有不对的？」: one quiet way in; the sheet asks which item, a note if they like, no name shown to the admins
+  function extraBad(c, root) {
+    const xs = c.extras || []; if (!xs.length) return;
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">哪一条不对？</h2>
+      <div class="xpicks" role="radiogroup" aria-labelledby="sheetTitle">${xs.map(x => `<label class="xpick"><input type="radio" name="xpick" value="${x.id}"><span><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</span></label>`).join('')}</div>
+      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说"></textarea></label>
       <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
-      <div class="row"><button class="btn primary" id="xGo" type="button">提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
-      card.querySelector('#xGo').onclick = async e => {
-        e.currentTarget.disabled = true;
+      <div class="row"><button class="btn primary" id="xGo" type="button" disabled>提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
+      const go = card.querySelector('#xGo');
+      card.querySelectorAll('[name=xpick]').forEach(r => { r.onchange = () => { go.disabled = false; }; });
+      go.onclick = async () => {
+        const pick = card.querySelector('[name=xpick]:checked'); if (!pick) return;
+        const id = +pick.value, x = xs.find(y => y.id === id);
+        go.disabled = true;
         try {
           await api('/api/next/vocab/extra-flag', { id, note: card.querySelector('#xNote').value });
           closeSheet(); extraGone(c, id, root);
           undoBar(`已标为不对：「${x.en}」不再给你看`, async () => {
             try { await api('/api/next/vocab/extra-unflag', { id }); c.extras = [...(c.extras || []), x]; toast('已放回'); } catch (y) { toast(y.message); }
           });
-        } catch (y) { toast(y.message); e.currentTarget.disabled = false; }
+        } catch (y) { toast(y.message); go.disabled = false; }
       };
     });
   }
