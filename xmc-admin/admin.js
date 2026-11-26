@@ -35,7 +35,7 @@
   // top and this question keep a change meant for the 内测版 off 语流). Survey and feedback housekeeping does not ask.
   var PROD_ASK = { '/learner/disable': '停用或恢复这个账号', '/learner/signout': '让这个账号在所有设备上退出登录',
     '/learner/level': '改这个学员的水平', '/learner/daily-new': '改这个学员每天的新词数', '/learner/staff': '改员工账号',
-    '/learner/teacher': '改老师账号', '/learner/ai-quota': '改这个学员的 AI 额度', '/learner/ai-quota/clear': '恢复这个学员的普通 AI 额度', '/users/reset-link': '生成重设密码链接', '/material/hide': '下架或恢复这篇材料',
+    '/learner/teacher': '改老师账号', '/learner/ai-quota': '改这个学员的 AI 额度', '/word-extras/take-down': '下架这一条单词搭配', '/word-extras/put-back': '放回这一条单词搭配', '/learner/ai-quota/clear': '恢复这个学员的普通 AI 额度', '/users/reset-link': '生成重设密码链接', '/material/hide': '下架或恢复这篇材料',
     '/settings/ai-limits': '改 AI 额度', '/settings/ai-budget': '改 AI 预算和上限', '/settings/ai-routes': '改各项任务用的 AI 模型',
     '/daily/run': '生成今日一读', '/tasks/examples/start': '开始例句预生成', '/tasks/examples/stop': '停止例句预生成',
     '/announcements/create': '发布公告（学员马上在「今日」看到）', '/announcements/end': '结束公告', '/class/create': '新建班级',
@@ -1005,6 +1005,44 @@
   }
 
   /* ---------- 词书和考试 ---------- */
+  // 单词搭配反馈 (管理员 only): the AI 常用搭配和近义、易混词 learners marked 「这条不对」 (word_extras.reported, B7; B2's
+  // marks), most learners first, no names; 下架 hides a row for everyone with a reason, 放回 undoes it (rows the AI review
+  // hid stay hidden). Looked at once a week.
+  var WX = { days: 7 };
+  function extrasView() {
+    return getJSON('/word-extras?days=' + WX.days).then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>单词搭配反馈</h1><p class="muted">学员在单词卡上标「这条不对」的 AI 常用搭配和近义、易混词，按标的人数排。每周看一次：确实不对的点「下架」，所有学员都看不到；下架错了可以「放回」。这里看不到是谁标的。</p></div></div>' +
+        '<div class="card toolbar"><div class="chips">' + [[7, '近 7 天'], [30, '近 30 天'], [0, '全部']].map(function (x) {
+          return '<button class="chip" type="button" data-wxd="' + x[0] + '" aria-pressed="' + (WX.days === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+        '<section class="card">' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>单词</th><th>内容</th><th class="num">几个人标</th><th>留言（最近几条）</th><th>状态</th></tr></thead><tbody>' +
+          d.items.map(function (r) {
+            var st = !r.hidden ? '<button class="btn" type="button" data-wxdown="' + r.extra_id + '">下架</button>'
+              : r.by_admin ? '<span class="pill off">已下架</span> <button class="btn" type="button" data-wxup="' + r.extra_id + '">放回</button>'
+              : '<span class="pill off">审稿时已藏起</span>';
+            return '<tr' + (r.hidden ? ' class="dim"' : '') + '><td><b>' + esc(r.norm) + '</b><span class="sub">' + esc(r.kind_label) + '</span></td>' +
+              '<td>' + esc(r.en) + (r.zh ? ' <span class="muted">' + esc(r.zh) + '</span>' : '') + (r.diff ? '<span class="sub">' + esc(r.diff) + '</span>' : '') + '</td>' +
+              '<td class="num">' + n(r.users) + '<span class="sub">' + esc(rel(r.last)) + '</span></td>' +
+              '<td class="small">' + (r.notes.length ? r.notes.map(function (x) { return '<div>「' + esc(x) + '」</div>'; }).join('') : '<span class="muted">没写</span>') + '</td>' +
+              '<td>' + (isAdmin() ? st : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">' + (WX.days ? '这段时间' : '') + '还没有学员标过「这条不对」。</p>') + '</section>';
+      main.querySelectorAll('[data-wxd]').forEach(function (b) { b.onclick = function () { WX.days = Number(b.dataset.wxd); extrasView(); }; });
+      main.querySelectorAll('[data-wxdown]').forEach(function (b) {
+        b.onclick = function () {
+          var why = window.prompt('为什么下架这一条？（必填，120 字以内，写进操作记录）\n\n下架以后所有学员都看不到它；以后可以放回。', '');
+          if (why == null) return;
+          if (!why.trim()) { alert('请写一句为什么下架。'); return; }
+          busy(b, postJSON('/word-extras/take-down', { id: Number(b.dataset.wxdown), why: why.trim() })).then(extrasView, function () { /* shown */ });
+        };
+      });
+      main.querySelectorAll('[data-wxup]').forEach(function (b) {
+        b.onclick = function () {
+          if (!ask('放回这一条？所有学员又会在单词卡上看到它（自己标过「这条不对」的人照旧看不到）。')) return;
+          busy(b, postJSON('/word-extras/put-back', { id: Number(b.dataset.wxup) })).then(extrasView, function () { /* shown */ });
+        };
+      });
+    }).catch(fail);
+  }
   function booksView() {
     getJSON('/books').then(function (d) {
       var b = d.books, ex = d.exams;
@@ -1364,7 +1402,7 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, classes: classesView, aiquota: aiQuotaView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
+    learners: learnersView, classes: classesView, aiquota: aiQuotaView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, extras: extrasView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
   var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log', 'tests'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
