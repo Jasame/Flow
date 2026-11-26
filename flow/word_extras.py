@@ -220,7 +220,11 @@ def _note(row_flagged):
 
 def take_down(c, extra_id, why, by):
     """Hide one row for everyone from the console (B6; the weekly look at 「这条不对」), keeping who, why and when.
-    Returns 1 if a row changed. The console keeps its own admin log too."""
+    Returns 1 if a row changed. The console keeps its own admin log too. A row the reviewer or the owner's review
+    already hid is left as it is (0): its reason stays, so put_back can never show it again."""
+    row = c.execute('SELECT hidden, flagged FROM vocab_extras WHERE id=?', (int(extra_id),)).fetchone()
+    if not row or (row[0] and not _note(row[1]).get('admin')):
+        return 0
     note = json.dumps({'by': str(by)[:40], 'why': str(why)[:120], 'at': int(time.time()), 'admin': True}, ensure_ascii=False)
     return c.execute('UPDATE vocab_extras SET hidden=1, flagged=? WHERE id=?', (note, int(extra_id))).rowcount
 
