@@ -343,6 +343,10 @@ document.documentElement.classList.add('js');
   function hero() {
     const h = $('.hero .display');
     if (h) requestAnimationFrame(() => setTimeout(() => h.classList.add('in'), 60));
+    // the phone under the hero is part of the first screen (on a phone only its top peeks out): its cards come in on
+    // load, not once 12% of it is in view, so the first screen moves and hints at more below (the owner, 2026-11-26)
+    const v = $('.hero-visual');
+    if (v) setTimeout(() => v.classList.add('in'), 400);
   }
 
   /* ---------- the buttons that lead into the site are counted: per day and button only, nothing about who
