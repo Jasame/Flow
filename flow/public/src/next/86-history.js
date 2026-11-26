@@ -7,8 +7,8 @@
      D2's rules: only the learner sees it; every record and all of them can be deleted, and deleting asks whether the
      mistakes it left go too (two buttons alike, no default); no recording is kept, so none is played. */
   const HIST_TYPES = [['', '全部'], ['speaking', '口语'], ['writing', '写作'], ['translation', '翻译'], ['assess', '测评'], ['exam', '考试']];
-  // D2: once the 180-day clean-up is live this says 「练习记录保存 180 天；录音不保存。」; until then, what is true
-  const HIST_KEEP = '练习记录会一直保存，可以自己删；录音不保存。';
+  // D2's sentence. The 180 days are the server's: AI results older than that are cleared every day (ai_quota, #525).
+  const HIST_KEEP = '练习记录保存 180 天；录音不保存。';
   const HIST_GO = '<svg class="hist-go" viewBox="0 0 12 12" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6 4.5 9.5"/></svg>';
   const HIST_DOWN = '<svg class="hist-down" viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>';
   const HIST_MARK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3.6L6 20V5a1 1 0 0 1 1-1z"/></svg>';
