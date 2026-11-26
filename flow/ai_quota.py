@@ -16,7 +16,7 @@ import datetime, json, time
 
 DAILY_MAX, FACTOR_MIN, FACTOR_MAX, REASON_MAX, UNTIL_MAX_DAYS = 1000, 0.1, 10.0, 120, 366
 KEEP_DAYS, TOTAL = 90, -1  # TOTAL: the no-account row of a day once its people are folded in (0 is the site's own, daily_service)
-PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 问题反馈」里说。'  # D2: a way to reach someone
+PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 帮助 → 问题反馈」里说。'  # D2: a way to reach someone
 SITE_FULL = '本站今日 AI 调用额度已用完，请明天再来。'
 RESET_TEXT = '北京时间早上 8 点'
 
