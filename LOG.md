@@ -1021,3 +1021,10 @@
   - #428 服务器变动：内测版后台接通（Cloudflare 应用、env 三行、杭州隧道和 nginx）（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45771685998
+
+### b126 · 2026-11-26 15:22
+- main `b810182`，构建 `95f4f7f`
+- 新合并的 PR（自 b125 起）：
+  - #429 单词详细模式第 4 步：AI 常用搭配和近义、易混词上卡片，「有不对的？」、放回、导出（单词、后台和班级、操作指南）
+- 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45774702420
