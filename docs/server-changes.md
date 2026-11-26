@@ -30,6 +30,32 @@
 
 ## 2026-11-26
 
+### 14:21 · 杭州：内测版后台接到香港（隧道、页面同步、nginx）
+
+- **改了什么**：
+  - 新服务 `flow-admin-hk-beta.service`：SSH 隧道，把杭州本机的 8093 接到香港本机的 8093；
+  - 新服务 `flow-admin-beta-ui-sync.service` 和它的 `.timer`：每 10 分钟从香港拉 `/www/wwwroot/xmc.hk/flow-beta` 的三个页面文件；
+  - 新目录 `/www/wwwroot/xmc.hk/flow-beta`；
+  - nginx 新文件 `/www/server/panel/vhost/nginx/extension/xmc.hk/flow-beta-admin.conf`：`/flow-beta/api/` 转到 8093，`nginx -t` 通过后 reload。
+
+  正式版的 `flow-admin-hk`、`flow-admin-ui-sync` 和 `flow-admin.conf` 都没动。
+- **谁、为什么**：语流 A1·发版和服务器，语流 B6 内测版后台的第 3 步。用户在 A1 的原话按顺序是「新建一个应用（推荐）」「你来做」「可以（推荐）」。
+- **撤回**：停用并删掉这两个服务和定时器，删掉那个 nginx 文件，再 reload。
+
+### 14:14 · 内测版：后台按 Cloudflare Access 认人（`/etc/flow-beta.env` 加三行）
+
+- **改了什么**：`/etc/flow-beta.env` 加了三行：一行注释、`FLOW_ACCESS_TEAM`（照抄正式版那一行）、`FLOW_ACCESS_AUD`（新应用的），55 行变 58 行，
+  然后重启 flow-beta。值不写在这里。
+- **谁、为什么**：语流 A1，语流 B6 内测版后台的第 2 步。用户的原话见 14:21 那条。
+- **撤回**：按行删掉这三行，重启 flow-beta。
+
+### 14:1x · Cloudflare：给内测版后台新建一个 Access 应用
+
+- **改了什么**：Cloudflare Access 新建应用「flow-beta console」，只管 `xmc.hk/flow-beta`；策略用 panel-admins-otp，和 xmc.hk 整站那个应用同一条；
+  会话 24 小时。
+- **谁、为什么**：语流 A1，内测版后台的第 1 步，用户选了「新建一个应用（推荐）」。
+- **撤回**：在 Cloudflare 上删掉这个应用。
+
 ### 13:46 · 语流：单词搭配计划里改正放行时间
 
 - **改了什么**：`/www/wwwroot/flow/data/word-extras/plan.json` 里 `approved` 那一栏，用户放行的时间原来误写成 14:0x，改成
