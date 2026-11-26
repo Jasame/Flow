@@ -22,6 +22,9 @@ CN = 8 * 3600  # China time, as next_service.TZ (no summer time)
 PASS = ('hard', 'good', 'easy', 'used')  # a review that recalled the word (used: written correctly in 用出来)
 MIN_ANSWERS = 5  # fewer answers in a week than this: no percentage, only how many
 MAIL_HOUR = 20  # Sunday evening
+# The mail's links say they come from a reminder (B1's count of who comes back with or without one: per day and kind,
+# never who; the page drops the query once read): ?from=remind&k=weekly, before the #.
+FROM_MAIL = '?from=remind&k=weekly'
 NUDGE_WEEKS = 3  # a week without study still gets the mail for this many weeks after the last study day, then it stops
 WEEKDAY = '一二三四五六日'
 
@@ -362,8 +365,8 @@ def compose(c, uid, name, now, origin):
     if words_due:
         rows.append(words_due)
     token = _token(c, uid)
-    text, page = mail_layout.message(paragraphs, rows=rows, button=('打开语流接着学', f'{origin}/#/'),
-                                     foot=[('这周的完整报告', f'{origin}/#/report'), ('不想再收到每周进度邮件，点这里退订', f'{origin}/#/weekly-off/{token}'),
+    text, page = mail_layout.message(paragraphs, rows=rows, button=('打开语流接着学', f'{origin}/{FROM_MAIL}#/'),
+                                     foot=[('这周的完整报告', f'{origin}/{FROM_MAIL}#/report'), ('不想再收到每周进度邮件，点这里退订', f'{origin}/#/weekly-off/{token}'),
                                            ('也可以在「我的 → 每周进度邮件」里关掉。', None)])
     return subject, text, page, token
 
@@ -391,8 +394,6 @@ def send_weekly(c, now=None, send=None):
         if not mail:
             continue
         subject, text, page, token = mail
-        c.execute('UPDATE next_weekly SET mailed=? WHERE user_id=?', (today, r['id']))
-        c.commit()
         try:
             if send is None:
                 link = f'{origin}/api/next/weekly-mail/off?t={token}'
@@ -401,7 +402,11 @@ def send_weekly(c, now=None, send=None):
                 send(r['email'], subject, text)
             sent += 1
         except Exception:
-            pass  # a mail outage must not stop the loop
+            continue  # a mail outage must not stop the loop
+        # mailed: the day a mail really went (last_sent above is the day it was tried, so a learner is tried once a
+        # Sunday); the day's reminder skips after it, and the count of who came back unreminded reads it (only the date)
+        c.execute('UPDATE next_weekly SET mailed=? WHERE user_id=?', (today, r['id']))
+        c.commit()
     return sent
 
 

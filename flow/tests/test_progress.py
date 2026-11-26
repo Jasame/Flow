@@ -183,6 +183,19 @@ class MailTests(Db):
     def mails(self):
         return [f.read_text(encoding='utf-8') for f in sorted(self.outbox.glob('*.txt'))] if self.outbox.exists() else []
 
+    def test_a_mail_that_did_not_go_is_not_marked_mailed(self):
+        """next_weekly.mailed is the day a mail really went (the day's reminder skips after it, and the count of who came
+        back unreminded reads it): a send that fails leaves it empty, and the learner is not tried again that Sunday."""
+        def down(*a):
+            raise OSError('mail service down')
+        with app.db() as c:
+            self.studied(c, at(2026, 11, 23, 9), at(2026, 11, 24, 9)); c.commit()
+            self.assertEqual(ps.send_weekly(c, SUNDAY, send=down), 0)
+            row = c.execute('SELECT last_sent, mailed FROM next_weekly WHERE user_id=?', (self.uid,)).fetchone()
+            self.assertEqual((row['last_sent'], row['mailed']), ('2026-11-29', None))
+            self.assertFalse(ps.mailed_today(c, self.uid, SUNDAY + 60))
+            self.assertEqual(ps.send_weekly(c, SUNDAY + 600, send=lambda *a: None), 0)  # once a Sunday, even so
+
     def test_sunday_evening_with_the_week_and_a_link_to_stop_it(self):
         with app.db() as c:
             self.studied(c, at(2026, 11, 23, 9), at(2026, 11, 24, 9))
@@ -201,6 +214,8 @@ class MailTests(Db):
         self.assertIn('class="fl-card"', page)
         self.assertIn('记住了 1 个新词', page)
         self.assertIn('/#/weekly-off/', page)
+        self.assertIn('/?from=remind&amp;k=weekly#/report', page)  # the links say they come from the reminder (counted per day, never who)
+        self.assertRegex(m, r'打开语流接着学：https?://[^/\s]+/\?from=remind&k=weekly#/\n')
         token = re.search(r'https://flow\.test/#/weekly-off/([\w-]+)', m).group(1)
         self.assertIn(f'List-Unsubscribe: <https://flow.test/api/next/weekly-mail/off?t={token}>', m)
         self.assertIn('List-Unsubscribe-Post: List-Unsubscribe=One-Click', m)
