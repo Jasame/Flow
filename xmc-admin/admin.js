@@ -1333,7 +1333,7 @@
     return '<section class="card"><h2>暂停的账号</h2><dl class="kv">' +
       '<dt>暂停中</dt><dd>' + n(p.paused) + ' 个</dd>' +
       '<dt>满 30 天、等待删除</dt><dd>' + n(p.due) + ' 个' + (p.due_days && p.due_days.length ? '<div class="muted small">暂停日期：' + esc(p.due_days.join('、')) + '</div>' : '') + '</dd>' +
-      '<dt>自动删除</dt><dd>' + (p.on ? '已打开' : '没有打开（只出报告，不删）') + '</dd>' +
+      '<dt>自动删除</dt><dd>' + (p.on ? '已打开：到期的账号每天自动删除（备份不新鲜时先不删）' : '没有打开（只出报告，不删）') + '</dd>' +
       '<dt>备份</dt><dd>' + (p.backup_ok ? '最近一次在 36 小时内，成功' : '<span class="err">不在或失败：到期的账号先不删</span>') + '</dd></dl>' +
       '<p class="muted small">不同意或撤回「数据存放在香港」的账号先暂停；页面上写的那一天过完还没有重新同意，就照「注销账号」的方式删除，每删一个记进操作日志（只记账号编号）。这里不显示名字。</p></section>';
   }
