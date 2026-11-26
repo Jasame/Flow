@@ -185,4 +185,7 @@
     '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '这周 {n} 天': '{1} {1|day|days} this week', '{n} 道': '{1}', '还没有': 'None yet',
     '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
     '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
+    // 81-habits.js: 我的 → 使用习惯 (B5), and its summary on 我的's row (今日列表 · 松绿 · 字号标准)
+    '今日列表': 'List view', '今日卡片': 'Card view', '字号标准': 'Standard text', '字号大': 'Large text', '字号特大': 'Extra large text',
+    '新词卡': 'New-word card', '背单词「认识」在': '“Know it” on the', '右边': 'Right', '返回我的': 'Back to Me',
   });
