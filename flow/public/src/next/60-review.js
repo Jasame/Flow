@@ -135,7 +135,7 @@
       return esc(example).replace(/[A-Za-z']+/g, w => (k < want.length && w.toLowerCase() === want[k]) ? (k++, `<span class="gap">${' '.repeat(Math.max(3, w.length))}</span>`) : w);
     };
     const sentenceOf = x => x.context && x.context.toLowerCase().includes(x.text.toLowerCase()) ? { text: x.context, form: x.text } : (x.examples && x.examples[0]) || null;
-    const meaningHTML = x => x.meaning ? `<div class="mean-q">${esc(x.meaning).replace(/；|;/g, '<br>')}</div>` : '';
+    const meaningHTML = x => x.meaning ? `<div class="mean-q" data-zh>${esc(x.meaning).replace(/；|;/g, '<br>')}</div>` : '';
 
     // Mistakes come back on the forgetting curve too: answer the question again, fix the phrase, say the sound.
     function mistakeAsk() {
@@ -162,7 +162,7 @@
           <div class="row center"><button class="btn primary" id="fixGo">确定</button><button class="btn ghost" id="fixNo">想不起来</button></div>`;
       } else {
         body = `${tag}<div class="wordbig">${esc(c.text)}</div><div class="row center">${sayBtn('听', true)}</div>
-          ${c.meaning ? `<div class="mean-q small">${esc(c.meaning)}</div>` : ''}
+          ${c.meaning ? `<div class="mean-q small" data-zh>${esc(c.meaning)}</div>` : ''}
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           ${actions(`<div class="choice">${KNOW.order([['读准了', 'good', 'good'], ['还不稳', '', 'hard'], ['不会读', 'again', 'again']]).map(([t, cls, r]) => `<button class="${cls}" data-self="${r}">${t}</button>`).join('')}</div>`)}`;
       }
@@ -187,8 +187,8 @@
           }
           view.querySelectorAll('[data-o]').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
           if (!r.correct) b.classList.add('wrong');
-          after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small">${esc(r.explanation || '')}</div>
-            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted">${esc(c.meaning || '')}</div>` : ''}
+          after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small" data-zh>${esc(r.explanation || '')}</div>
+            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted" data-zh>${esc(c.meaning || '')}</div>` : ''}
             ${!r.correct && c.node ? `<a class="link small" href="#/graph/${encodeURIComponent(c.node.id)}">回到「${esc(c.node.title)}」看一遍讲解 →</a>` : ''}`);
         });
         keys({ 1: () => view.querySelector('.qopt:nth-child(1)').click(), 2: () => view.querySelector('.qopt:nth-child(2)').click(), 3: () => view.querySelector('.qopt:nth-child(3)').click(), 4: () => view.querySelector('.qopt:nth-child(4)').click() });
@@ -208,11 +208,11 @@
         const done = v => {
           view.querySelectorAll('#fixGo,#fixNo').forEach(b => b.remove()); inp.disabled = true;
           const ok = !!v && norm(v) === norm(c.text);
-          if (ok || !v) return after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small">${esc(c.meaning)}</div>` : ''}`);
+          if (ok || !v) return after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small" data-zh>${esc(c.meaning)}</div>` : ''}`);
           // Not the same words: often a correct other wording. The learner compares and decides; no loop over one word.
           const ms = Date.now() - t0;
           view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter"><div class="small"><span class="muted">你写的：</span>${esc(v)}</div>
-            <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted">${esc(c.meaning)}</div>` : ''}
+            <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted" data-zh>${esc(c.meaning)}</div>` : ''}
             <div class="row center"><button class="btn" id="fixSame">我写的也对</button><button class="btn primary" id="fixMiss">没写对，记下了</button></div></div>`);
           document.getElementById('fixSame').onclick = () => rate('good', ms); document.getElementById('fixMiss').onclick = () => rate('again', ms);
         };
@@ -335,15 +335,15 @@
     }
     function answerHTML() {
       if (!detailed()) return `${wordHTML()}
-        ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
+        ${c.meaning ? `<div class="mean-a" data-zh>${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
       // 详细 (B9's sheet, words-modes/): the meaning by part of speech, the roots, the examples as many as 简洁 shows (two)
       // and the rest one tap away, the confusable group (词汇辨析) with how to tell them apart, a grey line of how well it is held
       const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
         return m ? `<b>${esc(m[1])}</b><span>${esc(m[2])}</span>` : `<span class="all">${esc(x)}</span>`; }).join('');  // a grid: the 词性 column as wide as its widest (B9, r36 audit)
       const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length, open = 2;
-      return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
+      return `${wordHTML()}${pos ? `<div class="mean-a mean-pos" data-zh>${pos}</div>` : ''}${rootsHTML(c)}
         <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>
-        ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small">${esc(g.how)}</p></details>` : ''}
+        ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small" data-zh>${esc(g.how)}</p></details>` : ''}
         ${extrasHTML(c)}
         <div class="mem-line">${esc(memLine())}</div>`;
     }
