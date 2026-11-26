@@ -303,7 +303,7 @@
     (c.examples || []).forEach(e => list.push(e));
     // many speakers in a list that can scroll: a faint 「AI」 on each (aiBadge); the grey line is the card's (aiVoiceNote)
     return list.length ? `<div class="exs">${list.map((e, k) => `<div class="ex"><button class="icon-btn has-ai" type="button" data-exp="${k}" aria-label="播放例句（AI 朗读）">${ICON.speak}${aiBadge()}</button>
-      <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted">${esc(e.zh)}</div>` : ''}
+      <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted" data-zh>${esc(e.zh)}</div>` : ''}
       ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : e.ai ? aiTag() : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
   }
   function wordHead(word, phonetic) {
@@ -322,7 +322,7 @@
   function extrasHTML(c) {
     const xs = (c && c.extras) || []; if (!xs.length) return '';
     // the user, 2026-11-26 (「视觉压力小」): no new box or line, no coloured tag — 「AI 生成」 in grey words; a few of each, the rest folded
-    const li = x => `<li data-xid="${x.id}"><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}${x.diff ? `<span class="xd"> · ${esc(x.diff)}</span>` : ''}</li>`;
+    const li = x => `<li data-xid="${x.id}"><b>${esc(x.en)}</b>${x.zh ? ` <span data-zh>${esc(x.zh)}</span>` : ''}${x.diff ? `<span class="xd" data-zh> · ${esc(x.diff)}</span>` : ''}</li>`;
     const col = xs.filter(x => x.kind === 'colloc'), near = xs.filter(x => x.kind === 'near'), SHOW = { colloc: 3, near: 2 };
     const part = (g, kind, title) => g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : '';
     const more = col.slice(SHOW.colloc).length + near.slice(SHOW.near).length;
@@ -382,7 +382,7 @@
     openSheet(`<div class="stack">
       ${wordHead(c.text, c.phonetic)}
       ${c.source === 'mistake' && (c.extra || {}).from ? `<div class="fixline"><del>${esc(c.extra.from)}</del> → <ins>${esc(c.text)}</ins></div>` : ''}
-      ${c.meaning ? `<div class="mean">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
+      ${c.meaning ? `<div class="mean" data-zh>${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
       <div class="wd-meta">${[c.known ? '熟知' : c.state === 'new' ? '待学' : `${c.mastered ? '已掌握 · ' : ''}<span title="此刻记得的概率">记得 ${pct(c.recall)}</span>`,
         c.stability ? `记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}` : '', c.state !== 'new' && !c.known ? dueText(c.due) : ''].filter(Boolean).join(' · ')}</div>
       ${curveSVG(c, d.retention)}
