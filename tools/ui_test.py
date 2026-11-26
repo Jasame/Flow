@@ -530,55 +530,57 @@ def run_device(pw, dev, opts):
     # ---- words page: five tools, the stats folded, one short row per word
     go(pg, '#/cards')
     wd = pg.evaluate("() => { const rows = [...document.querySelectorAll('#clist .xrow')]; return {tools: document.querySelectorAll('#view .tools a, #view .tools button').length, folded: !document.getElementById('vStats').open, rows: rows.length, tallest: Math.max(0, ...rows.map(r => Math.round(r.getBoundingClientRect().height)))}; }")
-    check(dev, 'words: five tools, the stats folded, one short row per word', wd['tools'] == 5 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
+    check(dev, 'words: four tools (错题本 moved to 练习 → 复习), the stats folded, one short row per word', wd['tools'] == 4 and wd['folded'] and wd['rows'] >= 10 and wd['tallest'] <= 80, wd)
     # ---- words page: a filter swaps only the list (the header element survives, no flash)
     pg.evaluate("document.querySelector('#view h1').dataset.keep = '1'")
-    pg.click('[data-f="mistake"]')
+    pg.click('[data-f="phrase"]')
     pg.wait_for_timeout(600)
     check(dev, 'filter swaps only the list', pg.evaluate("() => document.querySelector('#view h1').dataset.keep === '1'"))
-    check(dev, 'mistake filter lists mistakes', '错题' in (pg.text_content('#listSlot') or ''))
-    pg.click('[data-f="phrase"]'); pg.wait_for_timeout(500)
+    check(dev, 'the word page lists no mistakes (they are in 练习 → 复习 → 错题本), and no 错题 filter',
+          not pg.query_selector('[data-f="mistake"]') and '错题 ·' not in (pg.text_content('#listSlot') or ''))
 
     # ---- review: stable total; keyboard (desktop) or swipes (touch); Enter submits a fix card
-    go(pg, '#/review')
-    foot0 = pg.text_content('.rfoot') or ''
-    total0 = foot0.split('/')[-1].split('·')[0].strip()
+    # #344: the words and the rest have their own reviews — the fix cards and reading questions are in 练习 → 复习 (#/review/other)
     seen_fix = seen_passage = False
-    for step in range(16):
-        if pg.query_selector('.done-card'):
+    for page in ('#/review', '#/review/other'):
+        go(pg, page)
+        foot0 = pg.text_content('.rfoot') or ''
+        total0 = foot0.split('/')[-1].split('·')[0].strip()
+        for step in range(16):
+            if pg.query_selector('.done-card'):
+                break
+            if pg.query_selector('#fixIn'):
+                seen_fix = True
+                pg.fill('#fixIn', 'would have arrived')
+                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
+                nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
+                check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
+                nxt.click(); pg.wait_for_timeout(350); continue
+            if pg.query_selector('.qopt'):
+                seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
+                pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
+            if pg.query_selector('#spellIn'):
+                pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
+            if pg.query_selector('[data-claim]'):
+                if touch:
+                    touch_swipe(pg, '.review', 160)
+                else:
+                    pg.keyboard.press('3')  # 1 2 3 by place: 「认识」 is on the right (KNOW, 50-words.js)
+                pg.wait_for_timeout(300)
+                check(dev, 'know (swipe right / key 3, the right button) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
+                if touch:
+                    touch_swipe(pg, '.review', 160)
+                else:
+                    pg.keyboard.press('Enter')
+                pg.wait_for_timeout(400)
+                foot = pg.text_content('.rfoot') if pg.query_selector('.rfoot') else ''
+                if foot and '/' in foot:
+                    check(dev, 'review total does not grow after a right answer', foot.split('/')[-1].split('·')[0].strip() == total0, f'{foot0} -> {foot}') if step < 3 else None
+                continue
+            if pg.query_selector('[data-self]'):
+                pg.click('[data-self="good"]'); pg.wait_for_timeout(350); continue
             break
-        if pg.query_selector('#fixIn'):
-            seen_fix = True
-            pg.fill('#fixIn', 'would have arrived')
-            pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
-            # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
-            nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
-            check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
-            nxt.click(); pg.wait_for_timeout(350); continue
-        if pg.query_selector('.qopt'):
-            seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
-            pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
-        if pg.query_selector('#spellIn'):
-            pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
-        if pg.query_selector('[data-claim]'):
-            if touch:
-                touch_swipe(pg, '.review', 160)
-            else:
-                pg.keyboard.press('3')  # 1 2 3 by place: 「认识」 is on the right (KNOW, 50-words.js)
-            pg.wait_for_timeout(300)
-            check(dev, 'know (swipe right / key 3, the right button) reveals the answer', pg.query_selector('.open-card') is not None) if step < 2 else None
-            if touch:
-                touch_swipe(pg, '.review', 160)
-            else:
-                pg.keyboard.press('Enter')
-            pg.wait_for_timeout(400)
-            foot = pg.text_content('.rfoot') if pg.query_selector('.rfoot') else ''
-            if foot and '/' in foot:
-                check(dev, 'review total does not grow after a right answer', foot.split('/')[-1].split('·')[0].strip() == total0, f'{foot0} -> {foot}') if step < 3 else None
-            continue
-        if pg.query_selector('[data-self]'):
-            pg.click('[data-self="good"]'); pg.wait_for_timeout(350); continue
-        break
     check(dev, 'review reached a fix card', seen_fix)
     check(dev, 'a reading mistake comes back with its part of the text', seen_passage)
 
@@ -1466,8 +1468,8 @@ def layout_run(pw, engine):
             else:
                 found.setdefault((size, theme, 'beyond'), []).append('#/placement: the result was not reached, so not checked')
             # review: each card as it comes, answered so the next one shows; questions start near the top
-            go(pg, '#/review'); pg.wait_for_timeout(300); asked = 0
-            for k in range(40):  # word cards come first; mistakes (questions) after them
+            go(pg, '#/review/other'); pg.wait_for_timeout(300); asked = 0
+            for k in range(40):  # 错题和句型 (#344): questions, and saved sentences or patterns before them
                 if not pg.query_selector('#view .review') or asked:
                     break  # a question is checked and left unanswered, so it is still due for the next run
                 audit(f'#/review card {k + 1}')
@@ -1486,7 +1488,7 @@ def layout_run(pw, engine):
                     if nb and nb.is_visible():
                         nb.click(); pg.wait_for_timeout(250); break
             if not asked:
-                found.setdefault((size, theme, 'q-top'), []).append('#/review: no question card came up, so none was checked')
+                found.setdefault((size, theme, 'q-top'), []).append('#/review/other: no question card came up, so none was checked')
             # the tab bar stays at the bottom of the screen when a long page is scrolled to its end
             for p in ('#/library', '#/cards', '#/guide'):
                 go(pg, p); pg.evaluate('window.scrollTo(0, document.scrollingElement.scrollHeight)'); pg.wait_for_timeout(500)
@@ -3797,6 +3799,51 @@ def review_side_run(pw):
         check(dev, '我的 → 设置 → 背词: 背新词 / 复习 each 简洁 or 详细, and the row says so', pg.evaluate("localStorage.getItem('flow-card-view-new')") == 'simple' and '新词简洁' in lab, lab)
         check(dev, 'no script errors (简洁 / 详细)', not errs, errs[:3])
         ctx.close()
+        # 单词 and 其他复习 apart (the owner, 2026-11-25; review-split-plan.md): the 单词 badge and its review hold words only;
+        # #/review/other holds the mistakes, sentences and patterns, answered there without touching the 单词 badge
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['split']['token'], 'url': BASE}])
+        ctx.add_init_script("try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+        home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
+        stt = home.get('stats') or {}
+        badge = pg.text_content('#dueBadge') or ''
+        extra = [x for x in (home.get('path') or {}).get('steps', []) if x.get('group') == 'extra']
+        check(dev, '单词 counts words only (2), 其他复习 apart (2): the 单词 badge, home.stats.other_due, and 错题和句型复习 first in 还有时间的话',
+              stt.get('due') == 2 and stt.get('other_due') == 2 and badge.strip() == '2' and extra and extra[0].get('key') == 'review-other' and '2 道' in extra[0].get('title', ''),
+              [stt.get('due'), stt.get('other_due'), badge, extra[:1]])
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
+        seen = set()
+        for k in range(6):
+            if not pg.query_selector('[data-claim]'): break
+            seen.add((pg.text_content('.review .wordbig') or '').strip()); pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="good"]', timeout=4000)
+            pg.click('[data-rate="good"]'); pg.wait_for_timeout(500)
+        check(dev, '复习 (单词) shows the words only', seen == {'borrow', 'lend'}, sorted(seen))
+        go(pg, '#/review/other'); pg.wait_for_timeout(600)
+        o = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', text: document.getElementById('view').textContent })")
+        check(dev, '#/review/other: 复习错题和句型, under 练习, a mistake or the pattern first', o['h1'] == '复习错题和句型' and '练习' in o['nav'] and ('划线' in o['text'] or '回忆这个句型' in o['text'] or 'went' in o['text']), {k: v[:120] for k, v in o.items()})
+        # 错题本 (练习 → 复习 → 错题本): a page of its own, not the word page with a filter (语流 B9, A0)
+        go(pg, '#/cards'); go(pg, '#/cards/mistake'); pg.wait_for_timeout(500)
+        mb = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, back: !!document.querySelector('#view a[href=\"#/practice\"]'), nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', review: (document.getElementById('mbReview') || {}).textContent || '', rows: [...document.querySelectorAll('#listSlot .xrow .x')].map(x => x.textContent), wordPage: !!(document.getElementById('vStats') || document.querySelector('#view .tools') || document.querySelector('#view [data-f]')) })")
+        check(dev, '错题本 is its own page: ← 练习, 错题本, 练习 lit, 复习到期的 1 道 (the mistakes due, as its 共 1 道), the mistakes only, no word page around it',
+              mb['h1'] == '错题本' and mb['back'] and '练习' in mb['nav'] and '复习到期的 1 道' in mb['review'] and mb['rows'] == ['went'] and not mb['wordPage'], mb)
+        check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
+        ctx.close()
+        # 复习时的轻触震动 (语流 C1): in the app (has('haptic')), turning a card is 'select' and the rating says how it went;
+        # in a browser nothing is called
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['screen']['token'], 'url': BASE}])
+        ctx.add_init_script("window.__hap = []; window.__act = []; window.FlowApp = { v: 1, platform: 'ios', has: k => k === 'haptic' || k === 'activity', call: (m, a) => { if (m === 'app.haptic') window.__hap.push(a.kind); else if (m.startsWith('activity.')) window.__act.push([m, a.done, a.total]); return Promise.resolve({ ok: true }); } }; try { localStorage.setItem('flow-tap-guide', '1'); localStorage.setItem('flow-next-swipe-tip', '1'); } catch (e) {}")
+        pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000)
+        pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="again"]', timeout=4000); pg.click('[data-rate="again"]'); pg.wait_for_timeout(600)
+        check(dev, 'in the iOS app: turning a card taps lightly (select), 记错了 a warning (never error)', pg.evaluate('window.__hap') == ['select', 'warning'], pg.evaluate('window.__hap'))
+        go(pg, '#/cards'); pg.wait_for_timeout(300); act = pg.evaluate('window.__act')
+        check(dev, '复习进度的实时活动 (语流 C1): each rating sends activity.review (done / total of the round), leaving the page activity.end',
+              len(act) == 2 and act[0][0] == 'activity.review' and act[0][1] == 1 and act[0][2] >= 1 and act[1][0] == 'activity.end' and act[1][1:] == act[0][1:], act)
+        check(dev, 'no script errors (haptics)', not errs, errs[:3])
+        ctx.close()
         # a search that finds nothing says what was searched and offers a way out (语流 B9): 清除搜索, and with a filter on, 在全部里找
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['side']['token'], 'url': BASE}])
@@ -3815,13 +3862,13 @@ def review_side_run(pw):
             go(pg, href); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
             found.append([pg.input_value('#sf input'), pg.evaluate("[...document.querySelectorAll('#listSlot [data-card] .x')].map(e => e.textContent)")])
         check(dev, '#/cards/find/<词> opens 单词 with that word searched', w and all(f[0] == w and w in f[1] for f in found), [w, found])
-        pg.click('[data-f="mistake"]'); pg.wait_for_timeout(300)
+        pg.click('[data-f="phrase"]'); pg.wait_for_timeout(300)
         pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
         msg2 = pg.text_content('#listSlot .empty p')
         pg.click('#sfAll'); pg.wait_for_timeout(400)
         all_on = pg.get_attribute('[data-f=""]', 'aria-pressed')
-        check(dev, 'with a filter on: says where it looked (只在「错题」里找了); 在全部里找 searches all of them',
-              '只在「错题」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
+        check(dev, 'with a filter on: says where it looked (只在「表达」里找了); 在全部里找 searches all of them',
+              '只在「表达」里找了' in msg2 and all_on == 'true' and '只在' not in (pg.text_content('#listSlot .empty p') or ''), [msg2, all_on])
         check(dev, 'no script errors (search)', not errs, errs[:3])
         ctx.close()
         # a phone: the swipe follows the side

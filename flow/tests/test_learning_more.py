@@ -74,7 +74,7 @@ class MoreTests(unittest.TestCase):
         WL.answer(self.c, 1, {'item': 'make-do:1', 'correct': False})
         card = self.c.execute("SELECT * FROM next_cards WHERE user_id=1 AND norm='wq:make-do'").fetchone()
         self.assertEqual((card['kind'], card['source']), ('question', 'mistake'))
-        item = next(x for x in vs.queue(self.c, 1)['items'] if x['id'] == card['id'])
+        item = next(x for x in vs.queue(self.c, 1, part='other')['items'] if x['id'] == card['id'])
         self.assertEqual(item['variant']['kind'], 'word'); self.assertNotEqual(item['variant']['id'], 'make-do:1')  # never the missed one first
         self.assertEqual(vs.rate(self.c, 1, {'id': card['id'], 'rating': 'good'})[0]['outcome'], 'once-more')
         self.assertEqual(vs.rate(self.c, 1, {'id': card['id'], 'rating': 'good'})[0]['outcome'], 'passed')

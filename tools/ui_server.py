@@ -163,6 +163,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'screen': ('B1', 'work', ['work']),  # 复习 and 测词汇量 fill one phone screen (one_screen_run): as 'side'
             'zones': ('B1', 'work', ['work']),  # 点卡片作答 (review_side_run): as 'side'
             'modes': ('B1', 'work', ['work']),  # 复习卡 简洁 / 详细 (review_side_run): borrow to review, lend new, no word book
+            'split': ('B1', 'work', ['work']),  # 单词 and 其他复习 apart (review_side_run): two words, a grammar mistake and a pattern due
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
@@ -271,6 +272,15 @@ with app.db() as c:
                       "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, 'borrow', 'borrow', d['borrow']['meaning'][:300], now - 20 * 86400, now - 3600, d['borrow']['rank'], now - 3 * 86400))
             c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank) VALUES(?,?,?,?,'','word',?,?,'new','book',?)",
                       (uid, 'lend', 'lend', d['lend']['meaning'][:300], now - 60, now - 60, d['lend']['rank']))
+        if name == 'split':  # 2 words, a grammar mistake and a saved pattern due; no word book, so nothing else comes
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
+            now, d = time.time(), nx.dictionary()
+            for w in ('borrow', 'lend'):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                          "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, w, w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600, d[w]['rank'], now - 3 * 86400))
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last,reps) "
+                      "VALUES(?,?,?,?,'','phrase',?,?,'review','saved',1,5,?,2)", (uid, 'as soon as', 'as soon as', '句型｜例：Call me as soon as you land.', now - 20 * 86400, now - 3600, now - 3 * 86400))
+            __import__('skills_service').add_mistake(c, uid, 'fix', 'went', 'fix:' + nx._norm('they go > they went'), '过去发生的事用过去式', 'Yesterday they go to the park.', 'writing')
         if name == 'nowords':  # a new account's word page: no cards, no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)

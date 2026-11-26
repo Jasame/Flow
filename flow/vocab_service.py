@@ -527,12 +527,20 @@ def introduce(c, uid, now=None):
     return added
 
 
-def queue(c, uid, limit=BATCH, more=False):
+def queue(c, uid, limit=BATCH, more=False, part='words'):
     """Today's session: items most at risk of being forgotten first, then ones still in learning steps, then new words.
-    Under a cap (word_cap), only today's share; more=True (继续复习, 再学 10 个): everything due, as before r28."""
+    Under a cap (word_cap), only today's share; more=True (继续复习, 再学 10 个): everything due, as before r28.
+    part='other': 其他复习 (练习 → 复习): mistakes, sentences and patterns, everything due, no cap and no new words."""
     now = time.time()
+    if part == 'other':
+        rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND ' + OTHER + ' AND ' + DUE_TODAY, (uid, _day_start(now) + fsrs.DAY, now)).fetchall()
+        reviews = sorted((r for r in rows if r['state'] == 'review'), key=lambda r: recall_now(r, now) or 0)
+        rest = sorted((r for r in rows if r['state'] != 'review'), key=lambda r: r['due'])
+        level = _level(c, uid)
+        return {'items': [card_out(r, now, level, rich=True, c=c) for r in (reviews + rest)[:limit]], **other_view(c, uid, now), 'more': bool(more),
+                'veteran': _veteran(c, uid), 'part': 'other'}
     introduce(c, uid, now)
-    rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND ' + DUE_TODAY, (uid, _day_start(now) + fsrs.DAY, now)).fetchall()
+    rows = c.execute('SELECT * FROM next_cards WHERE user_id=? AND known=0 AND ' + WORDS + ' AND ' + DUE_TODAY, (uid, _day_start(now) + fsrs.DAY, now)).fetchall()
     reviews = sorted((r for r in rows if r['state'] == 'review'), key=lambda r: recall_now(r, now) or 0)
     steps = sorted((r for r in rows if r['state'] in ('learning', 'relearning')), key=lambda r: r['due'])
     new = sorted((r for r in rows if r['state'] == 'new'), key=lambda r: (r['source'] == 'book', r['rank'] or 0, r['created']))
@@ -558,19 +566,69 @@ def _veteran(c, uid):
 # done in the morning stays done); a card in its learning steps (minutes apart) and a new word from the moment they are.
 DUE_TODAY = "((state='review' AND due<?) OR (state!='review' AND due<=?))"
 
+# 单词 and 其他复习 (the owner, 2026-11-25: 「单词复习不要和其他的东西混在一起」; review-split-plan.md): a word or a
+# phrase, from a word book, a list or saved while reading, is 单词; a mistake (理解、语法、辨析、改错、发音), a saved
+# sentence or a sentence pattern is 其他复习, reviewed from 练习 → 复习. One table, one forgetting curve, two queues.
+OTHER = "(COALESCE(source,'')='mistake' OR kind NOT IN ('word','phrase') OR meaning LIKE '句型｜例：%')"
+WORDS = 'NOT ' + OTHER
+OTHER_SECONDS = 25  # a mistake or a pattern takes longer than a word, until this learner's own pace is known
 
-def _reviews_due(c, uid, now):
-    return c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state!='new' AND " + DUE_TODAY,
+
+def part_sql(part):
+    return OTHER if part == 'other' else WORDS
+
+
+def is_other(r):
+    return (r['source'] or '') == 'mistake' or r['kind'] not in ('word', 'phrase') or (r['meaning'] or '').startswith('句型｜例：')
+
+
+def _reviews_due(c, uid, now, part='words'):
+    return c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state!='new' AND " + part_sql(part) + ' AND ' + DUE_TODAY,
                      (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]
 
 
-def answer_seconds(c, uid, now=None):
-    """This learner's own seconds per answer: the mean of their last 300 answers in 30 days (an answer over a minute
-    is someone who looked away, and is left out); ANSWER_SECONDS until there are 30."""
+def answer_seconds(c, uid, now=None, part='words'):
+    """This learner's own seconds per answer, words or 其他复习 apart: the mean of their last 300 answers in 30 days
+    (an answer over a minute is someone who looked away, and is left out); ANSWER_SECONDS (OTHER_SECONDS) until 30."""
     now = now or time.time()
     ms = [r[0] for r in c.execute('SELECT ms FROM next_reviews WHERE user_id=? AND created>? AND ms BETWEEN 1000 AND 60000 '
-                                  'ORDER BY created DESC LIMIT 300', (uid, now - 30 * fsrs.DAY))]
-    return round(sum(ms) / len(ms) / 1000, 1) if len(ms) >= 30 else ANSWER_SECONDS
+                                  'AND card ' + _card_in(part) + ' '
+                                  'ORDER BY created DESC LIMIT 300', (uid, now - 30 * fsrs.DAY, uid))]
+    return round(sum(ms) / len(ms) / 1000, 1) if len(ms) >= 30 else (OTHER_SECONDS if part == 'other' else ANSWER_SECONDS)
+
+
+def _card_in(part):
+    """next_reviews.card of a part: 其他复习's cards, or anything else (a word, or a card since deleted: card=-id)."""
+    return ('IN' if part == 'other' else 'NOT IN') + ' (SELECT id FROM next_cards WHERE user_id=? AND ' + OTHER + ')'
+
+
+def _answers_today(c, uid, now, part='words'):
+    return c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=? AND card ' + _card_in(part),
+                     (uid, _day_start(now), uid)).fetchone()[0]
+
+
+def other_view(c, uid, now=None):
+    """其他复习's counts in the shape the review page reads for words (due, new …), new always 0."""
+    o = other_counts(c, uid, now)
+    return {'due': o['due'], 'new': 0, 'done_today': o['done_today'], 'minutes': o['minutes'], 'new_paused': False, 'batch': BATCH,
+            'later': 0, 'catch_up': None, 'cap': None}
+
+
+def counts_for(c, uid, r, now=None):
+    """After answering (or taking back) card r: the counts of its own queue."""
+    return other_view(c, uid, now) if is_other(r) else counts(c, uid, now)
+
+
+def other_counts(c, uid, now=None):
+    """其他复习 today (练习 → 复习, 今日's 「还有时间的话」): mistakes, sentences and patterns due, new ones (a mistake
+    is due the moment it is made) included; minutes at this learner's pace for them."""
+    now = now or time.time()
+    due = c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND ' + OTHER + ' AND ' + DUE_TODAY,
+                    (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]
+    mistakes = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND COALESCE(source,'')='mistake' AND " + DUE_TODAY,
+                         (uid, _day_start(now) + fsrs.DAY, now)).fetchone()[0]  # 错题本's own count (the patterns are 其他 too)
+    return {'due': due, 'mistakes': mistakes, 'minutes': max(1, round(due * answer_seconds(c, uid, now, 'other') / 60)) if due else 0,
+            'done_today': _answers_today(c, uid, now, 'other')}
 
 
 def minutes_for(reviews, new, seconds):
@@ -585,7 +643,7 @@ def counts(c, uid, now=None, cap=None):
     plan's own 单词每天 when the learner set one, and at least what an exam date needs (word_cap)."""
     now = now or time.time()
     p = plan(c, uid)
-    done = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
+    done = _answers_today(c, uid, now)
     paused = bool(p and p.get('paused_on') == nx._day(now))
     if cap is not None:
         cap = word_cap(c, uid, now, p, default=cap)
@@ -594,7 +652,7 @@ def counts(c, uid, now=None, cap=None):
         return {'due': s['due'], 'new': s['new'], 'done_today': done, 'minutes': s['minutes'], 'new_paused': paused, 'batch': BATCH,
                 'later': s['later'], 'catch_up': s['catch_up'], 'cap': cap}
     due = _reviews_due(c, uid, now)
-    new = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?", (uid, now)).fetchone()[0]
+    new = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND " + WORDS + " AND due<=?", (uid, now)).fetchone()[0]
     return {'due': due, 'new': new, 'done_today': done, 'minutes': minutes_for(due, new, answer_seconds(c, uid, now)),
             'new_paused': paused, 'batch': BATCH, 'later': 0, 'catch_up': None, 'cap': None}
 
@@ -650,9 +708,9 @@ def share(c, uid, now, cap, p=None):
     (introduce); catch_up: {left, days} while catching up after a break, else None}."""
     p = p if p is not None else plan(c, uid)
     sec = answer_seconds(c, uid, now)
-    answers = c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>=?', (uid, _day_start(now))).fetchone()[0]
+    answers = _answers_today(c, uid, now)
     due = _reviews_due(c, uid, now)
-    waiting = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND due<=?", (uid, now)).fetchone()[0]
+    waiting = c.execute("SELECT COUNT(*) FROM next_cards WHERE user_id=? AND known=0 AND state='new' AND " + WORDS + " AND due<=?", (uid, now)).fetchone()[0]
     budget = cap * 60 / sec
     back = _catch_up(c, uid, p, now, due, budget)
     if back:
@@ -734,7 +792,7 @@ def rate(c, uid, data):
     c.execute('INSERT OR REPLACE INTO next_undo VALUES(?,?,?,?,?)', (uid, r['id'], rid, json.dumps({k: r[k] for k in UNDO_FIELDS}), time.time()))
     c.commit()
     r2 = c.execute('SELECT * FROM next_cards WHERE id=?', (r['id'],)).fetchone()
-    return {'card': card_out(r2, now), 'outcome': outcome, **counts(c, uid, now)}, 200
+    return {'card': card_out(r2, now), 'outcome': outcome, **counts_for(c, uid, r2, now)}, 200
 
 
 UNDO_FIELDS = ('state', 'step', 'stability', 'difficulty', 'last', 'due', 'lapses', 'interval', 'reps', 'known')
@@ -758,7 +816,8 @@ def undo(c, uid, data):
     c.execute('DELETE FROM next_undo WHERE user_id=?', (uid,))
     c.commit()
     now = time.time()
-    return {'card': card_out(c.execute('SELECT * FROM next_cards WHERE id=?', (card,)).fetchone(), now), **counts(c, uid, now)}, 200
+    r3 = c.execute('SELECT * FROM next_cards WHERE id=?', (card,)).fetchone()
+    return {'card': card_out(r3, now), **counts_for(c, uid, r3, now)}, 200
 
 
 MISSES_A_DAY = 2  # a card missed this many times today waits for tomorrow: a review session always ends
@@ -888,7 +947,7 @@ def _skipped(book, skip_rank, force=False):
 def overview(c, uid):
     now = time.time()
     p = plan(c, uid)
-    rows = c.execute('SELECT state, stability, due, known, source, kind, last, norm FROM next_cards WHERE user_id=?', (uid,)).fetchall()
+    rows = c.execute('SELECT state, stability, due, known, source, kind, last, norm FROM next_cards WHERE user_id=? AND ' + WORDS, (uid,)).fetchall()  # words only
     mastered = sum(1 for r in rows if r['known'] or (r['stability'] or 0) >= MASTERED)
     learning = sum(1 for r in rows if not r['known'] and r['state'] != 'new' and (r['stability'] or 0) < MASTERED)
     start = _day_start(now)
@@ -939,7 +998,7 @@ def overview(c, uid):
             # no plan yet: the book of the learner's exam (考试冲刺) comes first, then the one the vocabulary test suggested, then the level's
             'suggested_book': (None if p else ((nx.profile(c, uid) or {}).get('exam') if (nx.profile(c, uid) or {}).get('exam') in book_words() else None))
                               or (p.get('suggest') if p and p.get('suggest') in book_words() else None) or LEVEL_BOOK.get(_level(c, uid), 'mid'), 'mastered': mastered, 'learning': learning, 'total': len(rows),
-            'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid),
+            'forecast': forecast, 'calendar': calendar, 'reminder': reminder(c, uid), 'other': other_counts(c, uid, now),  # 其他复习, 练习 → 复习
             # the plan page's 「一个月后每天大约要复习…」 uses the same numbers as the day's estimate
             'load': {'answer_seconds': answer_seconds(c, uid, now), 'per_review': ANSWERS_PER_REVIEW, 'per_new': ANSWERS_PER_NEW,
                      'month_reviews_per_new': {str(k): v for k, v in MONTH_REVIEWS_PER_NEW.items()}},
@@ -1321,6 +1380,10 @@ def send_reminders(c, now=None, send=None):
             say = (f"今天有 {n['due']} 个单词该复习了" + (f"，还有 {n['new']} 个新词" if n['new'] else '') +
                    f"，大约 {n['minutes']} 分钟。记忆曲线到点了，现在复习效果最好。")
             subject = f"语流 · 今天有 {n['due'] + n['new']} 个单词等你"
+        # 其他复习 (练习 → 复习) is counted apart; a line in the same mail when some are due, never a mail of its own
+        od = other_counts(c, r['user_id'], now)['due']
+        if od:
+            say += f"另有 {od} 道错题和句型到期，在「练习 → 复习」里。"
         # the one look of every mail 语流 sends (mail_layout, 「A 简洁卡片」): plain text and HTML with the same words
         text, page = mail_layout.message([f"{r['username']}，你好：", say], button=('去复习', f'{origin}/#/review'),
                                          foot=[('不想再收到提醒，可以在「单词 → 调整计划」里关掉', f'{origin}/#/vocab/plan')])
@@ -1384,7 +1447,7 @@ def get(c, uid, path, q):
     if path == '/api/next/vocab/card':
         return detail(c, uid, int(one('id', '0') or 0))
     if path == '/api/next/review':
-        return queue(c, uid, more=one('more') == '1'), 200
+        return queue(c, uid, more=one('more') == '1', part='other' if one('part') == 'other' else 'words'), 200
     return None
 
 
