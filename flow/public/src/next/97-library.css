@@ -1,0 +1,27 @@
+/* ---------- 全部材料 (80-library.js; B9, 2026-11-26) ----------
+   Two ways out on top, the serial stories as cards to swipe sideways, then 单篇: its count and two small filters on one
+   line, the level as a switch, one row a text. The theme colour only on a story's progress and the pager's arrows. */
+.lib-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.lib-way{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 14px;border-radius:16px;background:var(--paper);text-decoration:none;color:var(--ink)}
+.lib-way b{font-size:15.5px;font-weight:400;white-space:nowrap}
+.lib-way .tiny{margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lib-sec{margin-top:18px;display:grid;gap:10px}
+.lib-sec>*{min-width:0}
+.lib-cap{margin:0 4px;font-size:13.5px;font-weight:400;color:var(--muted)}
+.lib-sers{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.lib-sers::-webkit-scrollbar{display:none}
+.lib-ser{flex:0 0 236px;box-sizing:border-box;scroll-snap-align:start;display:grid;gap:2px;align-content:start;padding:14px 16px;border-radius:16px;background:var(--paper);text-decoration:none;color:var(--ink)}
+.lib-ser b{font-size:15.5px;font-weight:600;line-height:1.35}
+.lib-ser .en{font-family:var(--serif);font-size:13.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lib-ser .tiny{margin-top:6px}
+.lib-bar{display:block;height:4px;border-radius:2px;background:var(--line2);margin-top:10px;overflow:hidden}
+.lib-bar i{display:block;height:100%;width:0;border-radius:2px;background:var(--green)}
+.lib-caprow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lib-filt{display:flex;gap:8px;flex:none}
+#view .lib-filt select{width:auto;max-width:9.5em;border:0;border-radius:12px;background-color:var(--paper);font-size:14px;padding-top:0;padding-bottom:0;padding-left:12px;text-overflow:ellipsis}
+.seg.lib-lv{grid-template-columns:repeat(5,minmax(0,1fr));margin:0}
+.lib-lv button{font-weight:400;font-size:14.5px;min-height:40px}
+.lib-lv button[aria-checked=true]{background:var(--paper);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.lib-sec #lib{background:var(--paper);border-radius:20px;padding:4px 14px}
+.lib-pager .icon-btn{width:44px;height:44px;border-radius:50%;background:none;border:0;color:var(--green-ink)}
+.lib-pager .icon-btn:disabled{color:var(--line2)}
