@@ -185,11 +185,12 @@ def recurring(c, uid, now=None):
 def pairs(c, uid, now=None, days=7):
     """「之前 / 这周」 for the weekly report, newest first, one a grammar point: before = the fix card (the learner's own
     sentence, from → to, when, which practice); after = the sentence they wrote right later (when, which practice,
-    assisted: 1 with help, 0 without, None not known)."""
+    assisted: 1 with help, 0 without, None not known). Both written: a card from something said holds words the AI
+    heard, and what is said is not kept to be shown again (B6)."""
     now = now or time.time()
     out, seen = [], set()
     for e in c.execute('SELECT e.node, e.kind, e.sentence, e.assisted, e.created, k.text AS fix_to, k.context, k.extra, k.created AS before_at, k.skill '
-                       'FROM next_evidence e JOIN next_cards k ON k.id=e.card AND k.user_id=e.user_id WHERE e.user_id=? AND e.created>=? '
+                       "FROM next_evidence e JOIN next_cards k ON k.id=e.card AND k.user_id=e.user_id WHERE e.user_id=? AND e.created>=? AND COALESCE(k.skill,'')!='speaking' "
                        'ORDER BY e.created DESC, e.id DESC', (uid, now - days * 86400)):
         if e['node'] in seen:
             continue
@@ -198,6 +199,53 @@ def pairs(c, uid, now=None, days=7):
         out.append({'node': e['node'],
                     'before': {'sentence': e['context'], 'from': extra.get('from', ''), 'to': e['fix_to'], 'at': e['before_at'], 'kind': extra.get('kind') or e['skill'] or ''},
                     'after': {'sentence': e['sentence'], 'at': e['created'], 'kind': e['kind'], 'assisted': e['assisted']}})
+    return out
+
+
+KIND_LABEL = {'essay': '写作', 'translate': '翻译', 'rewrite': '仿写', 'retell': '复述', 'dialog': '对话', 'ielts': '雅思口语',
+              'writing': '写作', 'translation': '翻译'}  # the last two: cards from before r37 have only the skill
+WAIT_DAYS = 30  # 这周还看不出来 names a written correction this recent
+HOW = {1: '看了提示后', 0: '自己'}  # assisted None: not known, so not said
+
+
+def _md(t):
+    d = _local(t)
+    return f'{d.month}月{d.day}日'
+
+
+def week_progress(c, uid, now=None):
+    """这周的一次进步 for the weekly report (r29 第 3 项): the newest before/after pair (pairs); with none, the newest
+    written correction of the last WAIT_DAYS days (waiting: 这周还看不出来, and 现在用它写一句 opens 仿写 on the text it
+    came from, when the learner still has it), one not already under 还要接着练 when there is such; and 还要接着练 (recurring, the first three), which is advice picked from
+    the records: None when the learner has turned that off (按我的学习记录推荐), as for 接下来的重点. The pair is only
+    the learner's own sentences and shows either way (B6). Only ever for the learner: not the console, not a class."""
+    now = now or time.time()
+    meta = nx.nodes_meta(c)
+    name = lambda n: meta.get(n, {}).get('title', n)
+    label = lambda k: KIND_LABEL.get(k or '', '练习')
+    out = {'pair': None, 'waiting': None, 'recurring': None}
+    if nx.follows_records(nx.profile(c, uid)):
+        out['recurring'] = [{'node': x['node'], 'title': name(x['node']), 'outputs': x['outputs'], 'days': x['days']}
+                            for x in recurring(c, uid, now) if x['node'] in meta][:3]
+    got = [p for p in pairs(c, uid, now) if p['node'] in meta]
+    if got:
+        p = got[0]
+        out['pair'] = {'node': p['node'], 'title': name(p['node']),
+                       'before': {**p['before'], 'label': label(p['before']['kind']), 'date': _md(p['before']['at'])},
+                       'after': {**p['after'], 'label': label(p['after']['kind']), 'date': _md(p['after']['at'])}}
+    else:
+        listed = {x['node'] for x in out['recurring'] or []}
+        rows = [r for r in c.execute("SELECT node, text, context, extra, created, pack, skill FROM next_cards WHERE user_id=? AND kind='fix' "
+                                     "AND source='mistake' AND node IS NOT NULL AND COALESCE(skill,'')!='speaking' AND created>=? "
+                                     'ORDER BY created DESC, id DESC LIMIT 20', (uid, now - WAIT_DAYS * 86400))
+                if r['node'] in meta and (r['context'] or '').strip()]
+        for r in sorted(rows, key=lambda r: r['node'] in listed):  # stable: the newest not already listed, else the newest
+            extra = json.loads(r['extra'] or '{}')
+            kind = extra.get('kind') or r['skill'] or ''
+            pack = r['pack'] if r['pack'] and nx._pack_row(c, uid, r['pack']) else None
+            out['waiting'] = {'node': r['node'], 'title': name(r['node']), 'sentence': r['context'], 'from': extra.get('from', ''),
+                              'to': r['text'], 'date': _md(r['created']), 'kind': kind, 'label': label(kind), 'pack': pack}
+            break
     return out
 
 
@@ -456,6 +504,10 @@ def compose(c, uid, name, now, origin):
             rows.append(('轻松读', f"{e['texts']} 篇，共 {e['words']} 个词" + (f"，每分钟 {e['wpm']} 词。" if e['wpm'] else '。')))
         if sp['scenes_week']:
             rows.append(('口语情景', f"练了 {sp['scenes_week']} 个，一共完成 {sp['scenes_done']} / {sp['scenes_total']}。"))
+        pr = week_progress(c, uid, now)['pair']
+        if pr:  # the point's name only: the sentences stay on the page, a mail lies in the inbox for good (B6)
+            rows.append(('这周的一次进步', f"「{pr['title']}」之前要 AI 改，这周{HOW.get(pr['after']['assisted'], '')}用对了一次。"
+                         '前后两句在下面的「这周的完整报告」里。'))
         up = [m for m in more['radar']['moves'] if m['before'] is not None and m['now'] > m['before']]
         if up:
             rows.append(('能力雷达上涨', '、'.join(f"{m['label']} {m['before']}→{m['now']}" for m in up) + '。'))

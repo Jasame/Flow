@@ -204,7 +204,7 @@ TAP_LABEL = {
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
     'notice-week': '今日 · 提醒：上周小结', 'notice-goal-lower': '今日 · 提醒：建议调低每周目标', 'me-habit': '我的 · 每周目标',
     'study-keep': '学习页 · 存到手机',
-    'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享',
+    'share-material': '学一篇 · 分享学会的一句', 'share-week': '这周报告 · 分享', 'week-try': '这周报告 · 现在用它写一句',
     'me-data': '我的 · 导出我的数据', 'me-delete': '我的 · 注销账号', 'me-info-list': '我的 · 个人信息收集清单（安卓 App）',
     'me-sharing-list': '我的 · 第三方信息共享清单（安卓 App）', 'me-withdraw': '我的 · 撤回同意（安卓 App）', 'me-permissions': '我的 · 系统权限（安卓 App）', 'words-export': '单词 · 导出单词本',
     'export-csv': '导出 · Excel 表格', 'export-anki': '导出 · Anki', 'export-json': '导出 · 全部学习记录',
