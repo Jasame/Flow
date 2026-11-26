@@ -8,6 +8,8 @@ Guests may read, listen and check answers; saving, AI and progress need an accou
 import datetime, hashlib, json, os, re, time
 from pathlib import Path
 
+import ai_lang  # 全英文界面: an English page's AI explanations in English (ai_lang.py)
+
 TZ = datetime.timezone(datetime.timedelta(hours=8))
 STEPS = ('listen', 'read', 'check', 'output')
 UP_LEVEL = {'A2': 'B1', 'B1': 'B2', 'B2': 'C1'}  # where 今日 goes once a level's featured texts are all learned
@@ -1418,20 +1420,20 @@ def rewrite(c, uid, data):
               '最重要的一条：corrected 只能是学习者自己这句话的最小改动，只改语法、用词、拼写和标点上的错误，保留原来的意思、结构和话题；'
               '绝不能换成另一句话，也不要为了套用本课的句型或话题去改写。没有错误时 verdict 写 natural，corrected 原样返回，changes 为空数组。'
               'versions 是同一个意思的更好说法：用学习者自己的意思和话题来写，不要换成课文的话题；本课的目标表达能自然用上时，可以在其中一个版本里用。'
-              '学习者没有用上本课的目标表达时，在 summary 里用中文提一句可以怎么用，不要替他改写原句。只输出 JSON。'
+              '学习者没有用上本课的目标表达时，在 summary 里用' + ai_lang.word() + '提一句可以怎么用，不要替他改写原句。只输出 JSON。'
               '\n全部语法节点（id=名称）：' + _node_list(c) +
-              '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（中文，先说优点）",'
+              '\n\n输出 JSON，结构：{"verdict":"natural|minor|rewrite","summary":"一句话总评（' + ai_lang.word() + '，先说优点）",'
               '"corrected":"学习者原句的最小改动：只改错误，保留原意和话题，不写新句子（若已正确则原样返回）",'
-              '"changes":[{"from":"原文片段","to":"改后片段","why":"为什么（简短）","node":"相关语法节点 id，没有就写 null"}],'
-              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"和原句的差别"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
+              '"changes":[{"from":"原文片段","to":"改后片段","why":"' + ai_lang.pick('为什么（简短）', '为什么（简短，英文）') + '","node":"相关语法节点 id，没有就写 null"}],'
+              '"versions":[{"label":"更自然","text":"同一个意思的更自然说法","why":"' + ai_lang.pick('和原句的差别', '和原句的差别（英文）') + '"},{"label":"更正式","text":"...","why":"..."},{"label":"更简洁","text":"...","why":"..."}],'
               '"used_well":["学习者用对了的语法节点 id"],'
               '"keep":{"text":"最值得收藏的一个英文表达（短语）","meaning":"中文意思"}}。changes 最多 5 条，没有错误就给空数组。'
-              '\n\n学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
+              '\n\n学习者的水平是 ' + level + '（' + LEVELS[level]['label'] + '）。' + ai_lang.voice(level, _level_voice(level)) + ai_lang.tail())
     user = ('学习任务（供参考，用来看学习者有没有用上目标表达；不要据此改写学习者的句子）：' + task['prompt'] + ('\n参考句：' + task['model'] if task['model'] else '') +
             '\n材料主题：' + p['title'] + '\n本篇练习的语法节点：' + (', '.join(targets) or '无') +
             '\n学习者写的英文：\n' + answer +
             ('\n\n学习者正在背这些单词，并在上面的句子里用到了：' + '、'.join(studied) + '。请在 JSON 里再加一个字段 '
-             '"word_use":[{"word":"单词原形","ok":true,"note":"一句中文：用法对在哪里，或错在哪里、应该怎么用"}]，逐个判断词义和搭配是否用对。' if studied else ''))
+             '"word_use":[{"word":"单词原形","ok":true,"note":"一句' + ai_lang.word() + '：用法对在哪里，或错在哪里、应该怎么用"}]，逐个判断词义和搭配是否用对。' if studied else ''))
 
     def convert(raw):
         if not isinstance(raw, dict):
@@ -1574,11 +1576,11 @@ def shadow(c, uid, data):
               '不要按原句补全。然后只根据录音本身估计发音：accuracy 是发音准确度（0–100：90 以上几乎每个音都准；75–89 个别音不准、不影响听懂；'
               '60–74 有几处明显错音、要仔细听；40–59 很多词读错或含糊；40 以下大部分听不清），fluency_score 是流利度（0–100：语速自然、'
               '停顿在意群之间为高；一词一顿、反复重来为低）。口音本身不扣分，只看别人能不能听清。漏读的词不算进准确度（完整度另算）。'
-              '再找出最需要练的音（最多 3 个，只在有把握时写）和其他要注意的地方（漏读、重音、连读、停顿）。只输出 JSON。')
+              '再找出最需要练的音（最多 3 个，只在有把握时写）和其他要注意的地方（漏读、重音、连读、停顿）。只输出 JSON。' + ai_lang.tail())
     user = ('原句：' + sentence + '\n\n发音入门里能练的音（set 填其中一个 id，都不合适就填空字符串）：' + sets +
             '\n\n输出 JSON：{"transcript":"你听到的英文","accuracy":0-100,"fluency_score":0-100,"fluency":"smooth|ok|choppy",'
-            '"sounds":[{"sound":"音标，如 /v/","word":"原句中读错这个音的词","note":"中文：读成了什么、怎么改","set":"发音入门的 id 或空字符串"}],'
-            '"issues":[{"word":"原句中的词或短语","note":"中文：问题和改法"}],"tip":"一句最重要的中文建议"}。'
+            '"sounds":[{"sound":"音标，如 /v/","word":"原句中读错这个音的词","note":"' + ai_lang.word() + '：读成了什么、怎么改","set":"发音入门的 id 或空字符串"}],'
+            '"issues":[{"word":"原句中的词或短语","note":"' + ai_lang.word() + '：问题和改法"}],"tip":"一句最重要的' + ai_lang.word() + '建议"}。'
             'sounds 最多 3 条，issues 最多 3 条，读得好就给空数组。拼写、连字符、大小写和标点的差别听不出来，不算问题'
             '（noise cancelling 和 noise-cancelling 是一样的）；只写听起来不对的地方。')  # Omni flagged a hyphen on a right reading (2026-11-25)
 
@@ -1639,7 +1641,8 @@ def shadow(c, uid, data):
 
 
 def explain(c, uid, data):
-    """AI explanation of one sentence, grounded in the material's knowledge nodes. Cached site-wide per level."""
+    """AI explanation of one sentence, grounded in the material's knowledge nodes. Cached site-wide per level and language
+    (an English page's under 'B1@en', ai_lang.key)."""
     from lab_service import run_job, text as clean_text
     from chat_service import request_model
     row = _pack_row(c, uid, str(data.get('pack', '')))
@@ -1652,16 +1655,16 @@ def explain(c, uid, data):
     if sentence not in p['body'] and not (variant and sentence in variant['body']):
         return {'error': '只能讲解材料里的句子'}, 400
     meta = nodes_meta(c)
-    cached = c.execute('SELECT result FROM next_explains WHERE pack=? AND sentence=? AND level=?', (p['id'], sentence, level)).fetchone()
+    cached = c.execute('SELECT result FROM next_explains WHERE pack=? AND sentence=? AND level=?', (p['id'], sentence, ai_lang.key(level))).fetchone()
     if cached:
         return {'result': json.loads(cached['result']), 'cached': True}, 200
     hints = [f"{k['node']}（{meta.get(k['node'], {}).get('title', '')}）：{k['quote']}" for k in p.get('knowledge', []) if k.get('quote') and k['quote'] in sentence]
     system = ('你是英语老师。讲解要短、准、能模仿。只输出 JSON。'
               '\n可用语法节点（id=名称）：' + _node_list(c) +
-              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"一句话拆解句子主干和修饰成分",'
-              '"points":[{"text":"句中原样片段","note":"讲解（为什么这样用、语气、搭配）","node":"相关语法节点 id 或 null"}],'
+              '\n\n输出 JSON：{"translation":"自然的中文翻译","structure":"' + ai_lang.pick('一句话拆解句子主干和修饰成分', '一句英文拆解句子主干和修饰成分') + '",'
+              '"points":[{"text":"句中原样片段","note":"' + ai_lang.pick('讲解（为什么这样用、语气、搭配）', '英文讲解（为什么这样用、语气、搭配）') + '","node":"相关语法节点 id 或 null"}],'
               '"pattern":{"frame":"可替换的句型框架，如 not A so much as B","example":"用这个框架造的一个新句子"}}。points 2–4 条。'
-              '\n\n学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + _level_voice(level))
+              '\n\n学习者水平 ' + level + '（' + LEVELS[level]['label'] + '）。' + ai_lang.voice(level, _level_voice(level)) + ai_lang.tail())
     user = ('材料：' + p['title'] + '\n要讲解的句子：' + sentence + ('\n这句关联的语法节点：' + '；'.join(hints) if hints else ''))
 
     def convert(raw):
@@ -1684,7 +1687,7 @@ def explain(c, uid, data):
                              lambda: request_model([{'role': 'system', 'content': system}, {'role': 'user', 'content': user}]), convert)
     if status != 200:
         return result, status
-    c.execute('INSERT OR IGNORE INTO next_explains VALUES(?,?,?,?,?)', (p['id'], sentence, level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+    c.execute('INSERT OR IGNORE INTO next_explains VALUES(?,?,?,?,?)', (p['id'], sentence, ai_lang.key(level), json.dumps(result['result'], ensure_ascii=False), time.time()))
     c.commit()
     return {'result': result['result'], 'cached': False, 'remaining': result.get('remaining')}, 200
 
@@ -1895,7 +1898,7 @@ def post_public(c, uid, path, data):
 
 AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
             '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say',
-            '/api/next/ielts', '/api/next/two/ask', '/api/next/two/check')
+            '/api/next/ielts', '/api/next/two/ask', '/api/next/two/check', '/api/next/zh')
 
 
 def _two_lines():
@@ -1991,6 +1994,8 @@ def post(c, uid, path, data):
         return variant(c, uid, data)
     if path == '/api/next/explain':
         return explain(c, uid, data)
+    if path == '/api/next/zh':  # 「看中文」 under an English page's AI explanation (ai_lang.py)
+        return __import__('ai_lang').to_zh(c, uid, data)
     if path == '/api/next/shadow':
         return shadow(c, uid, data)
     if path == '/api/next/ielts':

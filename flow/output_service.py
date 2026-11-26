@@ -9,6 +9,7 @@ import os
 import re
 import time
 
+import ai_lang  # 全英文界面: an English page's feedback in English (ai_lang.py)
 import next_service as nx
 import skills_service as sk
 from lab_service import Shape, mbool, mheard, mnum  # lenient readers of what a model wrote (DeepSeek words JSON unlike Gemini)
@@ -19,7 +20,9 @@ SUMMARY_FILLER = '这一轮练完了，下面是具体的反馈。'
 
 LEVEL_NOTE = {'A2': '学习者是入门水平，反馈用简单中文，示范用最常见的词和短句。', 'B1': '学习者是中级水平，反馈用中文，示范句清楚自然。',
               'B2': '学习者是中高级水平，关注搭配、语气和衔接。', 'C1': '学习者是高级水平，关注措辞精确、语域和行文层次。'}
-FIX = '{"from":"学习者原文片段","to":"改后片段","why":"简短中文原因","node":"相关语法节点 id 或 null"}'
+def fix():
+    """One correction as a format string asks for it (why: 中文, or 英文 on an English page)."""
+    return '{"from":"学习者原文片段","to":"改后片段","why":"简短' + ai_lang.word() + '原因","node":"相关语法节点 id 或 null"}'
 
 
 def _material(c, uid, data):
@@ -87,9 +90,9 @@ def retell(c, uid, data):
               '最后给一段同等水平、80–120 词的示范复述。不要编造原文没有的内容。只输出 JSON。'
               '\n可用语法节点：' + nx._node_list(c) +
               '\n\n输出 JSON：{' + ('"transcript":"转写",' if audio else '') +
-              '"points":[{"point":"中文要点","covered":true}],"used":["学习者用上的原文表达"],"fixes":[' + FIX + '],'
-              '"comment":"一两句中文总评，先说优点","model":"示范复述（英文）"}'
-              '\n\n' + LEVEL_NOTE.get(level, ''))
+              '"points":[{"point":"' + ai_lang.word() + '要点","covered":true}],"used":["学习者用上的原文表达"],"fixes":[' + fix() + '],'
+              '"comment":"一两句' + ai_lang.word() + '总评，先说优点","model":"示范复述（英文）"}'
+              '\n\n' + ai_lang.note(level, LEVEL_NOTE.get(level, '')) + ai_lang.tail())
     user = ('原文：\n' + p['body'] + '\n\n原文里的地道表达：' + ('、'.join(exprs) or '无') +
             ('\n\n学习者的复述（录音，请先忠实转写，听不清写 [听不清]）。' if audio else '\n\n学习者的复述：\n' + text))
 
@@ -143,7 +146,7 @@ def dialog(c, uid, data):
     if not hist:
         # The opening (scene, role, first line) is the same for everyone on this text at this level: asked once, kept.
         # Scenes' openings are kept under a new key since the roles got their personas (像真人, 2026-11-25).
-        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (opener_key, level)).fetchone()
+        row = c.execute('SELECT result FROM next_dialog_openers WHERE pack=? AND level=?', (opener_key, ai_lang.key(level))).fetchone()
         if row:
             from chat_service import remaining
             r = json.loads(row['result'])
@@ -168,34 +171,35 @@ def dialog(c, uid, data):
               'reply 不超过 25 个英文词；用口语（缩写，以及 Sure / Oh, got it / Hmm, let me check 这样自然的回应）；'
               '先接住对方刚说的内容，再往下问；一次只问一个问题。用学习者水平能听懂的英语。不要像老师：reply 里不夸对方的英语、'
               '不纠错（纠错只放在 correction 里）。不要替学习者回答。只输出 JSON。'
-              + (f'你的角色和说话方式（英文）：{p["persona"]}。' if sc and p.get('persona') else '') + LEVEL_NOTE.get(level, ''))
+              + (f'你的角色和说话方式（英文）：{p["persona"]}。' if sc and p.get('persona') else '') + ai_lang.note(level, LEVEL_NOTE.get(level, '')))
     if sc:  # 按回答调难度: the next line follows the learner's last answer (scenarios.pace has the same rule)
         system += (f'按学习者刚才这句调整你下一句的难度：如果这句很短（不到 {SC.PACE_SHORT} 个词），或者不到 {SC.PACE_MID} 个词而且有明显错误，'
                    '你的下一句要更短、用更常见的词，并在 say 里给一句学习者可以直接套用的英文；如果这句有 '
                    f'{SC.PACE_LONG} 个词以上而且基本没错，你的下一句可以更地道，并追问一个需要展开说的问题；其他情况保持原来的难度。')
+    system += ai_lang.tail()  # last, after the level and the pace (an English page's: the explanations in English)
     scene = (f"情景：{p['title']}（{p['title_en']}）\n{p['body']}\n口语任务：{task}" if sc else
              f"材料：{p['title']}\n材料内容：{p['body'][:1500]}\n口语任务：{task}")
     if not hist:
-        user = scene + '\n\n开始对话：先用一句中文说明情景和你扮演的角色，再用英文说第一句。输出 JSON：{"scene":"中文情景说明","role":"你扮演的角色（中文）","reply":"你的第一句英文"}'
+        user = scene + '\n\n开始对话：先用一句' + ai_lang.word() + '说明情景和你扮演的角色，再用英文说第一句。输出 JSON：{"scene":"' + ai_lang.word() + '情景说明","role":"你扮演的角色（' + ai_lang.word() + '）","reply":"你的第一句英文"}'
     elif end:
         user = (scene + '\n\n对话记录：\n' + '\n'.join(turns) + '\n\n对话结束。请总结学习者这轮的表现。' +
                 (f'这一轮学习者有一条额外要求：「{sc["challenge"]}」，summary 里要说一句做到了没有。' if sc and sc.get('challenge') else '') + '输出 JSON：'
-                '{"summary":"两三句中文总评，先说优点","good":["学习者说得好的英文句子"],"fixes":[' + FIX + '],'
+                '{"summary":"两三句' + ai_lang.word() + '总评，先说优点","good":["学习者说得好的英文句子"],"fixes":[' + fix() + '],'
                 '"expressions":[{"text":"值得学的英文表达","meaning":"中文"}],"score":0.0到1.0之间的数字' +
                 (',"challenge_met":true或false' if sc and sc.get('challenge') else '') + '}')
     else:
         user = (scene + '\n\n对话记录：\n' + '\n'.join(turns) +
                 ('\n学习者刚才说了一句话（录音，先忠实转写）。' if audio else '\n学习者刚说：' + text) +
                 '\n\n接着对话。输出 JSON：{' + ('"heard":"转写",' if audio else '') +
-                '"reply":"你的下一句英文","correction":{"original":"学习者原话里有问题的部分","better":"更自然的说法","why":"中文原因"} 或 null,'
-                '"hint":"给学习者的一句中文提示：下一句可以怎么接"' + (',"say":"需要放慢时：学习者下一句可以直接套用的一句英文；否则空字符串"' if sc else '') + '}')
+                '"reply":"你的下一句英文","correction":{"original":"学习者原话里有问题的部分","better":"更自然的说法","why":"' + ai_lang.word() + '原因"} 或 null,'
+                '"hint":"给学习者的一句' + ai_lang.word() + '提示：下一句可以怎么接"' + (',"say":"需要放慢时：学习者下一句可以直接套用的一句英文；否则空字符串"' if sc else '') + '}')
 
     def convert(raw):
         if not isinstance(raw, dict):
             raise Shape('json_shape')
         rnd = {'mode': sc['mode'], 'challenge': sc['challenge']} if sc else {}
         if not hist:
-            return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 60), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
+            return {'scene': _clean(raw.get('scene'), 1, 300, 'scene_empty'), 'role': _clean(raw.get('role') or '', 0, 120), 'reply': _clean(raw.get('reply'), 1, 400, 'reply_empty'), **rnd}
         if end:
             met = raw.get('challenge_met')
             return {'summary': _clean(raw.get('summary'), 1, 500, default=SUMMARY_FILLER), 'good': [_clean(g, 1, 300) for g in (raw.get('good') or [])[:3] if isinstance(g, str) and g],
@@ -219,7 +223,7 @@ def dialog(c, uid, data):
             **({'mode': sc['mode']} if sc else {})}
     result, status = _ai(c, uid, data, 'next-dialog', p['id'], 'speaking', spec, system, user, convert, audio)
     if status == 200 and not hist:
-        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (opener_key, level, json.dumps(result['result'], ensure_ascii=False), time.time()))
+        c.execute('INSERT OR IGNORE INTO next_dialog_openers VALUES(?,?,?,?)', (opener_key, ai_lang.key(level), json.dumps(result['result'], ensure_ascii=False), time.time()))
         c.commit()
     if status == 200 and end and not result.get('replayed'):
         r = result['result']
@@ -257,10 +261,10 @@ def essay(c, uid, data):
               '指出最重要的修改（最多 6 条），把两句改得更好，再写一段同主题的示范段落（不超过 120 词）。不要编造学习者没写的内容。只输出 JSON。'
               '\n可用语法节点：' + nx._node_list(c) +
               '\n\n输出 JSON：{"scores":{"content":1-5,"organization":1-5,"accuracy":1-5,"range":1-5},"level":"A2|B1|B2|C1（这篇体现的水平）",'
-              '"comment":"两三句中文总评，先说优点","paragraphs":[{"para":1,"note":"这一段的中文点评"}],"fixes":[' + FIX + '],'
-              '"better":[{"from":"原句","to":"更好的写法","why":"中文"}],"model":"示范段落（英文）"}'
-              '\n\n' + LEVEL_NOTE.get(level, '') +
-              ('学习者在备考，评语可以联系考试写作的评分要求，但不要给出任何官方分数。' if goal == 'exam' else ''))
+              '"comment":"两三句' + ai_lang.word() + '总评，先说优点","paragraphs":[{"para":1,"note":"这一段的' + ai_lang.word() + '点评"}],"fixes":[' + fix() + '],'
+              '"better":[{"from":"原句","to":"更好的写法","why":"' + ai_lang.word() + '"}],"model":"示范段落（英文）"}'
+              '\n\n' + ai_lang.note(level, LEVEL_NOTE.get(level, '')) +
+              ('学习者在备考，评语可以联系考试写作的评分要求，但不要给出任何官方分数。' if goal == 'exam' else '') + ai_lang.tail())
     user = '写作任务：' + task + '\n\n学习者的短文：\n' + text
 
     def convert(raw):
@@ -338,9 +342,9 @@ def translate(c, uid, data):
     system = ('你是翻译老师。评价学习者的译文：意思是否准确完整、表达是否自然。参考译文只是一种说法，'
               '意思对、表达自然的不同译法也算对。只输出 JSON。'
               '\n可用语法节点：' + nx._node_list(c) +
-              '\n\n输出 JSON：{"score":0.0到1.0,"accuracy":"中文：意思准确吗，漏译或误译了什么",'
-              '"fluency":"中文：表达是否自然","fixes":[' + FIX + '],"reference":"一个自然的译法（和学习者的译文同一种语言）"}'
-              '\n\n' + LEVEL_NOTE.get(level, ''))
+              '\n\n输出 JSON：{"score":0.0到1.0,"accuracy":"' + ai_lang.word() + '：意思准确吗，漏译或误译了什么",'
+              '"fluency":"' + ai_lang.word() + '：表达是否自然","fixes":[' + fix() + '],"reference":"一个自然的译法（和学习者的译文同一种语言）"}'
+              '\n\n' + ai_lang.note(level, LEVEL_NOTE.get(level, '')) + ai_lang.tail())
     user = task + ('\n\nreference 写一个自然的英文译法。' if direction == 'zh2en' else '\n\nreference 写一个自然的中文译法。')
 
     def convert(raw):
@@ -531,9 +535,9 @@ def say(c, uid, data):
     raw_audio = validate_audio(data.get('audio'))
     system = ('你是英语语音老师，正在听中国学习者读一个英文词。先写出你实际听到的发音像哪个词；再判断目标音发得对不对。'
               '标准是"母语者能不能听成目标词"，不是完美口音：口音、音色、录音质量都不算错；'
-              '只有目标音明显读成了别的音（比如读成了对比词）才判为 false，拿不准时判 true。不要打分。只输出 JSON。')
+              '只有目标音明显读成了别的音（比如读成了对比词）才判为 false，拿不准时判 true。不要打分。只输出 JSON。' + ai_lang.tail())
     user = (f'目标词：{target}' + (f'\n要练的音：{focus}' if focus else '') + (f'\n最容易读成：{partner}（要分清的对比词）' if partner else '') +
-            '\n\n输出 JSON：{"heard":"听起来像哪个英文词","ok":true或false,"note":"中文：哪里对、哪里不对","tip":"中文：舌位、口型或气流怎么调整"}')
+            '\n\n输出 JSON：{"heard":"听起来像哪个英文词","ok":true或false,"note":"' + ai_lang.word() + '：哪里对、哪里不对","tip":"' + ai_lang.word() + '：舌位、口型或气流怎么调整"}')
 
     def convert(raw):
         if not isinstance(raw, dict):

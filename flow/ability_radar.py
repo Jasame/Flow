@@ -351,10 +351,10 @@ def judged(c, uid, kind, data):
     system = ('你是英语' + ('口语' if kind == 'speaking' else '写作') + '评估老师，按 CEFR 能力描述评估一位中国学习者这一次表现出的水平。'
               '只评估这段' + ('录音' if kind == 'speaking' else '文字') + '本身，不要因为话题难易加减分；口音不算错，只看别人能不能听懂。'
               '给出等级（A1/A2/B1/B2/C1）和在这个等级里的位置（0 到 1，0.5 是典型水平），四个维度各 1–5 分。'
-              '最后写一个做得好的地方和两条最重要的改进建议，都用中文、具体到能马上练。只输出 JSON。')
+              '最后写一个做得好的地方和两条最重要的改进建议，都用' + __import__('ai_lang').word() + '、具体到能马上练。只输出 JSON。' + __import__('ai_lang').tail())
     user = (f'题目：{question}\n' + ('学习者的回答是一段录音，请先忠实转写。' if audio else '学习者写的：\n' + text) +
             '\n\n输出 JSON：{' + ('"transcript":"转写",' if audio else '') + '"level":"A1|A2|B1|B2|C1","position":0到1的数字,'
-            '"scores":{' + ','.join(f'"{k}":1-5' for k, _ in dims) + '},"strength":"中文：做得好的地方","next":["中文改进建议1","中文改进建议2"]}')
+            '"scores":{' + ','.join(f'"{k}":1-5' for k, _ in dims) + '},"strength":"' + __import__('ai_lang').word() + '：做得好的地方","next":["' + __import__('ai_lang').word() + '改进建议1","' + __import__('ai_lang').word() + '改进建议2"]}')
 
     def convert(raw):
         if not isinstance(raw, dict) or raw.get('level') not in BANDS or not isinstance(raw.get('scores'), dict):
