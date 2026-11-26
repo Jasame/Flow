@@ -219,4 +219,7 @@ table.cmp select{max-width:120px}
 html[data-env="beta"] .adm-env-tag{color:#fff;background:#d97706;border-color:#d97706}
 .adm-env-tag[hidden]{display:none}
 html[data-env="beta"] .adm-brand svg rect{fill:#d97706}
+.inv-code code{font-size:28px;font-weight:700;letter-spacing:2px}
 
+#invNew .field{display:grid;gap:4px;max-width:340px}
+#invNew .input{width:100%}

@@ -45,7 +45,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv', '/teacher-links'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
@@ -77,6 +77,7 @@ def schema(c):
     __import__('console_ops').schema(c)  # materials off the lists, 公告 (r26)
     __import__('class_service').schema(c)  # 班级试用: classes, who is in which (2026-11-24)
     __import__('teacher_service').schema(c)  # 老师账号 and the one-use 老师注册链接 (2026-11-26)
+    __import__('beta_invites').schema(c)  # 内测版邀请码 (2026-11-26)
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -99,6 +100,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
+                'invite-create': '生成内测版邀请码', 'invite-revoke': '作废内测版邀请码',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
                 'account-purge-held': '暂停满 30 天的账号（备份不在，没删）'}
@@ -368,6 +370,8 @@ def console_get(c, path, one, op):
         return __import__('class_service').console_list(c)
     if path == '/teacher-links':
         return __import__('teacher_service').links(c)
+    if path == '/beta-invites':
+        return __import__('beta_invites').listing(c)
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
@@ -466,6 +470,21 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'teacher-link-revoke', tgt)
         return body, status
+    # 内测版邀请码 (beta_invites): made and revoked only on the 内测版's console (FLOW_CHANNEL=beta)
+    if path in ('/beta-invite/create', '/beta-invite/revoke'):
+        import app
+        if app.CHANNEL != 'beta':
+            return {'error': '邀请码只在内测版的后台里发'}, 409
+        bi = __import__('beta_invites')
+        if path == '/beta-invite/create':
+            body, status, tgt = bi.make(c, data, who)
+            if status == 200:
+                log_action(c, op, 'invite-create', tgt, f"能用 {body['uses']} 次，到 {body['expires']}")
+            return body, status
+        body, status, tgt = bi.revoke(c, data)
+        if status == 200:
+            log_action(c, op, 'invite-revoke', tgt)
+        return body, status
     if path in CLASS_POSTS:
         what = path.rsplit('/', 1)[1]
         body, status, tgt, detail = __import__('class_service').change(c, {**data, '_what': what})
@@ -557,7 +576,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd
