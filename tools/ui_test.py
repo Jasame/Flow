@@ -708,7 +708,7 @@ def run_device(pw, dev, opts):
 
     # ---- account email, exam word lists, import topic
     # 我的 (B9's batch 1): 账号和隐私 and 帮助 are folds; on #/me both are shut, #/me/account opens its own (the guide's link)
-    go(pg, '#/me'); pg.wait_for_timeout(300)
+    go(pg, '#/me'); pg.reload(); settle(pg); pg.wait_for_timeout(300)  # a fold opened earlier stays open while the page lives
     shut = pg.evaluate("() => [...document.querySelectorAll('#view details.me-fold')].map(d => [d.dataset.fold, d.open])")
     check(dev, 'me: 账号和隐私 and 帮助 are two folds, shut until tapped', shut == [['account', False], ['help', False]] and not pg.is_visible('#chPw'), shut)
     pg.click('#meFold-help summary'); pg.wait_for_timeout(300)
@@ -721,9 +721,9 @@ def run_device(pw, dev, opts):
       folds: [...document.querySelectorAll('#view details.me-fold')].map(d => [d.querySelector('.fold-n').textContent, d.querySelector('.fold-v').textContent, d.open, getComputedStyle(d.querySelector('.fold-n')).color === getComputedStyle(document.querySelector('#meVoice .t')).color]),
       account: [...document.querySelectorAll('#meFold-account .grow .t')].map(t => t.textContent), icons: [...document.querySelectorAll('.me-list > .grow')].every(r => r.querySelector('.fi-tile')),
       ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})""")
-    check(dev, 'me: 进步 (three tiles) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助, then 退出登录; no ability card, no way to the classic site',
+    check(dev, 'me: 进步 (three tiles) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助 (still open from the tap), then 退出登录; no ability card, no way to the classic site',
           me['groups'] == ['进步', '设置'] and me['tiles'] == ['我的进步', '周报', '错题本'] and me['icons'] and not me['ability'] and me['out'] and not me['classic']
-          and me['folds'] == [['账号和隐私', '导出、注销、数据存放', True, True], ['帮助', '指南、隐私说明、反馈', False, True]], me)
+          and me['folds'] == [['账号和隐私', '导出、注销、数据存放', True, True], ['帮助', '指南、隐私说明、反馈', True, True]], me)  # 帮助: opened above, still open
     check(dev, 'me: 账号和隐私 has its nine rows, 隐私说明 next to 用户协议 (D2)', me['account'] == ['邮箱', '修改密码', '退出所有设备', '年龄段', '数据存放', '用户协议', '隐私说明', '导出我的数据', '注销账号'], me['account'])
     pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
     pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
@@ -2616,9 +2616,10 @@ def privacy_run(pw):
         val = (pg.text_content('#meAgeV') or '').strip()
         check(dev, '老账号: asked once, Esc and the backdrop do not dismiss it, answered it is not asked again', stays and gone and not again and val == '18 岁及以上',
               (stays, gone, again, val))
-        pg.click('a[href="#/guide/privacy"]'); pg.wait_for_timeout(1200)
+        pg.click('#meFold-account summary'); pg.wait_for_timeout(300)  # 我的 → 账号和隐私 → 隐私说明: three taps from the tab (D2)
+        pg.click('#meFold-account a[href="#/guide/privacy"]'); pg.wait_for_timeout(1200)
         text = pg.text_content('#view') or ''
-        check(dev, '我的 → 隐私说明 opens the chapter', '香港的服务器' in text and '阿里云百炼' in text, text[:60])
+        check(dev, '我的 → 账号和隐私 → 隐私说明 opens the chapter', '香港的服务器' in text and '阿里云百炼' in text, text[:60])
         ctx.close()
         # 不满 14 岁 without the agreement: 仿写 asks for it, then goes on
         ctx = browser.new_context(**phone)
