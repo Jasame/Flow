@@ -56,6 +56,20 @@
     }, AI_WAIT_MS);
     return () => { clearTimeout(t); if (line) line.remove(); };
   }
+  // Each account's AI calls of the day (ai_quota.header, 语流 B7 #405): an AI answer says "<remaining>/<limit>/<level>".
+  // Once a day, when under a fifth is left (low) or the last one was just used (out), one line says so; 「我的 → 设置 →
+  // AI 用量」 has the rest. A refused call says its own words (the error), so nothing more then.
+  const AIQ = { told: '' };
+  function aiQuotaSeen(h, ok) {
+    const m = /^(\d*)\/(\d*)\/(ok|low|out)$/.exec(h || '');
+    if (!m || !ok || !m[2] || m[3] === 'ok') return;
+    const mark = new Date().toISOString().slice(0, 10) + ':' + m[3];  // the count's day starts at 00:00 UTC (08:00 Beijing)
+    let told = AIQ.told; try { told = localStorage.getItem('flow.aiQuotaTold') || told; } catch (e) { /* the memory copy */ }
+    if (told === mark) return;
+    AIQ.told = mark; try { localStorage.setItem('flow.aiQuotaTold', mark); } catch (e) { /* the memory copy */ }
+    setTimeout(() => toast(m[3] === 'out' ? `今天的 ${m[2]} 次 AI 用完了，北京时间早上 8 点重置；学材料、背单词和做题照常能用`
+      : `今天的 AI 还剩 ${m[1]} 次，北京时间早上 8 点重置`), 800);  // after the answer is on the page
+  }
   // One request to the server: an error becomes a message the page can show, and a session that ended asks to sign in
   // again (not for a preload: quiet). Returns the answer parsed (j) and as text (t, for the data layer to share).
   async function request(path, body, quiet) {
@@ -66,6 +80,7 @@
     try { r = await fetch(path, opt); } catch (x) { waiting(); noteIssue('api', '网络连接失败', path.split('?')[0]); const e = new Error('网络连接失败，请检查网络'); e.network = true; throw e; }
     const t = await r.text().catch(() => '');
     waiting();
+    aiQuotaSeen(r.headers.get('X-Flow-AI-Quota'), r.ok);
     let j = {}; try { j = t ? JSON.parse(t) : {}; } catch (x) { /* not JSON: an error page */ }
     if (!r.ok) {
       if (r.status >= 500) noteIssue('api', `服务器返回 ${r.status}`, path.split('?')[0]);  // 4xx are answers (a wrong password …), not faults
