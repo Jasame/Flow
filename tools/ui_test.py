@@ -3475,9 +3475,10 @@ def progress_run(pw):
                   href: r.getAttribute('href'), ai: !!r.querySelector('.ai-mark') }))""")
                 names = [x['t'] for x in more]
                 mine = next((x for x in more if x['t'] == '我的材料'), None); news = next((x for x in more if x['t'] == '今日一读'), None)
-                check(dev, f'{tag}: 还有时间的话 starts with 今日好句, 我的材料 and 今日一读; 我的材料 asks for a text to paste in; 今日一读 marked AI 生成',
+                check(dev, f'{tag}: 还有时间的话 starts with 今日好句, 我的材料 and 今日一读; 我的材料 asks for a text to paste in; 今日一读 marked AI 生成, the one the server picked, never an old 今日热点',
                       names == [n for n in ('今日好句', '我的材料', '今日一读') if n in names] and names[:2] == ['今日好句', '我的材料'] and mine and mine['href'] == '#/import'
-                      and mine['m'] == '贴课本或讲义进来练' and (not home.get('news') or (news and news['ai'] and 'AI 生成' in news['m'])), more)
+                      and mine['m'] == '贴课本或讲义进来练' and (not home.get('news') or (news and news['ai'] and 'AI 生成' in news['m'] and home['news']['id'] != 'daily-ui-old-news'
+                      and news['href'] == '#/m/' + __import__('urllib.parse').parse.quote(home['news']['id'], safe=''))) and not pg.query_selector('#view a[href="#/m/daily-ui-old-news"]'), more)
                 pg.click('#view .tv-fold > summary'); pg.wait_for_timeout(100)
                 # the plan's rows, 本周任务 included (an exam learner has one): one line each, nothing squashed, filled or out of its row
                 ec = browser.new_context(viewport={'width': w, 'height': h}, is_mobile=touch, has_touch=touch, device_scale_factor=2 if touch else 1,
