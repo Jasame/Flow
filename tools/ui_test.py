@@ -4474,6 +4474,13 @@ def shell_run(pw):
         go(pg, '#/cards/mistake'); mb = pg.evaluate("(() => { const b = document.querySelector('#view .wp-blk .wp-big'), sub = document.querySelector('#view .wp-sub'); return [sub ? sub.textContent.trim() : '', b ? b.textContent.trim() : null]; })()")
         none = mb[0].startswith('共 0 道')
         check(dev, '错题本: no mistake → no 「到期要复习的」 block; mistakes but none due → 「现在没有到期的」', (mb[1] is None) if none else (mb[1] == '现在没有到期的' or mb[1].endswith('道')), mb)
+        # 我的's second line: this week's days, then the totals said as totals, and the words are the word page's 共 N 个
+        # (words and expressions), not every card (B9's audit, 2026-11-26: mistakes and patterns were counted as 词)
+        go(pg, '#/me')
+        ml = pg.evaluate("""async () => { const h = await (await fetch('/api/next/home')).json(), o = await (await fetch('/api/next/vocab')).json(), st = h.stats;
+          return { line: [...document.querySelectorAll('#view .me-head .me-line')].map(e => e.textContent.trim())[1], days: st.habit.done, texts: st.materials_done, words: st.word_cards, total: o.total, cards: st.cards }; }""")
+        check(dev, '我的: 「这周学了 N 天 · 累计 N 篇、N 个词」, the words as many as the word page says (not every card)',
+              ml['words'] == ml['total'] and ml['line'] == f"这周学了 {ml['days']} 天 · 累计 {ml['texts']} 篇、{ml['words']} 个词", ml)
         # a sheet goes with its page: a link, and the browser's back
         go(pg, '#/me'); pg.click('#meText'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
         # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone

@@ -181,7 +181,8 @@
     '逐句听写和精听': 'Dictation drills', '轻松读，读得多一点': 'Read more easy texts', '提高每天新词数': 'More new words a day',
     '语法混合复习': 'Mixed grammar review', '口语路线的情景对话': 'Speaking scenes',
     // 81-me.js after 我的's new look (tiles, folds)
-    '这周学了 {n} 天 · 学完 {n} 篇 · {n} 个词': 'This week: {1} {1|day|days} · {2} {2|text|texts} · {3} {3|word|words}',
+    '这周学了 {n} 天 · 累计 {n} 篇、{n} 个词': 'This week: {1} {1|day|days} · In total: {2} {2|text|texts}, {3} {3|word|words}',
+    '这周学了 {n} 天 · 累计 {n} 篇': 'This week: {1} {1|day|days} · In total: {2} {2|text|texts}',
     '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '最近 7 天': 'Last 7 days', '{n} 道': '{1}', '还没有': 'None yet',
     '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
     '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
