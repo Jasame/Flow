@@ -931,3 +931,10 @@
   - #401 更新记录 r38（尽快发）：今日两个入口、字号统一、下载页的隐私清单（内容）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45755722653
+
+### b116 · 2026-11-26 12:56
+- main `780e1bd`，构建 `eb2729d`
+- 新合并的 PR（自 b115 起）：
+  - #398 今日：5 分钟的日子单词和表达轮着来，表达日做「听两句、答一句」（今日和计划、开局和考试、后台和班级、操作指南）
+- 自检：DEPLOYED，装了 11 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45758147332
