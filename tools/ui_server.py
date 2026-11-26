@@ -361,7 +361,7 @@ class ConsolePage(flow_admin.AdminHandler):
         return super().do_GET()
 
 
-# AI 常用搭配和近义词 (word_extras, 单词详细模式) for a few words the learners meet: the 详细 back and a word's sheet show them
+# AI 常用搭配和近义、易混词 (word_extras, 单词详细模式) for a few words the learners meet: the 详细 back and a word's sheet show them
 with app.db() as c:
     import word_extras
     word_extras.schema(c)

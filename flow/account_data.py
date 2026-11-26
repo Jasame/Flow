@@ -32,7 +32,7 @@ GUIDE = {
     'next_goal_weeks': '每周目标改过几次：每个目标从哪一周开始算', 'next_weekly': '每周进度邮件：收不收、上次什么时候发的',
     'class_members': '加入过的班级：什么时候加入、什么时候退出（班级名在最上面的「班级」里）',
     'beta_invite_uses': '内测版注册时用的邀请码和使用时间（只在内测版）',
-    'vocab_extras_flags': '你在单词卡上标为「这条不对」的 AI 常用搭配和近义词，和你写的留言',
+    'vocab_extras_flags': '你在单词卡上标为「这条不对」的 AI 常用搭配和近义、易混词，和你写的留言',
 }
 
 
@@ -104,7 +104,7 @@ def word_book(c, uid):
 
 
 def _extras(c, uid, norms):
-    """The words' AI 常用搭配和近义词 as the cards show them (vocab_service.extras: checked, not taken down, not marked
+    """The words' AI 常用搭配和近义、易混词 as the cards show them (vocab_service.extras: checked, not taken down, not marked
     「这条不对」 by this learner): {(norm, 'colloc' | 'near'): ['make a decision 做决定', 'choice 选择（更口语）', ...]}."""
     import vocab_service
     out = {}
@@ -129,7 +129,7 @@ def cards_csv(c, uid):
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator='\r\n')
     w.writerow(['英文', '中文意思', '音标', '原文例句', '类型', '来源', '加入日期', '下次复习', '复习次数', '忘记次数', '状态',
-                '常用搭配（AI 生成，仅供参考）', '近义词（AI 生成，仅供参考）'])
+                '常用搭配（AI 生成，仅供参考）', '近义和易混词（AI 生成，仅供参考）'])
     for x in word_book(c, uid):
         w.writerow([_cell(x[k]) for k in ('text', 'meaning', 'phonetic', 'context', 'kind', 'source', 'added', 'due', 'reps', 'lapses', 'state',
                                           'colloc', 'near')])
@@ -145,7 +145,7 @@ def cards_anki(c, uid):
         back = [f'<b>{clean(x["meaning"])}</b>' if x['meaning'] else '', f'<span style="color:#888">{clean(x["phonetic"])}</span>' if x['phonetic'] else '',
                 f'<i>{clean(x["context"])}</i>' if x['context'] else '', f'<small>{clean(x["source"])}</small>' if x['source'] else '',
                 f'<small>常用搭配（AI 生成）：{clean(x["colloc"])}</small>' if x['colloc'] else '',
-                f'<small>近义词（AI 生成）：{clean(x["near"])}</small>' if x['near'] else '']
+                f'<small>近义和易混词（AI 生成）：{clean(x["near"])}</small>' if x['near'] else '']
         tag = '语流 ' + x['kind'].replace('·', '_') + (' 语流_AI生成' if x['colloc'] or x['near'] else '')  # filtered in Anki at once (D2)
         lines.append('\t'.join([clean(x['text']), '<br>'.join(b for b in back if b), tag]))
     return ('\n'.join(lines) + '\n').encode('utf-8')
