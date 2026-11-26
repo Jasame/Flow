@@ -88,6 +88,18 @@ def latest():
     return {'id': e['id'], 'label': e['label'], 'highlights': hl[:3]}
 
 
-# Words that do not belong in a learner's 更新记录 (tests/test_updates.py): PR numbers, tags, model and vendor names.
-# Case matters: r30 and b12 are tags, B2 and C1 are levels.
-TECH = re.compile(r'#\d|\b[rb]\d+\b|\bPR\b|DeepSeek|Gemini|Qwen|Omni|CosyVoice|Kokoro|百炼|通义|千问|\bAPI\b|e2e|\bbeta\b|commit')
+# Words that do not belong in a learner's 更新记录 (tests/test_updates.py): PR numbers and tags (CODE), model and vendor
+# names (NAMES). A line about the 隐私和数据 chapter (its link is #/guide/privacy…) may name the vendors, because that
+# chapter does: 「隐私说明补上了以前用过、已经停用的谷歌 Gemini」 (D2 and the user, 2026-11-26). Case matters: r30 and b12
+# are tags, B2 and C1 are levels.
+CODE = re.compile(r'#\d|\b[rb]\d+\b|\bPR\b|\bAPI\b|e2e|\bbeta\b|commit')
+NAMES = re.compile(r'DeepSeek|Gemini|Qwen|Omni|CosyVoice|Kokoro|百炼|通义|千问')
+TECH = re.compile(CODE.pattern + '|' + NAMES.pattern)
+
+
+def too_technical(text, link=''):
+    """The words a learner should not meet in this line: no tags or PR numbers ever, no model names outside privacy."""
+    m = CODE.search(text)
+    if m or (link or '').startswith('#/guide/privacy'):
+        return m
+    return NAMES.search(text)

@@ -60,6 +60,16 @@ def fake(messages, audio=None, grounding=False):
         dims = ('fluency', 'accuracy', 'range', 'pronunciation') if '口语' in system else ('content', 'organization', 'accuracy', 'range')
         return J({'transcript': 'I went to Hangzhou last spring with my parents.' if '口语' in system else '', 'level': 'B1', 'position': 0.6,
                   'scores': {k: 3 for k in dims}, 'strength': '意思表达清楚，有具体的例子。', 'next': ['多用连接词把句子连起来', '注意过去时的动词变化']})
+    if '出口语题的英语老师' in system:  # 听两句、答一句: the question (two_lines.ask), on the learner's own life
+        return J({'question': "Your group wants to meet on Saturday, but you can't make it. What would you say?", 'zh': '组里想周六碰头，你没空，你会怎么说？',
+                  'hint': "Sorry, I can't make it on…"})
+    if '看一位中国学习者的一句回答' in system:  # 听两句、答一句: the marking (two_lines.check), before 口语老师 (its role line has it too); met when the answer offers another day
+        said = prompt.split('学习者写的回答：', 1)[-1].split('\n', 1)[0]
+        if 'sunday' in said.lower():
+            return J({'met': 'met', 'note': '意思到了：你说了没空，还提了另一个时间。', 'better': "Sorry, Saturday [[doesn't work for me]]. Could we meet on Sunday instead?",
+                      'save': "doesn't work for me"})
+        return J({'met': 'not_yet', 'note': '问的是周六没空怎么跟组里说：你还没说没空，也没提别的时间。', 'better': "Sorry, I [[can't make it]] on Saturday. How about Sunday?",
+                  'save': "can't make it"})
     if '口语老师' in system:  # shadowing one sentence: one word left out, an estimate, one sound to practise
         sent = prompt.split('原句：', 1)[1].split('\n', 1)[0]
         ws = sent.split()

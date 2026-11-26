@@ -38,6 +38,7 @@ flow/ai_check.py
 flow/ai_eval.py
 flow/ai_help_service.py
 flow/ai_jobs.py
+flow/ai_quota.py
 flow/ai_routes.py
 flow/ai_stream.py
 flow/aigc_label.py
@@ -246,6 +247,7 @@ flow/public/about.css
 flow/public/about.html
 flow/public/about.js
 flow/public/about/app-android.jpg
+flow/public/about/app-harmony.jpg
 flow/public/about/app-linux.jpg
 flow/public/about/app-mac.jpg
 flow/public/about/app-windows.jpg
@@ -339,6 +341,7 @@ flow/tests/test_admin_roles.py
 flow/tests/test_ai_cost.py
 flow/tests/test_ai_eval.py
 flow/tests/test_ai_mark.py
+flow/tests/test_ai_quota.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
