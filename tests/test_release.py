@@ -115,8 +115,9 @@ class ReleaseListTests(unittest.TestCase):
         page = (ROOT / 'xmc-admin/index.html').read_text(encoding='utf-8')
         for name in CONSOLE[1:]:
             want = hashlib.sha256((ROOT / 'xmc-admin' / name).read_bytes()).hexdigest()[:10]
-            got = re.findall(r'/flow/' + re.escape(name) + r'\?v=([^"\']+)', page)
-            self.assertEqual(got, [want], f'xmc-admin/index.html: ask for /flow/{name}?v={want} (its content changed)')
+            # by a relative address: the same page serves 语流's console (/flow/) and the 内测版's (/flow-beta/)
+            got = re.findall(r'(?:src|href)="' + re.escape(name) + r'\?v=([^"\']+)', page)
+            self.assertEqual(got, [want], f'xmc-admin/index.html: ask for {name}?v={want} (its content changed)')
 
     def test_nothing_of_the_classic_site_ships(self):
         """r20: the classic site is archived in archive/classic/ and is neither listed nor served."""

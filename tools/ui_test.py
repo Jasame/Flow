@@ -2402,11 +2402,14 @@ def class_run(pw):
         # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
         cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        asked = []  # the test site's console is 语流's (正式版): a change asks first, naming the site (#402)
+        cp.on('dialog', lambda d: (asked.append(d.message), d.accept()))
         cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
         cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
         cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
         made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
         check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        check(dev, '后台（正式版）: the change asks first, and the question names 正式版', any('这是正式版' in m and '老师注册链接' in m for m in asked), asked)
         cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
         # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
         pctx = browser.new_context(**phone)

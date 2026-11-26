@@ -21,6 +21,18 @@ from urllib.parse import urlsplit, parse_qs
 import survey_service as survey
 
 PREFIX = '/flow/api'
+# One console page and one API for both sites (2026-11-26, the owner: 「内测后台和正式版后台都要完善，要区分开」): 语流's
+# console is xmc.hk/flow/, the 内测版's xmc.hk/flow-beta/ (each nginx location reaches its own site's loopback admin
+# port). The API answers under either prefix; which site it is comes from FLOW_CHANNEL (/me: env), never from the path.
+PREFIXES = (PREFIX, '/flow-beta/api')
+
+
+def site():
+    """Which site this console runs for: env 'beta' (the 内测版, FLOW_CHANNEL=beta) or 'prod' (语流), and its address, so
+    the page can say so on every tab and ask before a change on 语流's (xmc-admin/admin.js)."""
+    import app
+    host = os.getenv('FLOW_PUBLIC_URL', '').strip().rstrip('/').split('//')[-1] or ('flow.jasa.hk' if app.CHANNEL == 'beta' else 'flowlang.cn')
+    return {'env': app.CHANNEL, 'site': host}
 
 
 def server_label():
@@ -491,9 +503,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         url = urlsplit(self.path)
         path, qs = url.path, parse_qs(url.query)
         one = lambda k, d='': (qs.get(k) or [d])[0]
-        if not path.startswith(PREFIX + '/'):
+        base = next((x for x in PREFIXES if path.startswith(x + '/')), None)
+        if base is None:
             return self._send({'error': '接口不存在'}, 404)
-        path = path[len(PREFIX):]
+        path = path[len(base):]
         op = operator(self.headers)
         if op is None:
             return self._send({'error': '没有通过 Cloudflare Access 的登录核对，请重新打开后台'}, 403)
@@ -505,7 +518,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                 if path in ADMIN_GET and op['role'] != 'admin':
                     return self._send({'error': '需要管理员权限：你现在的身份是「只看数据」'}, 403)
                 if path == '/me':
-                    return self._send({**op, 'server': server_label()})
+                    return self._send({**op, 'server': server_label(), **site()})
                 if path == '/overview':
                     return self._send(overview(c))
                 if path == '/learning':
