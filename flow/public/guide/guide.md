@@ -1164,7 +1164,7 @@ Linux 电脑版还在测试，欢迎试用和反馈。只有 64 位（x86_64）�
 
 **遇到问题**：
 
-- 没有声音：多半是缺解码器，运行 `sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good`（Fedora：`sudo dnf install gstreamer1-libav`）。AppImage 自带解码器，一般不会遇到。
+- 提示「这台设备放不了录音的格式」，有录音的文章改用 AI 朗读：是缺解码器。运行 `sudo apt install gstreamer1.0-libav gstreamer1.0-plugins-good`（Fedora：`sudo dnf install gstreamer1-libav`），再打开语流就能放原来的录音。AppImage 自带解码器，一般不会遇到。
 - 中文显示成方框：缺中文字体，运行 `sudo apt install fonts-noto-cjk`。
 - 个别显卡在 Wayland 下白屏：用 `WEBKIT_DISABLE_DMABUF_RENDERER=1 ./flow-linux-*.AppImage` 打开。
 
