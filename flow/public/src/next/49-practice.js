@@ -59,8 +59,7 @@
   async function practiceView() {
     const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
     view.innerHTML = `<h1 class="h1">练习</h1>
-      ${reviewBlock(st)}
-      <div id="pSuggest">${practiceTip(null, due)}</div>
+      <div class="ptop">${reviewBlock(st)}<div id="pSuggest">${practiceTip(null, due)}</div></div>
       ${PRACTICE.map(([group, items]) => `<section class="pgroup stack-s"><h2 class="h2 pgroup-h">${group}</h2>
         ${items.filter(x => x[3] === 'map').map(([href, title, line]) => mapTile(href, title, line)).join('')}
         <div class="px-list">${items.filter(x => x[3] !== 'map').map(x => practiceRow(x, due)).join('')}</div></section>`).join('')}
