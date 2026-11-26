@@ -9,7 +9,8 @@ paused. Paused also stops AI voice (the page reads with the browser's voice); le
 Counting: ai_usage (a UTC day, reset at 08:00 Beijing), and per task in ai_usage_kind beside it, written and given
 back in the same places, so the parts always add up to the number the gates use. Kept KEEP_DAYS a person (D2, the
 privacy chapter's 「保存多久」): then folded into one row a day with no account (user_id TOTAL), so the site's daily
-totals stay; the quota itself and its log stay while the account does.
+totals stay; AI 朗读's characters a person (tts_usage, tts_import) go after KEEP_DAYS too, the site's row keeping the
+total; the quota itself and its log stay while the account does.
 """
 import datetime, json, time
 
@@ -169,6 +170,11 @@ def prune(c, now=None):
     c.execute('INSERT INTO ai_usage_kind(user_id, day, kind, count) SELECT ?, day, kind, SUM(count) FROM ai_usage_kind WHERE day<? AND user_id>0 '
               'GROUP BY day, kind ON CONFLICT(user_id, day, kind) DO UPDATE SET count=count+excluded.count', (TOTAL, cut))
     c.execute('DELETE FROM ai_usage_kind WHERE day<? AND user_id>0', (cut,))
+    # AI 朗读's characters (tts_service): a learner's row goes; the site's row (who 0) already holds every learner's
+    # characters too, so the day's total stays as it is. Their own articles' characters (tts_import) go the same way.
+    for t in ('tts_usage', 'tts_import'):
+        if c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone():
+            n += c.execute(f'DELETE FROM "{t}" WHERE day<? AND who>0', (cut,)).rowcount
     c.commit()
     return n
 
