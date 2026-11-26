@@ -575,8 +575,42 @@ document.documentElement.classList.add('js');
     }).catch(() => { /* 即将开放 stays */ });
   }
 
+  /* ---------- 下载 on the first screen (the owner, 2026-11-26: 手机上第一屏看不到下载): the entry says what this device
+     gets and goes to its card in 在哪儿都能学; for an installer (安卓, Windows, Mac) it also opens the same sheet as the
+     card's 下载安装 (what it is, who makes it, permissions, SHA-256), so nothing downloads without it. ---------- */
+  function deviceKind() {
+    const ua = navigator.userAgent || '';
+    if (/OpenHarmony|HarmonyOS/i.test(ua)) return 'harmony';
+    if (/Android/i.test(ua)) return 'android';
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Windows/.test(ua)) return 'windows';
+    if (/Macintosh|Mac OS X/.test(ua)) return 'mac';
+    if (/Linux|X11/.test(ua)) return 'linux';
+    return '';
+  }
+  const DL_GO = {
+    android: ['下载安卓 App', '[data-app=android]', 'android'], windows: ['下载 Windows 版', '[data-app=windows]', 'windows'],
+    mac: ['下载 Mac 版', '[data-app=mac]', 'mac'], linux: ['下载 Linux 测试版', '[data-app=linux]', ''],
+    ios: ['加到 iPhone 主屏幕', '[data-app=web]', ''], harmony: ['鸿蒙版内测中', '[data-app=harmony]', '']
+  };
+  function downloadEntry() {
+    const go = DL_GO[deviceKind()];
+    $$('[data-dl-go]').forEach(a => {
+      const t = $('.hd-t', a);
+      if (go && t) t.textContent = go[0];
+      a.addEventListener('click', e => {
+        const card = go && $(go[1]);
+        if (!card) return;  // no idea which device: the plain #download jump
+        e.preventDefault();
+        card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+        const btn = go[2] && $('[data-dl="' + go[2] + '"] .dl-btn');
+        if (btn && btn.getAttribute('href')) setTimeout(() => btn.click(), 450);  // the installer is listed: its sheet
+      });
+    });
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
