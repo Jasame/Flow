@@ -1,0 +1,7 @@
+{
+  "string": [
+    {"name": "mic_reason", "value": "用于跟读和口语练习时录音"},
+    {"name": "reminder_reason", "value": "用于到时间提醒复习单词"},
+    {"name": "background_reason", "value": "用于锁屏后继续朗读文章"}
+  ]
+}
