@@ -157,6 +157,30 @@ def give_back(c, uid, kind, day=None):
 
 # ---------- what learners and the consoles read ----------
 
+LOW = 0.2  # under a fifth of the day's calls left: 'low' (B6: the page says so once, not in the way)
+
+
+def _level(left, limit, stopped):
+    if stopped:
+        return 'out'
+    return 'low' if limit and left is not None and left < LOW * limit else 'ok'
+
+
+def brief(c, uid, now=None):
+    """The cheap reading for every AI response (B6's X-Flow-AI-Quota header): {remaining, limit, level}, level 'ok',
+    'low' (under LOW of the day's calls left) or 'out' (paused, or none left). The site's ceiling and the ¥10 stop are
+    not looked at here (today() does): they are one sentence on the refused call itself."""
+    limit, _ = limit_for(c, uid, now)
+    left = None if limit is None else max(0, limit - used(c, uid, _today(now)))
+    stopped = 'paused' if paused(c, uid, now) else 'user' if left == 0 else None
+    return {'remaining': left, 'limit': limit, 'level': _level(left, limit, stopped)}
+
+
+def header(c, uid, now=None):
+    """X-Flow-AI-Quota: <remaining>/<limit>/<level>, empty numbers when there is no ceiling."""
+    b = brief(c, uid, now)
+    return f"{'' if b['remaining'] is None else b['remaining']}/{b['limit'] or ''}/{b['level']}"
+
 def _label(kind):
     import ai_routes
     if kind == 'other':
@@ -194,7 +218,7 @@ def today(c, uid, now=None):
             'user': f'今天的 {limit} 次 AI 用完了，{RESET_TEXT}重置。'}.get(stopped) or (
         f'今天还能用 {left} 次 AI，{RESET_TEXT}重置。' if left is not None else '今天的 AI 不限次数。')
     reset = (int(now // 86400) + 1) * 86400
-    return {'used': n, 'limit': limit, 'remaining': left, 'adjusted': source == 'override', 'paused': is_paused,
+    return {'used': n, 'limit': limit, 'remaining': left, 'level': _level(left, limit, stopped), 'adjusted': source == 'override', 'paused': is_paused,
             'paused_until': o['until'] if is_paused else None, 'reset_at': reset, 'reset_text': RESET_TEXT,
             'by_kind': _by_kind(c, uid, [day], n), 'stopped': stopped, 'note': line}
 
@@ -214,7 +238,8 @@ def _sum(c, uid, days):
 
 def report(c, uid=None, limit=200, now=None):
     """For the consoles: one row a person, most used in 30 days first (accounts with an override always listed):
-    {user_id, today, d7, d30, limit, source, paused, override, by_kind_30, cost_est_30, near_days_30, full_days_30};
+    {user_id, today, d7, d30, limit, source, paused, override, override_until, by_kind_30, cost_est_30, near_days_30,
+    full_days_30, near_streak (days in a row up to today at LOW's other side, 80% of the ceiling or more; today short of it: 0)};
     with uid, that one person and by_kind for today, 7 and 30 days. cost_est is an estimate (calls × the task's average)."""
     now = now or time.time()
     d1, d7, d30 = _days_back(1, now), _days_back(7, now), _days_back(30, now)
@@ -230,11 +255,19 @@ def report(c, uid=None, limit=200, now=None):
         t30 = _sum(c, u, d30)
         lim, source = limit_for(c, u, now)
         kinds30 = _by_kind(c, u, d30, t30)
-        daily = [r[0] for r in c.execute('SELECT count FROM ai_usage WHERE user_id=? AND day IN (%s)' % ','.join('?' * len(d30)), (u, *d30))]
+        by_day = dict(c.execute('SELECT day, count FROM ai_usage WHERE user_id=? AND day IN (%s)' % ','.join('?' * len(d30)), (u, *d30)).fetchall())
+        daily = list(by_day.values())
+        streak = 0
+        for d in d30:  # today first
+            if not lim or by_day.get(d, 0) < 0.8 * lim:
+                break
+            streak += 1
+        o = get(c, u, now)
         row = {'user_id': u, 'today': _sum(c, u, d1), 'd7': _sum(c, u, d7), 'd30': t30, 'limit': lim, 'source': source,
-               'paused': paused(c, u, now), 'override': get(c, u, now), 'by_kind_30': kinds30,
+               'paused': paused(c, u, now), 'override': o, 'override_until': o['until'] if o else None, 'by_kind_30': kinds30,
                'cost_est_30': round(sum(k['count'] * per.get(k['kind'], avg) for k in kinds30), 4),
-               'near_days_30': sum(1 for n in daily if lim and 0.8 * lim <= n < lim), 'full_days_30': sum(1 for n in daily if lim and n >= lim)}
+               'near_days_30': sum(1 for n in daily if lim and 0.8 * lim <= n < lim), 'full_days_30': sum(1 for n in daily if lim and n >= lim),
+               'near_streak': streak}
         if uid is not None:
             row['by_kind'] = {'today': _by_kind(c, u, d1, row['today']), 'd7': _by_kind(c, u, d7, row['d7']), 'd30': kinds30}
         out.append(row)

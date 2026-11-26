@@ -118,6 +118,34 @@ class QuotaTests(unittest.TestCase):
         self.assertEqual(q.used(self.c, 1), 0)
         self.assertEqual(q.today(self.c, 1)['by_kind'], [])
 
+    def test_one_level_for_the_page_and_a_cheap_header(self):  # B6: the page reads level, both sides one threshold
+        q.set(self.c, 1, 'admin@flow', '多练', limit=10); self.c.commit()
+        self.assertEqual((q.today(self.c, 1)['level'], q.header(self.c, 1)), ('ok', '10/10/ok'))
+        self.use(1, 8)
+        self.assertEqual(q.header(self.c, 1), '2/10/ok')  # a fifth left exactly: not yet low
+        self.use(1, 1)
+        self.assertEqual((q.today(self.c, 1)['level'], q.header(self.c, 1)), ('low', '1/10/low'))  # under a fifth
+        self.use(1, 1)
+        self.assertEqual((q.today(self.c, 1)['level'], q.header(self.c, 1)), ('out', '0/10/out'))
+        q.set(self.c, 2, 'admin@flow', '暂停', paused=True); self.c.commit()
+        self.assertEqual(q.brief(self.c, 2)['level'], 'out')
+        self.assertEqual(q.header(self.c, 3), '//ok')  # an admin: no ceiling
+
+    def test_days_in_a_row_near_the_ceiling(self):
+        now = time.time()
+        for back, n in ((0, 4), (1, 5), (2, 4), (3, 1), (4, 5)):  # today 4 of 5, then 5, 4, a quiet day, 5
+            self.c.execute('INSERT INTO ai_usage VALUES(1,?,?)', (time.strftime('%Y-%m-%d', time.gmtime(now - back * 86400)), n))
+        self.c.execute('INSERT INTO ai_usage VALUES(2,?,1)', (time.strftime('%Y-%m-%d', time.gmtime(now)),))
+        self.c.commit()
+        with patch.object(q, '_unit_costs', lambda c: ({}, 0.0)):
+            rows = {r['user_id']: r for r in q.report(self.c, now=now)}
+        self.assertEqual((rows[1]['near_streak'], rows[1]['near_days_30'], rows[1]['full_days_30']), (3, 2, 2))
+        self.assertEqual(rows[2]['near_streak'], 0)  # today short of it: no streak
+        q.set(self.c, 1, 'admin@flow', '一周', limit=8, until=now + 86400); self.c.commit()
+        with patch.object(q, '_unit_costs', lambda c: ({}, 0.0)):
+            one = q.report(self.c, uid=1, now=now)[0]
+        self.assertEqual(one['override_until'], now + 86400)
+
     def test_the_consoles_see_each_persons_use(self):
         self.use(1, 4); self.use(2, 1, 'chat')
         q.set(self.c, 3, 'owner', '观察', limit=2); self.c.commit()  # an account with an override is listed even unused
