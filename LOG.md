@@ -840,3 +840,10 @@
   - #367 按我的学习记录推荐：小窗两段之间的空隙改成 12px（B9 巡检）（后台和班级）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45736090148
+
+### b105 · 2026-11-26 09:42
+- main `6642062`，构建 `c19f3bd`
+- 新合并的 PR（自 b104 起）：
+  - #369 认识语流·下载安装：Linux 测试版卡片 + iPhone「开发中」截图（先上内测版）（后台和班级、操作指南）
+- 自检：DEPLOYED，装了 13 个文件（5 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45737445473
