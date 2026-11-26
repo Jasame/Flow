@@ -49,7 +49,7 @@ iOS（语流 C1）、安卓（语流 C2）、桌面 Windows、macOS 和 Linux（
 | `haptic` | 让手机轻轻一震：`FlowApp.call('app.haptic', {kind})`（见下） | 有 | 没有 | 没有 | 没有 |
 | `frugal` | 系统要省着用（低电量模式、iOS 27 的省资源提示）：网页少预载 | 有 | 没有 | 没有 | 没有 |
 | `activity` | 复习进度显示在锁屏和灵动岛上（实时活动）：`activity.review` / `activity.end`（见下） | 有 | 没有 | 没有 | 没有 |
-| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 | 没有 |
+| `privacy` | 第一次打开时的同意和「基本模式」、撤回同意、权限管理页、APP 备案号（命令写在第 10 节安卓一节） | 没有 | 有 | 没有 | 有（和安卓同一套） |
 
 - 一个 App 在回到前台、网页重新加载以后，会把正在放的状态再发一次（`audio` 事件），网页不用猜。网页可见时也可以调 `FlowApp.call('app.visible')` 让它重发。
 - `FlowApp.call('hello')` → `{v, app, build, platform, features}`。
@@ -255,7 +255,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
 - **第一次打开**（1.0.4 起，为上国内应用商店，`android/README.md`「第一次打开」）：
   - App 先用自己的弹窗问《用户协议》《隐私和数据》。两章全文是打包时从 guide.md 生成的，回答以前不打开网页，也不联网。
   - 点「不同意」进入基本模式：不登录，不提醒，不录音。登录、注册的请求由 App 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次。
-  - 能力 `privacy`（只有安卓，共用的能力表里没有）。网页「我的 → 设置」可以用它来做：
+  - 能力 `privacy`（安卓和鸿蒙）。网页「我的 → 设置」可以用它来做：
     - `privacy.state()` → `{state: 'agreed' | 'basic', version, beian, store}`；`beian` 是 APP 备案号，空字符串就不显示；
     - `privacy.ask()`：在基本模式里再问一次；
     - `privacy.withdraw()`：撤回同意，App 先说明，再清掉手机上的东西，回到第一次打开的弹窗；
@@ -369,8 +369,13 @@ product `default`（cn.flowlang.app.beta，「语流内测」，flow.jasa.hk）�
   - 原因：第三方 App 用后台代理提醒（reminderAgentManager），要华为按包名开通；没开通时 `publishReminder` 回 1700002，上限是 0。
   - 用户 2026-11-26 定了：先只用邮件和「加到手机日历」。
   - `notify/` 的排期（Planner，和 iOS、安卓同一套规则，最多排 28 条）已经写好，以后开通了在 FEATURES 里加回去就行。
+- **第一次打开**（和安卓 1.0.4 同一套，`harmony/README.md`「第一次打开」）：
+  - 回答以前没有 Web 组件，也不联网；两章全文打包时用安卓的 `android/tools/legal_docs.py` 从 guide.md 生成，在 App 自己的一层里打开（`blockNetwork`）。
+  - 「不同意」再确认一次，进入基本模式：页面顶上一行说明和「同意」；登录、注册的请求由 `onInterceptRequest` 拦下，回 403 `{error, code: 'app-consent'}`，同时再问一次；录音（桥的 `rec` 和网页自己的 getUserMedia）先问同意。
+  - 能力 `privacy` 的命令和安卓一样。`privacy.state().store` 是 true（鸿蒙只从华为的渠道装）；`privacy.settings({what: 'mic'})` 打开「设置 → 应用和元服务 → 语流」。
+  - 撤回同意：停掉朗读和录音，清掉 cookie、网页存储、缓存、朗读进度和提醒，再回到第一次打开的弹窗。
 - **静音开关**：`hdc shell aa start -a EntryAbility -b cn.flowlang.app.beta --pb flow.mute true`（调试包和内测包）。打开以后：AVPlayer 音量 0，网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 不出声。
 - **测试**：
-  - 本地单元测试（hypium）：排期、句子、WAV、.ics 解析；
-  - HarmonyOS 5.0.1 模拟器上手动测过：桥、整篇朗读、锁屏卡片和按钮、录音、日历（2026-11-26，`harmony/README.md`）；
+  - 本地单元测试（hypium）：排期、句子、WAV、.ics 解析、第一次打开的规则；
+  - HarmonyOS 5.0.1 模拟器上手动测过：桥、整篇朗读、锁屏卡片和按钮、录音、日历（2026-11-26，`harmony/README.md`）；第一次打开、基本模式、登录拦截、撤回同意（2026-11-26 中午）；
   - CI 现在不构建 `harmony/`。

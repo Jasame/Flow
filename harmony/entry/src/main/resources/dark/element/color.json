@@ -3,6 +3,10 @@
     { "name": "flow_bg", "value": "#101412" },
     { "name": "flow_text", "value": "#E8ECEA" },
     { "name": "flow_muted", "value": "#9BA59F" },
+    { "name": "flow_accent", "value": "#3CCF7C" },
+    { "name": "flow_surface", "value": "#1A211E" },
+    { "name": "flow_line", "value": "#2EE8EEEA" },
+    { "name": "flow_scrim", "value": "#99000000" },
     { "name": "start_window_background", "value": "#101412" }
   ]
 }

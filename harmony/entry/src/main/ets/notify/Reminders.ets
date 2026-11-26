@@ -2,6 +2,8 @@ import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { bundleManager } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
+import { Consent } from '../common/Consent';
+import { ConsentGate } from '../common/ConsentGate';
 import { AppState } from '../common/AppState';
 import { Permissions } from '../common/Permissions';
 import { Planner, PlanInput, Slot } from './Planner';
@@ -38,13 +40,34 @@ export class Reminders {
     }
   }
 
+  /** 不同意 or 撤回同意 (common/ConsentGate.ets): no reminders left on this phone, and nothing of what they were. */
+  static async forget(): Promise<void> {
+    Reminders.generation++;
+    try {
+      await reminderAgentManager.cancelAllReminders();
+    } catch (e) {
+      AppState.warn('cancel reminders: ' + JSON.stringify(e));
+    }
+    const s = Reminders.store();
+    if (s) {
+      s.clearSync();
+      s.flush();
+    }
+    Reminders.lastFetch = 0;
+  }
+
   /** Opened and back on screen: what the site says now (at most every 10 minutes); to the background: the same. */
   static init(): void {
+    // only once agreed: nothing goes to the site before the first question is answered, nor in 基本模式
     AppState.onForeground.push(() => {
-      Reminders.refresh(false);
+      if (ConsentGate.current() === Consent.AGREED) {
+        Reminders.refresh(false);
+      }
     });
     AppState.onBackground.push(() => {
-      Reminders.refresh(false);
+      if (ConsentGate.current() === Consent.AGREED) {
+        Reminders.refresh(false);
+      }
     });
   }
 

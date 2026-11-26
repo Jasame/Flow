@@ -87,6 +87,7 @@ FLOW_FILES=(
   ai_eval.py
   ai_help_service.py
   ai_jobs.py
+  ai_quota.py
   ai_routes.py
   ai_stream.py
   aigc_label.py
@@ -94,6 +95,8 @@ FLOW_FILES=(
   attempt_service.py
   audio_validation.py
   auth_service.py
+  beta_invites.py
+  beta_tools.py
   chat_service.py
   class_service.py
   coach_service.py

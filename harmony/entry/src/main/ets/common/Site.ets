@@ -12,6 +12,8 @@ export class Site {
   /** The commit (7 characters) CI built it from; "dev" when built on a Mac. */
   static readonly build: string = String(BuildProfile.FLOW_BUILD);
   static readonly debug: boolean = BuildProfile.DEBUG;
+  /** The APP 备案号 for 「我的 → 关于」 (privacy.state().beian): empty until the filing is done. */
+  static readonly beian: string = String(BuildProfile.FLOW_BEIAN);
   /** ArkWeb's own user agent with " FlowHarmony/<version>" at the end; set when the web view is attached. */
   static userAgent: string = 'FlowHarmony/' + BuildProfile.VERSION_NAME;
   /** The test switch (docs/native-bridge.md §9): no sound at all. `--pb flow.mute true` on a debug or beta build. */

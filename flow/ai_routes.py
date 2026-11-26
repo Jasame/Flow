@@ -908,3 +908,7 @@ def tick(c, now=None):
         except Exception as exc:  # noqa: BLE001 - never stops the site's loop (budget mails, the nightly check)
             print('progress prune:', type(exc).__name__, str(exc)[:120], flush=True)
         __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises
+        try:
+            __import__('ai_quota').prune(c, now)  # each person's AI counts 90 days, then a day's total with no account (B7)
+        except Exception as exc:  # noqa: BLE001 - never stops the site's loop
+            print('ai_quota prune:', type(exc).__name__, str(exc)[:120], flush=True)
