@@ -3421,7 +3421,9 @@ def progress_run(pw):
                 check(dev, f'{tag}: the details close', pg.evaluate("document.getElementById('sheet').hidden"))
                 # 卡片: the same order as cards side by side (今天的计划 first by default), the first in the middle when
                 # 今日 opens, its button on the screen
-                pg.click('.vt-today [data-today-view="cards"]'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
+                with pg.expect_response(lambda r: '/api/next/today-view' in r.url):
+                    pg.click('.vt-today [data-today-view="cards"]')
+                pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 deck = pg.evaluate(DECK_JS)
                 keys = [k for k in ('plan', 'week', 'line', 'mine', 'news', 'extra') if k in deck['keys']]
                 n = len(deck['keys']); k_plan = 0
@@ -3470,7 +3472,9 @@ def progress_run(pw):
                 go(pg, '#/me'); go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 back = pg.evaluate(DECK_JS)
                 check(dev, f'{tag}: back on 今日, 卡片 is kept and opens on its first card again', back['at'] == 0 and back['keys'][0] == 'plan', (back['at'], back['keys'][:1]))
-                pg.click('.vt-today [data-today-view="list"]'); pg.wait_for_selector('#view .tv-plan', timeout=8000)
+                with pg.expect_response(lambda r: '/api/next/today-view' in r.url):  # drawn at once; kept once the server answers
+                    pg.click('.vt-today [data-today-view="list"]')
+                pg.wait_for_selector('#view .tv-plan', timeout=8000)
                 kept = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.profile.today_view)")
                 check(dev, f'{tag}: 列表 again from the switch, kept with the account', kept == 'list' and not pg.query_selector('#tvDeck'), kept)
                 # the three lines after a text, each going on to its work

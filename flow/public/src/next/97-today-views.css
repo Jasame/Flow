@@ -129,7 +129,10 @@
   .tv-arrow.prev{left:4px}
   .tv-arrow.next{right:4px}
 }
-@media (max-height:500px){  /* a phone held sideways: shorter cards, the plan's button still on the screen */
+@media (max-height:500px){  /* a phone held sideways: 列表 a little tighter, shorter cards; the plan's button still on the first screen */
+  .tv-week{padding-top:10px;padding-bottom:11px;margin-bottom:10px}
+  .tv-plan{padding-top:12px;padding-bottom:4px}
+  .tv-plan .tv-step{min-height:44px}
   .tv-dc{padding:14px 18px 12px}
   .tv-dc .tv-big{margin-top:2px;font-size:20px}
   .tv-dc .tv-step{min-height:44px}
