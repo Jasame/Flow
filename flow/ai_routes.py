@@ -902,4 +902,8 @@ def tick(c, now=None):
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)
+        try:
+            __import__('progress_service').prune(c, now)  # 周报的改错记录 180 天、写对的句子 90 天 (B7)
+        except Exception as exc:  # noqa: BLE001 - never stops the site's loop (budget mails, the nightly check)
+            print('progress prune:', type(exc).__name__, str(exc)[:120], flush=True)
         __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises
