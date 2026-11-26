@@ -130,10 +130,12 @@
   .tv-arrow.next{right:4px}
 }
 @media (max-height:500px){  /* a phone held sideways: 列表 a little tighter, shorter cards; the plan's button still on the first screen */
-  .tv-week{padding-top:9px;padding-bottom:9px;margin-bottom:10px}
+  .tv-week{padding-top:9px;padding-bottom:9px;margin-bottom:8px}
   .tv-week .tv-sub{display:none}  /* its numbers are one tap away, in the details */
-  .tv-plan{padding-top:10px;padding-bottom:2px}
-  .tv-plan .tv-step{min-height:40px}
+  .today-plan{gap:10px}
+  .tv-plan{padding-top:8px;padding-bottom:2px}
+  .tv-plan .tv-steps{margin-top:2px}
+  .tv-plan .tv-step{min-height:44px}  /* 44: still a finger's tap */
   .tv-dc{padding:14px 18px 12px}
   .tv-dc .tv-big{margin-top:2px;font-size:20px}
   .tv-dc .tv-step{min-height:44px}
