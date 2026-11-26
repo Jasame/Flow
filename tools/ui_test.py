@@ -3767,9 +3767,11 @@ def review_side_run(pw):
                 pg.evaluate("window.__steady = document.querySelector('#view .review')"); pg.wait_for_timeout(700)
                 if pg.evaluate("!!(window.__steady && window.__steady.isConnected)"):
                     return
-        def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
-            r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
-            pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
+        def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right): just under the word's phonetics
+            # (the word stays at the top of the card, its letters play it), or `down` of the card's height
+            r = pg.evaluate("""() => { const r = document.querySelector('.review').getBoundingClientRect(), p = document.querySelector('.review .ph');
+              return [r.left, r.top, r.width, r.height, p ? p.getBoundingClientRect().bottom - r.top + 28 : 24]; }""")
+            pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else r[4])); pg.wait_for_timeout(350)
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['zones']['token'], 'url': BASE}])
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
@@ -4072,7 +4074,9 @@ ONE_SCREEN_JS = """() => { const H = innerHeight, m = document.querySelector('ma
 
 
 REVIEW_BAR_JS = """() => { const c = document.querySelector('.review .ractions .choice'), r = c.getBoundingClientRect(), n = document.querySelector('.rtop + .rsub .rvoice, .rtop + .rvoice');
+  const wb = document.querySelector('.review .wordbig');
   return { bottom: Math.round(r.bottom), n: c.querySelectorAll('button').length, word: !!document.querySelector('.review .tapsay'),
+           wtop: wb ? Math.round(wb.getBoundingClientRect().top) : null, wfits: wb ? wb.scrollWidth <= wb.clientWidth : null,
            note: n ? [n.textContent, parseFloat(getComputedStyle(n).fontSize) >= 12] : null }; }"""
 
 
@@ -4111,6 +4115,8 @@ def one_screen_run(pw):
                         b = pg.evaluate(REVIEW_BAR_JS)
                         pg.screenshot(path=str(OUT / f"one-screen-{size}-{'home' if home else 'safari'}-review-back.png"))
                         check(dev, f'{where} 复习卡翻面: the buttons in the front\'s place at the bottom, clear of the home bar', b['bottom'] == f['bottom'] and b['bottom'] <= s['H'] - s['sab'] and b['n'] in (1, 2, 3), [f, b])
+                        check(dev, f'{where} 复习卡: the word at the same height on both sides, on one line (the owner, 2026-11-26)',
+                              f['wtop'] is None or (b['wtop'] == f['wtop'] and f['wfits'] and b['wfits']), [f, b])
                         check(dev, f'{where} 复习卡: 「读音由 AI 合成」 under the progress bar where the word plays, 12px or more',
                               b['note'] == ['读音由 AI 合成', True] and (f['note'] == ['读音由 AI 合成', True] if f['word'] else True), [f, b])
                     if home:
