@@ -60,11 +60,13 @@
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
     const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
-    const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
+    const lv = S.meta.levels.find(l => l.id === p.level);
+    // 学英语为了什么: every goal chosen, the main one first (2026-11-26; an older profile has goal only)
+    const goalNames = ((p.goals && p.goals.length ? p.goals : p.goal ? [p.goal] : [])).map(id => (S.meta.goals.find(g => g.id === id) || {}).label).filter(Boolean);
     const installed = HOME_APP;  // the home-screen app, an install, or one of Flow's apps: nothing to add to the desktop
     const groups = [
       u && ['进步', [grow('#/growth', '我的进步', '', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
-      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goalNames.length && esc(goalNames.join('、')), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         u ? grow('meAi', 'AI 用量', '<span class="spin"></span>', 'meAiV', 'me-ai') : '',

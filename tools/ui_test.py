@@ -4521,10 +4521,19 @@ def start_run(pw):
                 check(dev, f'{tag}: 考试 opens the exams; 四级 suggests B1, 六级 B2; a level picked by hand stays', rec == [['B1', 'true']] and rec6 == 'B2' and kept == 'C1', (rec, rec6, kept))
                 # 一周学几天 (每周目标): 5 for an exam, 4 otherwise, until picked by hand
                 days = lambda: pg.evaluate("(b => b && +b.dataset.days)(document.querySelector('[data-days][aria-checked=true]'))")
-                d_exam = days(); pg.click('[data-goal="daily"]'); d_daily = days()
-                pg.click('[data-days="6"]'); pg.click('[data-goal="exam"]'); d_kept = days()
+                # (goals are chosen more than one since 2026-11-26: a tap adds or takes away one)
+                d_exam = days(); pg.click('[data-goal="exam"]'); pg.click('[data-goal="daily"]'); d_daily = days()
+                pg.click('[data-days="6"]'); pg.click('[data-goal="exam"]'); pg.click('[data-goal="daily"]'); d_kept = days()
                 row = pg.evaluate("new Set([...document.querySelectorAll('[data-days]')].map(b => Math.round(b.getBoundingClientRect().top))).size")
                 check(dev, f'{tag}: 一周学几天: 5 days for an exam, 4 otherwise, 2–7 in one row; a number picked by hand stays', (d_exam, d_daily, d_kept, row) == (5, 4, 6, 1), (d_exam, d_daily, d_kept, row))
+                # 学英语为了什么, more than one (the user, 2026-11-26): up to three, the first is 主要; a fourth is not taken
+                pg.click('[data-goal="work"]'); pg.click('[data-goal="daily"]'); pg.click('[data-goal="media"]'); pg.wait_for_timeout(150)
+                mg = pg.evaluate("""() => ({ on: [...document.querySelectorAll('[data-goal][aria-pressed=true]')].map(b => b.dataset.goal),
+                  main: [...document.querySelectorAll('[data-goal]')].filter(b => !b.querySelector('.main').hidden).map(b => b.dataset.goal),
+                  role: document.querySelector('.wg-goals').getAttribute('role'), toast: (document.getElementById('toast') || {}).textContent || '' })""")
+                pg.click('[data-goal="work"]'); pg.click('[data-goal="daily"]')  # back to 考试 alone for what follows
+                check(dev, f'{tag}: 学英语为了什么: more than one (a group of toggles), the first 主要, three at most',
+                      sorted(mg['on']) == ['daily', 'exam', 'work'] and mg['main'] == ['exam'] and mg['role'] == 'group' and '最多选 3 个' in mg['toast'], mg)
                 if size == 'phone':
                     pg.click('[data-target="B2"]'); pg.wait_for_timeout(100)
                     pg.screenshot(path=str(OUT / f'start-page-{theme}.png'), full_page=True)
@@ -4532,7 +4541,7 @@ def start_run(pw):
                 pg.click('#wgGo'); pg.wait_for_function("() => location.hash === '#/'", timeout=6000); settle(pg)
                 guest = pg.evaluate("JSON.parse(localStorage.getItem('flow-next-guest'))")
                 check(dev, f'{tag}: started as a guest: the choices kept on the phone, materials one band below the target, today shown',
-                      guest['goal'] == 'exam' and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']] and guest['weekly_goal'] == 6
+                      guest['goal'] == 'exam' and guest['goals'] == ['exam'] and guest['exam'] == 'ielts' and guest['level_source'] == 'guess' and guest['level'] == {'C1': 'B2', 'B2': 'B1'}[guest['target']] and guest['weekly_goal'] == 6
                       and pg.query_selector('#view .hello, #view .today-plan') is not None, guest)
                 # the next opening: the mark alone and short; never the start page again
                 pg.reload(wait_until='commit'); pg.wait_for_selector('#splash', state='attached', timeout=5000)
