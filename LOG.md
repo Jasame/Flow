@@ -1320,3 +1320,10 @@
   - #525 AI 结果保存 180 天：每天清理更早的 lab_jobs 和它们的异议（AI）
 - 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45869301359
+
+### b160 · 2026-11-27 02:03
+- main `22d7761`，构建 `86a112c`
+- 新合并的 PR（自 b159 起）：
+  - #529 总账：鸿蒙 App 1000001 停掉，1000002 重新提交审核（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45872591301
