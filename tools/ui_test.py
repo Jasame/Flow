@@ -103,6 +103,24 @@ def go(pg, hash_):
     settle(pg)
 
 
+def answer_all(pg, pick=0):
+    """理解 is one question a screen (23-study-check.js): answer each (pick 0 = the first option, -1 = the last), then 下一题,
+    and 看结果 after the last. Returns what each screen showed after its answer."""
+    seen = []
+    for _ in range(12):
+        opts = pg.query_selector_all('#pane .q .ans:not([disabled])')
+        if not opts:
+            break
+        opts[pick].click(); pg.wait_for_selector('#chkGo', timeout=6000); pg.wait_for_timeout(350)
+        seen.append(pg.evaluate("""() => { const b = document.getElementById('chkGo').getBoundingClientRect(), tabs = document.querySelector('nav.tabs'), t = tabs ? tabs.getBoundingClientRect() : null;
+          return { qs: document.querySelectorAll('#pane .q').length, left: document.querySelectorAll('#pane .chk-o:not(.gone)').length, right: document.querySelectorAll('#pane .ans.right').length,
+                   mine: document.querySelectorAll('#pane .ans .me').length, wrong: document.querySelectorAll('#pane .ans.wrong').length, go: document.getElementById('chkGo').textContent,
+                   head: document.querySelector('#pane .chk-h b').textContent, dots: document.querySelectorAll('#pane .chk-dots i').length, on: document.querySelectorAll('#pane .chk-dots i.on').length,
+                   goBottom: Math.round(b.bottom), floor: t && getComputedStyle(tabs).position === 'fixed' && t.top > innerHeight / 2 ? Math.round(t.top) : innerHeight }; }"""))
+        pg.click('#chkGo'); pg.wait_for_timeout(300)
+    return seen
+
+
 def touch_swipe(pg, sel, dx, dy=0):
     """A one-finger swipe made of real TouchEvents (Playwright only taps)."""
     pg.evaluate("""([sel, dx, dy]) => {
@@ -1841,8 +1859,24 @@ def learner_run(pw):
               (len(kept), count, note, fb[:24], after[:24]))
         # 分享卡片: after the questions, a learned expression becomes a picture with a QR code back to the site
         go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
-        for q in pg.query_selector_all('#pane .q'):
-            q.query_selector('.ans').click(); pg.wait_for_timeout(250)
+        # 理解: one question a screen. After an answer only the pick and the right option stay, the block under them names
+        # the right one and has the one button, on screen above the tab bar; the last one says 看结果; the result page
+        # lists every question, and a tap on one shows it again as it was answered.
+        first = pg.evaluate("() => ({ qs: document.querySelectorAll('#pane .q').length, opts: document.querySelectorAll('#pane .q .ans').length, res: document.querySelector('#pane .fb').childElementCount, dots: document.querySelectorAll('#pane .chk-dots i').length })")
+        seen = answer_all(pg, 0)
+        pg.wait_for_selector('#toOut', timeout=6000)
+        n = len(seen)
+        ok_each = n >= 2 and all(s['qs'] == 1 and s['right'] == 1 and s['left'] == (1 if s['wrong'] == 0 else 2) and s['mine'] == s['wrong'] and s['dots'] == n and s['on'] == k + 1
+                                 and (s['head'] == '答对了' if s['wrong'] == 0 else s['head'].startswith('正确答案是 ')) and s['goBottom'] <= s['floor'] for k, s in enumerate(seen))
+        check(dev, '理解: one question a screen; after the answer the pick and the right option stay, with 下一题 on screen',
+              first['qs'] == 1 and first['opts'] >= 2 and first['res'] == 0 and first['dots'] == n and ok_each and [s['go'] for s in seen] == ['下一题'] * (n - 1) + ['看结果'], (first, seen))
+        end = pg.evaluate("() => ({ score: document.querySelector('.chk-score').textContent, rows: document.querySelectorAll('.chk-it').length, marks: [...document.querySelectorAll('.chk-it .k')].map(k => k.textContent).join(''), out: !!document.getElementById('toOut') })")
+        rights = sum(1 for s in seen if s['wrong'] == 0)
+        pg.click('.chk-it >> nth=0'); pg.wait_for_selector('#pane .q[data-q="0"] #chkGo', timeout=4000)
+        again = pg.evaluate("() => ({ right: document.querySelectorAll('#pane .ans.right').length, off: [...document.querySelectorAll('#pane .ans')].every(b => b.disabled), go: document.getElementById('chkGo').textContent })")
+        pg.click('#chkGo'); pg.wait_for_selector('#toOut', timeout=4000)
+        check(dev, '理解: the result page says how many were right, lists each question, and opens one again as it was answered',
+              end['score'].replace(' ', '') == f'{rights}/{n}题答对' and end['rows'] == n and end['marks'].count('✓') == rights and end['out'] and again == {'right': 1, 'off': True, 'go': '看结果'}, (end, again))
         pg.wait_for_selector('#shareX', timeout=6000); pg.click('#shareX')
         pg.wait_for_selector('#shareImg[src^="data:image/png"]', timeout=6000); pg.wait_for_timeout(300)
         size = pg.evaluate("[document.getElementById('shareImg').naturalWidth, document.getElementById('shareImg').naturalHeight]")
@@ -2896,8 +2930,7 @@ def a11y_run(pw):
                 pg.evaluate("document.querySelector('#sheet [data-close]').click()")
                 # right and wrong answers: a mark as well as a colour
                 go(pg, f'#/m/{PID}/check'); pg.wait_for_selector('#pane .q', timeout=6000)
-                for q in pg.query_selector_all('#pane .q'):
-                    q.query_selector_all('.ans')[-1].click(); pg.wait_for_timeout(250)
+                pg.query_selector_all('#pane .q .ans')[-1].click(); pg.wait_for_selector('#chkGo', timeout=6000); pg.wait_for_timeout(250)
                 marks = pg.evaluate("""() => ['.ans.right', '.ans.wrong'].map(s => { const e = document.querySelector(s); return e ? getComputedStyle(e, '::after').content : null; })""")
                 live = pg.evaluate("[...document.querySelectorAll('#pane .fb')].every(f => f.getAttribute('aria-live') === 'polite')")
                 check(dev, 'right and wrong answers carry ✓ and ✗, not only green and red, and the result is announced', marks[0] == '"✓"' and marks[1] in ('"✗"', None) and live, (marks, live))

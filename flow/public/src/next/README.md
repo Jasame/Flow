@@ -23,7 +23,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `20-study.js` | `study()`: material header, step bar, step bookkeeping |
 | `21-study-listen.js` | 听: whole-text playback, shadowing, dictation |
 | `22-study-read.js` | 读: reader, read-along, new words, keyboard reading |
-| `23-study-check.js` | 理解: comprehension questions |
+| `23-study-check.js` | 理解: comprehension questions, one a screen; after the answer the pick and the right option stay, the evidence and 下一题 under them; a result page that opens each question again (`97-check-one.css`) |
 | `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`) |
 | `25-finish.js` | 这篇完成了 (r27): the finish card after any 用出来, with three lines on what the text gave (expressions, words, a grammar point) |
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
