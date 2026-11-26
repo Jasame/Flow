@@ -1141,3 +1141,10 @@
   - 没有新合并的 PR（同一个构建重发，或只是重跑自检）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45805598999
+
+### b139 · 2026-11-26 19:22
+- main `87bfc7e`，构建 `65fac20`
+- 新合并的 PR（自 b138 起）：
+  - #475 朗读：采访体的 Q:/A: 和人名标签一样只显示、不读（听和说、开局和考试、内容）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45809913756
