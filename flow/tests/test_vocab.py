@@ -5,6 +5,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app, fsrs, next_service as nx, vocab_service as vs
 
 
+
+def saved_earlier(c, cid):
+    """A card saved some time ago: due now (a word saved today waits for tomorrow, next_service.save_card)."""
+    c.execute('UPDATE next_cards SET due=created WHERE id=?', (cid,)); c.commit()
+
 class FsrsTests(unittest.TestCase):
     def test_new_item_goes_through_steps_then_grows(self):
         now = 1_800_000_000
@@ -46,7 +51,7 @@ class VocabTests(unittest.TestCase):
         self.c.execute('UPDATE next_cards SET due=?, last=? WHERE id=?', (time.time() - 1, time.time() - days * 86400, cid)); self.c.commit()
 
     def test_saved_expression_review_cycle(self):
-        cid = nx.save_card(self.c, 1, {'text': 'make the bus'})[0]['card']['id']
+        cid = nx.save_card(self.c, 1, {'text': 'make the bus'})[0]['card']['id']; saved_earlier(self.c, cid)
         q = vs.queue(self.c, 1); self.assertEqual((q['due'], q['new'], q['items'][0]['mode']), (0, 1, 'recall'))
         r = vs.rate(self.c, 1, {'id': cid, 'rating': 'good', 'mode': 'recall', 'ms': 2300})[0]
         self.assertEqual(r['card']['state'], 'learning'); self.assertEqual(vs.queue(self.c, 1)['items'], [])
@@ -89,7 +94,7 @@ class VocabTests(unittest.TestCase):
         ex = vs.examples('decision', 'B1')
         self.assertTrue(ex); self.assertTrue(all('decision' in e['text'].lower() for e in ex))
         self.assertEqual(len({e['pack'] for e in ex}), len(ex))
-        cid = nx.save_card(self.c, 1, {'text': 'decision', 'context': 'It was a hard decision.'})[0]['card']['id']
+        cid = nx.save_card(self.c, 1, {'text': 'decision', 'context': 'It was a hard decision.'})[0]['card']['id']; saved_earlier(self.c, cid)
         item = vs.queue(self.c, 1)['items'][0]
         self.assertEqual(item['id'], cid); self.assertEqual(item['mode'], 'recognize')
         self.assertTrue(all(e['text'] != 'It was a hard decision.' for e in item['examples']))
@@ -585,10 +590,8 @@ class ReadingLinkedTests(unittest.TestCase):
         self.assertTrue(vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})[0]['enabled'])
         nx.save_card(self.c, 1, {'text': 'make ends meet'})
         sent = []
-        at8 = datetime.datetime.now(nx.TZ).replace(hour=20, minute=5, second=0)
-        if at8.timestamp() < time.time():  # the next 20:05, so the card saved just now is already due then
-            at8 += datetime.timedelta(days=1)
-        at8 = at8.timestamp()
+        # tomorrow 20:05: a word saved today is due from tomorrow (next_service.save_card)
+        at8 = (datetime.datetime.now(nx.TZ) + datetime.timedelta(days=1)).replace(hour=20, minute=5, second=0).timestamp()
         self.assertEqual(vs.send_reminders(self.c, at8, lambda to, sub, text, html=None: sent.append((to, sub))), 1)
         self.assertEqual(sent[0][0], 'learner@example.test'); self.assertIn('单词', sent[0][1])
         self.assertEqual(vs.send_reminders(self.c, at8 + 60, lambda *a, **kw: sent.append(a)), 0)  # once a day

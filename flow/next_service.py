@@ -1232,13 +1232,18 @@ def save_card(c, uid, data):
         meaning = hit['meaning'][:300] if hit else ''
     norm = _norm(text)
     now = time.time()
+    # A word saved today is first reviewed tomorrow (the owner, 2026-11-26, via 语流 B1): it was just looked up, a day
+    # apart sticks better, and today's word step, once done, stays done however many words are saved after it.
+    # A save of a word already there keeps that card's schedule.
+    today = datetime.datetime.fromtimestamp(now, TZ).date()
+    tomorrow = datetime.datetime.combine(today + datetime.timedelta(days=1), datetime.time(), TZ).timestamp()
     # One statement for a new card and for one already there (its meaning and sentence taken from this save when it
     # brings them), so two saves of one word at once (a double tap, two pages) both answer, with one card: two
     # separate steps let both see no card and the second insert hit UNIQUE(user_id, norm), a 500 (语流 02, 2026-11-25).
     c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,context,pack,kind,created,due) VALUES(?,?,?,?,?,?,?,?,?) '
               "ON CONFLICT(user_id, norm) DO UPDATE SET meaning=CASE WHEN excluded.meaning!='' THEN excluded.meaning ELSE meaning END, "
               "context=CASE WHEN excluded.context!='' THEN excluded.context ELSE context END",
-              (uid, text, norm, meaning, context, pack, kind, now, now))
+              (uid, text, norm, meaning, context, pack, kind, now, tomorrow))
     c.commit()
     row = c.execute('SELECT id, created FROM next_cards WHERE user_id=? AND norm=?', (uid, norm)).fetchone()
     return {'card': card(c, uid, row['id']), 'existing': row['created'] != now}, 200  # this save made it, or it was there
