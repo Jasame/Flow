@@ -12,12 +12,13 @@
   const HIST_GO = '<svg class="hist-go" viewBox="0 0 12 12" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 2.5 8 6 4.5 9.5"/></svg>';
   const HIST_DOWN = '<svg class="hist-down" viewBox="0 0 12 12" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg>';
   const HIST_MARK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3.6L6 20V5a1 1 0 0 1 1-1z"/></svg>';
-  // 「今天」, 「11月6日」, another year with its year; from the server's day (2026-11-06, Beijing time)
+  // 「今天」, 「11月6日」, another year with its year; from the server's day (2026-11-06). The server's day is Beijing
+  // time, so 「今天」 is Beijing's today too, whatever the phone's own time zone (a learner abroad, a test machine).
   function histDate(day) {
-    const p = String(day || '').split('-').map(Number), n = new Date();
+    const p = String(day || '').split('-').map(Number), n = new Date(Date.now() + 8 * 3600000);
     if (p.length !== 3 || !p[0]) return '';
-    if (n.getFullYear() === p[0] && n.getMonth() + 1 === p[1] && n.getDate() === p[2]) return '今天';
-    return `${p[0] === n.getFullYear() ? '' : p[0] + '年'}${p[1]}月${p[2]}日`;
+    if (n.getUTCFullYear() === p[0] && n.getUTCMonth() + 1 === p[1] && n.getUTCDate() === p[2]) return '今天';
+    return `${p[0] === n.getUTCFullYear() ? '' : p[0] + '年'}${p[1]}月${p[2]}日`;
   }
   // A row: in the whole list it says which practice (口语情景 · 在咖啡店点单); under one practice, which time (11月6日 · 第 1 次)
   function histRow(x, whole) {
