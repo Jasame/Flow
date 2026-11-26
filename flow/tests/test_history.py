@@ -116,9 +116,14 @@ class HistoryTests(unittest.TestCase):
     def test_an_old_card_without_a_request_id_finds_its_record_by_its_text(self):
         self.cafe(start=time.time() - 300)  # the card is made just after the end (now); the end row says when it was asked
         item = self.items()['items'][0]
+        want = {'id': item['id'], 'label': '口语情景', 'title': '在咖啡店点单', 'at': item['at']}
+        made = self.c.execute("SELECT * FROM next_cards WHERE source='mistake'").fetchone()
+        self.assertEqual(json.loads(made['extra']).get('rid'), 'hist-end-0000a')  # a new card keeps the end's request id (B2, #531)
+        self.assertEqual(hs.source_of(self.c, 1, made), want)
+        self.c.execute("UPDATE next_cards SET extra=json_remove(extra, '$.rid')"); self.c.commit()  # a card from before that
         card = self.c.execute("SELECT * FROM next_cards WHERE source='mistake'").fetchone()
-        self.assertNotIn('rid', json.loads(card['extra']))  # cards from before B2's extra.rid
-        self.assertEqual(hs.source_of(self.c, 1, card), {'id': item['id'], 'label': '口语情景', 'title': '在咖啡店点单', 'at': item['at']})
+        self.assertNotIn('rid', json.loads(card['extra']))
+        self.assertEqual(hs.source_of(self.c, 1, card), want)
         self.assertEqual(hs.source_of(self.c, 1, {**dict(card), 'extra': json.dumps({'rid': 'hist-end-0000a'})}), hs.origin(self.c, 1, 'hist-end-0000a'))
         self.assertIsNone(hs.source_of(self.c, 2, card))
         self.assertIsNone(hs.source_of(self.c, 1, {**dict(card), 'norm': 'fix:something else'}))
