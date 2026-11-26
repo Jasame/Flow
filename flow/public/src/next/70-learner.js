@@ -146,6 +146,6 @@
   // MIC.toggle) the four waves move and two rings stand round it (97-rec-key.css).
   const REC_MARK = '<svg class="rec-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="5.5" y="13" width="3" height="6" rx="1.5"/><rect x="11.5" y="8" width="3" height="16" rx="1.5"/><rect x="17.5" y="10.5" width="3" height="11" rx="1.5"/><rect x="23.5" y="14" width="3" height="4" rx="1.5"/></svg>';
   const recBtn = (id, label, big) => `<button class="icon-btn rec${big ? ' big' : ''}" id="${id}" type="button" aria-label="${label || '录音'}" aria-pressed="false">${REC_MARK}</button>`;
-  const fixesHTML = fs => fs && fs.length ? `<div class="stack-s">${fs.map(f => `<div class="change"><span class="ft"><del>${esc(f.from)}</del> → <ins>${esc(f.to)}</ins></span><span class="why">${esc(f.why)}</span></div>`).join('')}
+  const fixesHTML = fs => fs && fs.length ? `<div class="stack-s">${fs.map(f => `<div class="change"><span class="ft"><del>${esc(f.from)}</del> → <ins>${esc(f.to)}</ins></span><span class="why" data-ex>${esc(f.why)}</span></div>`).join('')}
     <div class="tiny muted">这些已经放进错题本，会按遗忘曲线回来让你再改一次。</div></div>` : '';
 
