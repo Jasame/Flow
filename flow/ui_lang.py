@@ -372,4 +372,8 @@ ERRORS = {
     '请选今天或明天的一个时间': 'Please pick a time today or tomorrow',
     '提醒时间不正确': 'Reminder time is not valid',
     '先在账号设置里绑定邮箱，才能收到提醒邮件；也可以用「加到手机日历」': 'Add your email in account settings to get reminder emails. Or use “Add to phone calendar”',
+    # next_service /api/next/zh (看中文 under an English AI explanation, 语流 B7)
+    '一次最多 {n} 段': 'Up to {1} at a time',
+    '今天「看中文」已经用了很多次，明天再看吧': "You've used “Show Chinese” a lot today. Try again tomorrow",
+    '这会儿翻不出中文，稍后再试一次。': "Couldn't get the Chinese just now. Please try again shortly",
 }
