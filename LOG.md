@@ -857,3 +857,11 @@
   - #382 操作指南：安卓 App 1.0.4 的写法（第一次打开先问同意、基本模式、「隐私」一组）（操作指南）
 - 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45740120158
+
+### b107 · 2026-11-26 10:22
+- main `246d5c5`，构建 `3b1ce1f`
+- 新合并的 PR（自 b106 起）：
+  - #384 周报一次真实进步的数据：改错按输出记、后来写对的句子存下来（听和说、今日和计划、后台和班级）
+  - #386 后台学员抽屉：不显示改错卡和学员自己导入的文章标题（后台和班级）
+- 自检：DEPLOYED，装了 9 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45741798493
