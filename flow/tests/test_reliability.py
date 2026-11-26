@@ -98,9 +98,10 @@ class ReliabilityTests(unittest.TestCase):
   with patch.object(lab,'ai_enabled',return_value=True),patch.object(lab,'request_model',return_value=(json.dumps(raw),'stop')):
    out,status=lab.feedback(self.c,1,data)
   self.assertEqual(status,200)
-  with self.assertRaises(ValueError):lab.post(self.c,2,'/api/lab/feedback/dispute',{'request_id':data['request_id'],'correction':'我不是这个意思'})
-  self.assertEqual(lab.post(self.c,1,'/api/lab/feedback/dispute',{'request_id':data['request_id'],'correction':'我不是这个意思'})[1],200)
-  self.assertEqual(self.c.execute("SELECT kind FROM teaching_corrections WHERE user_id=1").fetchone()[0],'feedback')
+  # 对 AI 批改提异议 is closed (no page or app calls it; D2 2026-11-27): nothing new is kept
+  self.assertEqual(lab.post(self.c,1,'/api/lab/feedback/dispute',{'request_id':data['request_id'],'correction':'我不是这个意思'})[1],410)
+  self.assertIsNone(self.c.execute('SELECT 1 FROM feedback_disputes').fetchone())
+  self.assertIsNone(self.c.execute("SELECT 1 FROM teaching_corrections WHERE kind='feedback'").fetchone())
  def test_cancelled_queued_request_never_gets_a_model_turn(self):
   with self.assertRaises(ConnectionAbortedError):ai_jobs.enter(8004,cancelled=lambda:True)
   self.assertNotIn(8004,ai_jobs.QUEUES)
