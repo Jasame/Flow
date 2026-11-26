@@ -1,3 +1,3 @@
-8ab8016e180a7c2d1ea1d037f0d589297d09c019 409e0debefb19bd70664380f5c2011a1a7f6b92d1645401e63b6cdd23df2a708 e2e light ref=build-a6abe409b4e0 tag=b144 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
-# b144 main: Merge pull request #488 from Jasame/ledger-hz-retention = build of a6abe409b4e0
+2fb9f908e65c25c92784a5eb8b69071f1da8a908 317d5609b0cb2f64fda9a3cf8e94dee8816534ddd0e4a60319532baddabb5537 e2e light ref=build-8632b540555e tag=b145 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
+# b145 main: Merge pull request #480 from Jasame/today-week-dots = build of 8632b540555e
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
