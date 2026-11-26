@@ -3952,6 +3952,26 @@ def review_side_run(pw):
             go(pg, href); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
             found.append([pg.input_value('#sf input'), pg.evaluate("[...document.querySelectorAll('#listSlot [data-card] .x')].map(e => e.textContent)")])
         check(dev, '#/cards/find/<词> opens 单词 with that word searched', w and all(f[0] == w and w in f[1] for f in found), [w, found])
+        # 第 4 步 AI 常用搭配和近义、易混词 in a word's sheet (ui_server seeds commute's): the fold marked AI 生成; 「这条不对」 with a
+        # note hides that item for this learner (B7's reported() counts it), the word's detail lists it, 放回 brings it back
+        go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot .xtra-wrap', timeout=8000)
+        ai = 'AI 生成' in (pg.text_content('#xtraSlot .xtra-ai') or '')  # a grey line, no coloured tag (the user, 2026-11-26)
+        first = pg.text_content('#xtraSlot .xtra li b') or ''
+        pg.click('#xtraSlot .xbad-open'); pg.wait_for_selector('[name=xpick]', timeout=4000)
+        hint = pg.text_content('#sheet') or ''
+        pg.check('[name=xpick] >> nth=0'); pg.fill('#xNote', '不常这样说'); pg.click('#xGo'); pg.wait_for_timeout(600)
+        bar = pg.text_content('.easy-bar') or ''
+        go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot', timeout=8000); pg.wait_for_timeout(300)
+        shown = pg.evaluate("[...document.querySelectorAll('#xtraSlot .xtra li b')].map(b => b.textContent)")
+        marked = pg.text_content('.xtra-marked') or ''
+        pg.click('[data-xback]'); pg.wait_for_selector('#xtraSlot .xtra-wrap', timeout=8000); pg.wait_for_timeout(300)
+        back = pg.evaluate("[...document.querySelectorAll('#xtraSlot .xtra li b')].map(b => b.textContent)")
+        check(dev, '搭配和近义、易混词 (AI 生成): 这条不对 with a note hides it for this learner, the word lists it, 放回 brings it back',
+              ai and first and '不显示你的名字' in hint and first in bar and first not in shown and first in marked and first in back and not pg.query_selector('.xtra-marked'),
+              [ai, first, hint[-80:], bar, shown, marked, back])
+        pg.click('#sheet button[data-close] >> nth=0'); pg.wait_for_timeout(300); go(pg, '#/cards'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         pg.click('[data-f="phrase"]'); pg.wait_for_timeout(300)
         pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
         msg2 = pg.text_content('#listSlot .empty p')
