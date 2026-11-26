@@ -1303,3 +1303,10 @@
   - #520 ui_test start：第一次打开的启动标志等 next.js 跑完再读（MSI 上读早了）（测试）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45865393763
+
+### b158 · 2026-11-27 01:25
+- main `9efb556`，构建 `c68ee38`
+- 新合并的 PR（自 b157 起）：
+  - #521 服务器变动：单词搭配全量跑完，夜间计划结束（发版和构建）
+- 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45867449069
