@@ -137,7 +137,7 @@ class ClassicArchivedTests(Servers):
     def test_the_harmony_card_shows_each_site_its_own_part(self):
         """鸿蒙 (/about#download), the owner 2026-11-26: 语流 says the app is in 内测 and how to ask to join (问题反馈), with no
         AppTest link anywhere in the page; the 内测版 has the two install steps and the AppTest link saved in its console
-        (「鸿蒙内测链接」, console-settings.json: https on huawei.com only), else 即将开放. Neither site gets the other's
+        (「鸿蒙内测链接」, console-settings.json: a whole https link), else 即将开放. Neither site gets the other's
         part, even hidden; a new link shows at once, no release."""
         import console_ops
         link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=1&invitationCode=ab'
@@ -157,12 +157,13 @@ class ClassicArchivedTests(Servers):
             self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
             for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
                 self.assertNotIn(word, prod)
-            for bad in ('http://appgallery.huawei.com/x', 'https://huawei.com.example.com/x', 'https://example.com/huawei.com',
-                        'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)'):
+            self.assertEqual(console_ops.harmony_test_host(), 'appgallery.huawei.com')  # shown next to the link in the console
+            for bad in ('http://appgallery.huawei.com/x', 'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)',
+                        'https://a.huawei.com/x y', 'https:///x', 'appgallery.huawei.com/x'):
                 with self.assertRaises(ValueError):
                     console_ops.set_harmony_test_url(bad, 'op')
             self.assertEqual(console_ops.harmony_test_url(), link)  # a refused one leaves the saved link as it was
-            console_ops.save_settings({'harmony_test_url': 'https://evil.example.com/x'}, 'op')  # even if the file is edited by hand
+            console_ops.save_settings({'harmony_test_url': 'javascript:alert(1)'}, 'op')  # even if the file is edited by hand
             self.assertIn('data-harmony=""', card('beta'))
             console_ops.set_harmony_test_url('', 'op')  # emptied: back to 即将开放
             self.assertNotIn('harmony_test_url', console_ops.settings()); self.assertIn('>即将开放</a>', card('beta'))

@@ -172,7 +172,7 @@ def about_parts(page):
  return page.replace(b'__HARMONY_TEST__',harmony_test_url().encode())
 def harmony_test_url():
  """The 鸿蒙 内测 link for 认识语流: on the 内测版 only, from its console (「鸿蒙内测链接」, console_ops.harmony_test_url,
- checked there: https on huawei.com); empty keeps 即将开放. 语流 never gets it, whatever the settings say."""
+ checked there: a whole https link); empty keeps 即将开放. 语流 never gets it, whatever the settings say."""
  if CHANNEL!='beta':return ''
  return __import__('console_ops').harmony_test_url().replace('&','&amp;')
 def beta_icons(page):
