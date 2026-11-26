@@ -13,16 +13,20 @@ try {
 </script>
 <link rel="stylesheet" href="/shared-ui.css?v=4.1.1">
 <link rel="icon" id="favicon" href="data:,">
-<link rel="stylesheet" href="admin.css?v=2302b931d2">
+<link rel="stylesheet" href="admin.css?v=c7f437d26b">
 </head>
 <body>
 <header class="adm-top">
   <div class="adm-env" id="envBar" role="status" hidden></div>
   <div class="adm-top-in">
-    <a class="adm-brand" href="./">
-      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f9d55"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
-      <span>语流 Flow</span><span class="adm-sub">运营后台</span><span class="adm-env-tag" id="envTag" hidden></span><span class="adm-srv" id="srv" hidden></span>
-    </a>
+    <div class="adm-brand-row">
+      <a class="adm-brand" href="./">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1f9d55"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+        <span>语流 Flow</span><span class="adm-sub">运营后台</span>
+      </a>
+      <span class="adm-env-switch" id="envTag" role="group" aria-label="切换语流后台" hidden><a href="../flow/" data-env="prod">正式版</a><a href="../flow-beta/" data-env="beta">内测版</a></span>
+      <span class="adm-srv" id="srv" hidden></span>
+    </div>
     <nav class="adm-groups" aria-label="后台分组">
       <a href="#overview" data-group="data">数据</a>
       <a href="#learners" data-group="people" data-admin>学员 <b class="adm-badge" id="fbBadgeG" hidden></b></a>
@@ -63,6 +67,6 @@ try {
 <main class="adm-wrap" id="main" aria-live="polite"><p class="muted">正在加载…</p></main>
 <div class="drawer-bg" id="drawerBg" hidden></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden></aside>
-<script src="admin.js?v=da3bff6228"></script>
+<script src="admin.js?v=68e3c0ee5a"></script>
 </body>
 </html>

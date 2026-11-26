@@ -1450,10 +1450,27 @@
     document.documentElement.dataset.env = beta ? 'beta' : 'prod';
     document.title = (beta ? '【内测】语流后台 · ' : '语流后台 · 正式版 · ') + siteName();
     if (bar) { bar.hidden = !beta; bar.innerHTML = beta ? '<b>内测版后台</b> · ' + esc(siteName()) + ' · 数据和正式版分开，这里的改动不影响正式版学员' : ''; }
-    if (tag) { tag.textContent = beta ? '内测版' : '正式版'; tag.hidden = false; }
+    if (tag) {  // the switch: this site lit, the other one opens the same page there
+      tag.querySelectorAll('a[data-env]').forEach(function (a) {
+        var here = (a.dataset.env === 'beta') === beta;
+        if (here) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+        a.title = here ? '现在在' + a.textContent + '后台' : '去' + a.textContent + '后台的同一页';
+        a.onclick = function (e) { e.preventDefault(); if (!here) location.href = a.getAttribute('href') + otherHash(a.dataset.env); };
+      });
+      tag.hidden = false;
+    }
     var icon = document.getElementById('favicon');
     if (icon) icon.href = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="' + (beta ? '#d97706' : '#1f9d55') + '"/><path d="M7 20v-6m6 10V8m6 14V11m6 7v-4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>');
     var sv = document.getElementById('surveyLink'); if (sv) sv.href = siteUrl('/survey');
+  }
+  // The same page on the other console (正式版 xmc.hk/flow, 内测版 xmc.hk/flow-beta): a learner or a class by number is
+  // the other site's own, so its list; the 内测版's own tabs (邀请码, 测试账号) have no page on 语流's: the overview.
+  var BETA_ONLY = ['invites', 'tests'];
+  function otherHash(env) {
+    var tab = (location.hash || '#overview').slice(1).split('/')[0] || 'overview';
+    if (tab === 'accounts') tab = 'learners';
+    if (!VIEWS[tab] || (env === 'prod' && BETA_ONLY.indexOf(tab) >= 0)) tab = 'overview';
+    return '#' + tab;
   }
   // Who is signed in (Cloudflare Access) and with which role; which server the data comes from (香港 or 杭州), on
   // every tab: the two panels look alike, the data must not.
