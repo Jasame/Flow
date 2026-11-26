@@ -16,7 +16,8 @@ SEED = {'validate_audio', '_audio_or_text'}  # what reads a recording sent by th
 # Routes that share a handler with a recording route but never pass it a recording (text only): the same function
 # serves both, so the scan below finds them too.
 SHARES_A_HANDLER = {'/api/lab/feedback': 'lab_service.feedback (audio only for /api/lab/audio)',
-                    '/api/next/assess/writing': 'ability_radar.judged (audio only for speaking)'}
+                    '/api/next/assess/writing': 'ability_radar.judged (audio only for speaking)',
+                    '/api/next/zh': 'ai_lang.to_zh (text only: the text service looks at a recording only when given one)'}
 NGINX = 3 * 1024 * 1024  # client_max_body_size 3m
 
 
