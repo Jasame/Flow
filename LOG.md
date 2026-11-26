@@ -1327,3 +1327,11 @@
   - #529 总账：鸿蒙 App 1000001 停掉，1000002 重新提交审核（发版和构建）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45872591301
+
+### b161 · 2026-11-27 02:15
+- main `6921f1a`，构建 `522bbbd`
+- 新合并的 PR（自 b160 起）：
+  - #527 隐私说明：写明口语练习听写的文字和保存 180 天；AI 的结果锁进导出、注销和后台（后台和班级、操作指南）
+  - #530 AI 结果保存 180 天：旧异议留的结果抄件一起删（AI）
+- 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45874310041
