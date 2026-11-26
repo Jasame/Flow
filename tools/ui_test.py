@@ -589,8 +589,15 @@ def run_device(pw, dev, opts):
                 break
             if pg.query_selector('#fixIn'):
                 seen_fix = True
+                # the card before may still be sending its answer: wait for the box to take input (2026-11-26, tablet,
+                # MSI fully loaded: it was filled while still disabled and timed out), then for the answer's buttons
+                pg.wait_for_selector('#fixIn:not([disabled])', timeout=8000)
                 pg.fill('#fixIn', 'would have arrived')
-                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                pg.press('#fixIn', 'Enter')
+                try:
+                    pg.wait_for_selector('#go, #fixMiss', timeout=8000)
+                except Exception:
+                    pass  # the check below says what is missing
                 # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
                 nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
                 check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
@@ -599,6 +606,7 @@ def run_device(pw, dev, opts):
                 seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
                 pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('#spellIn'):
+                pg.wait_for_selector('#spellIn:not([disabled])', timeout=8000)  # as the fix card: the card before may still be sending
                 pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('[data-claim]'):
                 if touch:
