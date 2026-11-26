@@ -14,7 +14,7 @@ Cloudflare Access signed in: FLOW_ADMIN_EMAILS (comma-separated) are 管理员; 
 only look at the numbers (只看数据). Without FLOW_ADMIN_EMAILS everyone is 管理员, as before. What a 管理员 changes or
 exports is written to the operator log.
 """
-import datetime, json, os, threading, time
+import datetime, json, os, re, threading, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qs
 
@@ -45,7 +45,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people', '/word-extras'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
@@ -81,6 +81,49 @@ def schema(c):
     __import__('beta_tools').schema(c)  # 内测版的测试账号 (2026-11-26)
 
 
+WX_KIND = {'colloc': '常用搭配', 'near': '近义、易混词'}
+
+
+def word_extras_list(c, days):
+    """GET /word-extras?days=7|30|0 (管理员 only): the AI 常用搭配和近义、易混词 learners marked 「这条不对」, most learners
+    first, no names (word_extras.reported); the ones taken down here say so and can go back."""
+    import word_extras as wx
+    days = 30 if str(days) == '30' else 0 if str(days) == '0' else 7
+    rows = wx.reported(c, time.time() - days * 86400 if days else None)
+    for r in rows:
+        r['kind_label'] = WX_KIND.get(r['kind'], r['kind'])
+    return {'days': days, 'items': rows}
+
+
+def word_extras_post(c, path, data, op, who):
+    """POST /word-extras/take-down {id, why} and /word-extras/put-back {id}, in the operator log."""
+    import word_extras as wx
+    try:
+        xid = int(data.get('id'))
+    except (TypeError, ValueError):
+        return {'error': '参数不正确'}, 400
+    row = c.execute('SELECT norm, kind, en, zh FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
+        c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras'").fetchone() else None
+    if not row:
+        return {'error': '没有找到这一条'}, 404
+    target = f"{row[0]} · {WX_KIND.get(row[1], row[1])}：{row[2]} {row[3] or ''}".strip() + f' #{xid}'
+    if path.endswith('take-down'):
+        why = re.sub(r'\s+', ' ', str(data.get('why') or '')).strip()
+        if not why or len(why) > 120:
+            return {'error': '写一句为什么下架（120 字以内）', 'field': 'why'}, 400
+        changed = wx.take_down(c, xid, why, who)
+        c.commit()
+        if changed:
+            log_action(c, op, 'extra-down', target, why)
+        return {'ok': True, 'changed': bool(changed)}, 200
+    changed = wx.put_back(c, xid, who)
+    c.commit()
+    if not changed:
+        return {'error': '这一条不是在后台下架的（是审稿时就藏起来的），不能在这里放回'}, 409
+    log_action(c, op, 'extra-up', target)
+    return {'ok': True, 'changed': True}, 200
+
+
 def harmony_link(c, admin):
     """The 内测版's 鸿蒙内测链接 for the console: the link, its domain, and when it was last saved (the operator log: the
     settings file's own time is for all its keys)."""
@@ -88,6 +131,55 @@ def harmony_link(c, admin):
     last = c.execute("SELECT created, email FROM flow_admin_log WHERE action='harmony-link' ORDER BY id DESC LIMIT 1").fetchone()
     return {'url': co.harmony_test_url(), 'host': co.harmony_test_host(),
             'saved': ({'at': last[0], **({'by': last[1]} if admin else {})} if last else None)}
+
+
+QUOTA_DAYS = (0, 1, 7, 30, 90)  # how long a quota of its own lasts; 0: until changed
+
+
+def quota_text(o):
+    """An override in a few words, for the operator log."""
+    what = '暂停 AI' if o['paused'] else f"每天 {o['daily']} 次" if o['daily'] else f"普通上限的 {o['factor']:g} 倍"
+    until = datetime.datetime.fromtimestamp(o['until'], __import__('next_service').TZ).strftime('%Y-%m-%d %H:%M') if o['until'] else '一直有效'
+    return f"{what}，{until}；原因：{o['reason']}"
+
+
+def ai_quota_post(c, path, data, op, who):
+    """POST /learner/ai-quota {id, mode: daily | factor | pause, value, days, reason} and /learner/ai-quota/clear {id}:
+    an account's AI quota of its own (ai_quota, B7 #405), in the operator log. The reason is facts only: the learner's
+    export shows it (the page does not)."""
+    import ai_quota, console_data as cd, console_ops as co
+    try:
+        u = c.execute('SELECT * FROM users WHERE id=?', (int(data.get('id')),)).fetchone()
+    except (TypeError, ValueError):
+        u = None
+    if not u:
+        return {'error': '没有找到这个学员'}, 404
+    if path.endswith('/clear'):
+        if ai_quota.clear(c, u['id'], who):
+            c.commit()
+            log_action(c, op, 'ai-quota-clear', co.target(u))
+        return {'ok': True, 'quota': cd.ai_quota_view(c, u['id'])}, 200
+    mode, raw = data.get('mode'), data.get('value')
+    try:
+        days = int(data.get('days') or 0)
+    except (TypeError, ValueError):
+        days = -1
+    if days not in QUOTA_DAYS:
+        return {'error': '到期时间请从选项里选', 'field': 'days'}, 400
+    try:
+        kw = ({'limit': int(raw)} if mode == 'daily' else {'factor': float(raw)} if mode == 'factor' else {'paused': True} if mode == 'pause' else None)
+    except (TypeError, ValueError):
+        return {'error': '每天次数或倍数要填数字', 'field': 'value'}, 400
+    if kw is None:
+        return {'error': '选一种：每天次数、倍数或暂停 AI', 'field': 'mode'}, 400
+    try:
+        o = ai_quota.set(c, u['id'], who, data.get('reason'), until=time.time() + days * 86400 if days else None, **kw)
+    except ValueError as e:
+        c.rollback()
+        return {'error': str(e), 'field': 'reason' if '原因' in str(e) else 'value'}, 400
+    c.commit()
+    log_action(c, op, 'ai-quota', co.target(u), quota_text(o))
+    return {'ok': True, 'quota': cd.ai_quota_view(c, u['id'])}, 200
 
 
 def log_action(c, op, action, target='', detail=''):
@@ -110,7 +202,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'invite-revoke': '作废内测版邀请码',
+                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'ai-quota': '调整 AI 额度', 'extra-down': '下架单词搭配', 'extra-up': '放回单词搭配', 'ai-quota-clear': '恢复普通 AI 额度', 'invite-revoke': '作废内测版邀请码',
                 'test-account': '造测试账号', 'test-reset': '重置测试数据（删掉全部测试账号）',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
@@ -207,7 +299,7 @@ TAP_LABEL = {
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
-    'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
+    'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
@@ -262,7 +354,7 @@ def overview(c):
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
                                if chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT') else 0),
-            'model': os.getenv('FLOW_AI_MODEL', ''),
+            'model': ai_model_text(),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
         'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
@@ -279,6 +371,22 @@ def overview(c):
         'server': server_label(),
         'generated_at': now,
     }
+
+
+def ai_model_text():
+    """The models the tasks use, for the overview (B7's routes, ai_routes.routes: console over server over the default;
+    FLOW_AI_MODEL is gone from both sites since 2026-11-26): the one most tasks use, and how many use another."""
+    try:
+        import ai_routes
+        names = [v.get('route') or ai_routes.default_model() for v in ai_routes.routes().values()]
+    except Exception:  # noqa: BLE001 - the overview shows the rest without it
+        names = []
+    names = [x for x in names if x] or [x for x in [os.getenv('FLOW_AI_MODEL', '').strip()] if x]
+    if not names:
+        return ''
+    top = max(sorted(set(names)), key=names.count)
+    others = len(set(names)) - 1
+    return top + (f'（另有 {others} 种模型用在个别任务上，见「AI 用量、费用和质量」）' if others else '（各项任务都用它）')
 
 
 def _class_numbers(c):
@@ -391,6 +499,10 @@ def console_get(c, path, one, op):
         return __import__('beta_invites').listing(c)
     if path == '/beta-tests':
         return __import__('beta_tools').listing(c)
+    if path == '/ai-people':
+        return cd.ai_people(c)
+    if path == '/word-extras':
+        return word_extras_list(c, one('days', '7'))
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
@@ -400,6 +512,8 @@ def console_post(c, path, data, op):
     """The r26 changes (console_ops.py), each written to the operator log. Returns (body, status) or None."""
     import console_ops as co
     who = op['email'] or op['label']
+    if path in ('/learner/ai-quota', '/learner/ai-quota/clear'):
+        return ai_quota_post(c, path, data, op, who)
     if path in ACCOUNT_POSTS:
         uid = data.get('id')
         if path == '/learner/disable':
@@ -504,6 +618,9 @@ def console_post(c, path, data, op):
             log_action(c, op, 'test-reset', tgt)
         return body, status
     # 鸿蒙内测链接 (console_ops, D3 #415): the 内测版's download page shows 「加入内测」 with it, 「即将开放」 without
+    # 单词搭配反馈 (word_extras, B7; B2's 「这条不对」): a row learners marked is taken down for everyone, or put back
+    if path in ('/word-extras/take-down', '/word-extras/put-back'):
+        return word_extras_post(c, path, data, op, who)
     if path == '/settings/harmony-link':
         import app
         if app.CHANNEL != 'beta':
@@ -621,7 +738,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people', '/word-extras'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd

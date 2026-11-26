@@ -344,6 +344,7 @@
       return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
         <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>
         ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small">${esc(g.how)}</p></details>` : ''}
+        ${extrasHTML(c)}
         <div class="mem-line">${esc(memLine())}</div>`;
     }
     // 简洁 / 详细 for this card (KNOW.view): words only, new words and reviews apart; the switch at the top changes it for
@@ -384,7 +385,7 @@
       const next = KNOW.order([[right, 'good', 'good'], ['模糊', 'hard', ''], [how === 'forgot' ? '不认识' : '记错了', 'again', 'again']]);
       view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}
         ${actions(`<div class="choice">${next.map(([t, r, cls], k) => `<button class="${cls}${r === want ? ' def' : ''}" data-rate="${r}"${r === want ? ' aria-describedby="defNote"' : ''}>${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div><span class="sr-only" id="defNote">翻面前选的就是这一个，回车或空格就是它</span>`)}</div>`;
-      bar(); bindExamples(view, c); sayable();
+      bar(); bindExamples(view, c); bindExtras(view, c); sayable();
       const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       if (!quiet && c.mode !== 'recognize') CLIP.word(c);
       view.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => rate(b.dataset.rate, ms));
@@ -401,7 +402,7 @@
       const msg = r === 'good' ? '<div class="ok">✓ 拼对了</div>' : r === 'hard' ? `<div class="warn">差一点：你写的是 <s>${esc(v)}</s></div>` : got ? `<div class="bad">你写的是 <s>${esc(v)}</s></div>` : '';
       view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
       const ph = view.querySelector('.open-card .ph'); if (ph && msg) ph.insertAdjacentHTML('afterend', msg);  // under the word: the word keeps its place
-      bar(); bindExamples(view, c); sayable(); CLIP.word(c);
+      bar(); bindExamples(view, c); bindExtras(view, c); sayable(); CLIP.word(c);
       const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
       onSwipe(...KNOW.swipe(() => rate(r, ms), null));

@@ -45,7 +45,7 @@ EXTRA = {'fill-examples': ('例句预生成（批量）', 'next-examples'), 'dai
          'ai-check': ('部署自检', None), 'ai-check-json': ('部署自检', None),
          # 2026-11-25: read-aloud through the gateway's flow-tts (tts_service): in the costs and the daily budget, never a route
          'tts': ('AI 朗读（声音）', None), 'tts-prewarm': ('AI 朗读预生成（夜间）', None),
-         'word-extras': ('单词搭配和近义词（批量）', 'next-examples')}  # word_extras.py: AI 例句's route, batch lane
+         'word-extras': ('单词搭配和近义、易混词（批量）', 'next-examples')}  # word_extras.py: AI 例句's route, batch lane
 LABEL.update({k: v[0] for k, v in EXTRA.items()})
 FREE_TEXT = {'chat', 'ai-check'}  # answers in prose, not JSON
 LANES = ('eval', 'batch')

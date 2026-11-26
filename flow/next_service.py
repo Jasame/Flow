@@ -986,6 +986,8 @@ def stats(c, uid):
     return {
         'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),
         'other_due': oc['due'], 'other_minutes': oc['minutes'],
+        # 底栏「能力」 (2026-11-26): the skills due to be measured (never, or more than ability_radar.RETEST days ago)
+        'radar_due': len(__import__('ability_radar').due_today(c, uid, now) or []),
         'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],

@@ -223,7 +223,7 @@ def run_device(pw, dev, opts):
     k = pg.text_content('#view .greet') or ''
     check(dev, 'greeting shows the username as written', f'ui-{dev}' in k, k)
     hm = pg.evaluate("() => ({notices: document.querySelectorAll('#notice > *').length, tabs: [...document.querySelectorAll('.tabs a span')].map(s => s.textContent), map: !!document.querySelector('#view .graph-mini'), rows: document.querySelectorAll('#view .mlist .mrow').length, more: (document.querySelector('#view .mrow.more') || {}).getAttribute ? document.querySelector('#view .mrow.more').getAttribute('href') : ''})")
-    check(dev, 'home: four tabs, at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
+    check(dev, 'home: five tabs (能力 in the middle), at most one notice, materials as rows ending in 更多材料', hm['tabs'] == ['今日', '练习', '能力', '单词', '我的'] and hm['notices'] <= 1 and not hm['map'] and hm['rows'] >= 2 and hm['more'] == '#/library', hm)
 
     # ---- study steps: the green indicator sits under the selected step after moving between steps
     for st in ('read', 'check', 'output', 'listen'):
@@ -3954,6 +3954,26 @@ def review_side_run(pw):
             go(pg, href); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
             found.append([pg.input_value('#sf input'), pg.evaluate("[...document.querySelectorAll('#listSlot [data-card] .x')].map(e => e.textContent)")])
         check(dev, '#/cards/find/<词> opens 单词 with that word searched', w and all(f[0] == w and w in f[1] for f in found), [w, found])
+        # 第 4 步 AI 常用搭配和近义、易混词 in a word's sheet (ui_server seeds commute's): the fold marked AI 生成; 「这条不对」 with a
+        # note hides that item for this learner (B7's reported() counts it), the word's detail lists it, 放回 brings it back
+        go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot .xtra-wrap', timeout=8000)
+        ai = 'AI 生成' in (pg.text_content('#xtraSlot .xtra-ai') or '')  # a grey line, no coloured tag (the user, 2026-11-26)
+        first = pg.text_content('#xtraSlot .xtra li b') or ''
+        pg.click('#xtraSlot .xbad-open'); pg.wait_for_selector('[name=xpick]', timeout=4000)
+        hint = pg.text_content('#sheet') or ''
+        pg.check('[name=xpick] >> nth=0'); pg.fill('#xNote', '不常这样说'); pg.click('#xGo'); pg.wait_for_timeout(600)
+        bar = pg.text_content('.easy-bar') or ''
+        go(pg, '#/cards/find/commute'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
+        pg.click('#listSlot [data-card] >> nth=0'); pg.wait_for_selector('#xtraSlot', timeout=8000); pg.wait_for_timeout(300)
+        shown = pg.evaluate("[...document.querySelectorAll('#xtraSlot .xtra li b')].map(b => b.textContent)")
+        marked = pg.text_content('.xtra-marked') or ''
+        pg.click('[data-xback]'); pg.wait_for_selector('#xtraSlot .xtra-wrap', timeout=8000); pg.wait_for_timeout(300)
+        back = pg.evaluate("[...document.querySelectorAll('#xtraSlot .xtra li b')].map(b => b.textContent)")
+        check(dev, '搭配和近义、易混词 (AI 生成): 这条不对 with a note hides it for this learner, the word lists it, 放回 brings it back',
+              ai and first and '不显示你的名字' in hint and first in bar and first not in shown and first in marked and first in back and not pg.query_selector('.xtra-marked'),
+              [ai, first, hint[-80:], bar, shown, marked, back])
+        pg.click('#sheet button[data-close] >> nth=0'); pg.wait_for_timeout(300); go(pg, '#/cards'); pg.wait_for_selector('#listSlot [data-card]', timeout=5000)
         pg.click('[data-f="phrase"]'); pg.wait_for_timeout(300)
         pg.fill('#sf input', 'zzqx'); pg.press('#sf input', 'Enter'); pg.wait_for_selector('#sfAll', timeout=5000)
         msg2 = pg.text_content('#listSlot .empty p')
@@ -4200,6 +4220,24 @@ def shell_run(pw):
         check(dev, "the Android app's basic mode: 注册 asks the app first; still not agreed → no form, agreed → the form opens at once",
               no == (True, ['privacy.state', 'privacy.ask']) and yes == (True, ['privacy.state', 'privacy.ask']), (no, yes))
         ctx.close()
+        # 底栏「能力」 (the user, 2026-11-26: A, an ordinary tab): five tabs, 能力 in the middle, lit on #/radar; a small dot
+        # when skills are due to be measured, the number said to a screen reader; on a 320-pixel phone all five fit
+        ctx, pg = open_(False, w=320, h=568, hash_='#/radar'); pg.wait_for_timeout(600)
+        # goals set on the radar (nothing is due before that, ability_radar.due_today), then 今日's data again
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session')).json();
+          await fetch('/api/next/radar/goals', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': s.user.csrf }, body: JSON.stringify({ goals: { reading: 'B2', listening: 'B2' } }) }); }""")
+        pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(600)
+        tb = pg.evaluate("""() => { const as = [...document.querySelectorAll('.tabs a')];
+          return { names: as.map(a => a.querySelector('span').textContent), current: (document.querySelector('.tabs a[aria-current=page] span') || {}).textContent,
+                   label: document.querySelector('.tabs a[data-nav=radar]').getAttribute('aria-label'), dot: !document.getElementById('radarBadge').hidden,
+                   widths: as.map(a => Math.round(a.getBoundingClientRect().width)), lines: as.map(a => Math.round(a.querySelector('span').getBoundingClientRect().height)),
+                   sideways: document.scrollingElement.scrollWidth > innerWidth }; }""")
+        due = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => (h.stats || {}).radar_due)")
+        go(pg, '#/me'); me_radar = pg.locator('#view a[href="#/radar"]').count(); ctx.close()
+        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; the dot says how many skills are due; 我的 has no second way in',
+              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due and tb['dot'] and tb['label'] == f'能力，有 {due} 项该测了' and me_radar == 0, (tb, due, me_radar))
+        check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
+              min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
         check(dev, 'no page errors', not errs, errs[:3])
     finally:
         browser.close()

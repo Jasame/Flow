@@ -246,9 +246,35 @@ def learner(c, uid):
         'materials': mats, 'exams': exams, 'classes': __import__('class_service').membership(c, uid),
         'ai': {'kinds': sorted(ai.values(), key=lambda k: -(k['complete'] + k['failed'])),
                'days': [{'day': (td - datetime.timedelta(days=i)).isoformat(), 'count': ai_days.get((td - datetime.timedelta(days=i)).isoformat(), 0)} for i in range(13, -1, -1)],
-               'remaining': chat_service.remaining(c, uid)},
+               'remaining': chat_service.remaining(c, uid), 'quota': ai_quota_view(c, uid)},
         'feedback': fb, 'log': log,
     }
+
+
+def ai_quota_view(c, uid):
+    """An account's AI quota for the learner drawer (管理员 only): today, 7 and 30 days, by task, the ceiling and where it
+    comes from, the override, an estimated cost and the last changes (ai_quota.report, B7 #405)."""
+    import ai_quota
+    rows = ai_quota.report(c, uid)
+    r = rows[0] if rows else {}
+    return {**r, 'usual': ai_quota.usual_limit(), 'history': ai_quota.history(c, uid, 10)}
+
+
+def ai_people(c):
+    """「AI 额度」 (管理员 only; 只看数据 sees the site's totals on the AI page): one row a person, most used in 30 days
+    first, every account with its own quota listed too."""
+    import ai_quota
+    rows = ai_quota.report(c, limit=200)
+    ids = [r['user_id'] for r in rows]
+    names = {}
+    for chunk in (ids[i:i + 400] for i in range(0, len(ids), 400)):
+        for u in c.execute('SELECT id, username, admin, role FROM users WHERE id IN (%s)' % ','.join('?' * len(chunk)), chunk):
+            names[u[0]] = u
+    items = [{**r, 'username': names[r['user_id']][1], 'staff': bool(names[r['user_id']][2]), 'teacher': names[r['user_id']][3] == 'teacher'}
+             for r in rows if r['user_id'] in names]
+    return {'items': items, 'usual': ai_quota.usual_limit(), 'max_daily': ai_quota.DAILY_MAX,
+            'factor': [ai_quota.FACTOR_MIN, ai_quota.FACTOR_MAX], 'reason_max': ai_quota.REASON_MAX,
+            'note': '估算费用 = 各项功能的次数 × 这项功能近 30 天每次的平均费用，只作参考；次数按 UTC 日算（北京时间早上 8 点换日）。'}
 
 
 # ---------- onboarding funnel and weekly cohorts ----------

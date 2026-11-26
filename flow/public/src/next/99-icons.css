@@ -1,0 +1,6 @@
+/* ---------- 语流's own icons (00-icons.js: fi(), fiTile()) ---------- */
+.fi{flex:none;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--ink2)}
+.fi .w{fill:var(--line2);fill-opacity:.6;stroke:none}
+.fi .t{stroke-width:1;opacity:.55}
+.fi-tile{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--sunk)}
+@media (prefers-color-scheme:dark){.fi .w{fill-opacity:.45}}
