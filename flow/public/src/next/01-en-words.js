@@ -280,4 +280,12 @@
     '再做 {n} 个': 'Do {1} more', '今天就到这里': 'Done for today',
     '还想多背：再学 10 个新词': 'Want more? Learn 10 new words',
     '· 明天大约复习 {n} 个': '· About {1} due tomorrow',
+    // 50-words.js after the 单词 page's new look (#454)
+    '今天要背': 'To learn today', '《{x}》': '“{1}”', '换词书或改计划 ›': 'Change word book or plan ›',
+    '在学 {n} · 已掌握 {n}': '{1} learning · {2} learned', '导出单词本：Excel 表格或 Anki ›': 'Export your words: Excel or Anki ›',
+    '搜单词、意思': 'Search words or meanings', '今天已完成 {n} 次': 'Done {1} {1|time|times} today',
+    '还有 {n} 个复习留到之后几天，想多背可以继续{x}': '{1} more {1|review waits|reviews wait} for the next few days. Keep going if you like{2}',
+    '先测词汇量（约 {n} 分钟）›': 'Take the vocab test first (about {1} min) ›', '开始复习 ›': 'Start review ›', '‹ 练习': '‹ Practice',
+    '共 {n} 道 · 做错的题都在这里': '{1} total · every question you got wrong', '到期了会在「错题和句型复习」里再考你': 'They come back in “Review mistakes and patterns” when due',
+    '到期要复习的': 'Due for review',
   });

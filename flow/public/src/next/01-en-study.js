@@ -215,4 +215,12 @@
     '共 {n} 集': '{1} {1|part|parts}', '从第 {n} 集开始': 'Start with part {1}', '继续：第 {n} 集': 'Continue: part {1}',
     '六集都读完了。可以回到任意一集，再听一遍或者重写输出任务。': 'You have read all six parts. Go back to any part to listen again or redo the Use it tasks.',
     '每集约 300 词，C1 难度，原创连载。每集都有听、读、理解和输出四步，读完理解题就算读过这一集。': 'Each part is about 300 words at C1, an original series. Each has the four steps Listen, Read, Check and Use it; finish the questions and the part counts as read.',
+    // after the new looks of 理解 and 用出来 (B9, 2026-11-26)
+    '照这句写一句': 'Write one like this', '可以试着用上你在背的词：{x}（用对了算一次成功复习）': "Try a word you're learning: {1} (using it right counts as a review)",
+    '用上了原文的表达：{x}': 'Used from the text: {1}', '提示：': 'Hint: ',
+    '答对了': 'Correct', '答错了': 'Wrong', '正确答案是 {x}': 'The answer is {1}', '答案在原文这里': 'Where the text says it',
+    '看结果': 'See results', '下一题': 'Next question', '你选的': 'Your pick', '去用出来': 'Go to Use it',
+    '{x}，点一下再看这一题': '{1}. Tap to see this question again',
+    // 80-library.js after its new look
+    '低一级': 'A level down', '读到第 {n} 集 · 继续第 {n} 集': 'Read {1} · next: part {2}',
   });
