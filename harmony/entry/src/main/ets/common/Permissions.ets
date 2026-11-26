@@ -111,6 +111,32 @@ export class Permissions {
     return Permissions.asked('notify');
   }
 
+  /** This app's page in 设置 (应用和元服务 → 语流): the microphone is on it, and 通知 (privacy.settings). */
+  static openAppSettings(): void {
+    const ctx = AppState.context;
+    if (!ctx) {
+      return;
+    }
+    try {
+      const bundle = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT).name;
+      const want: Want = {
+        bundleName: 'com.huawei.hmos.settings', abilityName: 'com.huawei.hmos.settings.MainAbility',
+        uri: 'application_info_entry', parameters: { 'pushParams': bundle },
+      };
+      ctx.startAbility(want).catch(() => {});
+    } catch (e) {
+      AppState.warn('settings: ' + JSON.stringify(e));
+    }
+  }
+
+  /** privacy.permissions: notifications as the phone has them for this app ('granted' | 'undetermined' | 'denied'). */
+  static notifyState(): string {
+    if (Permissions.notifyAllowed()) {
+      return 'granted';
+    }
+    return Permissions.notifyAskedBefore() ? 'denied' : 'undetermined';
+  }
+
   /** This app's notification settings (notify.settings()). */
   static openNotifySettings(): void {
     const ctx = AppState.context;
@@ -118,18 +144,7 @@ export class Permissions {
       return;
     }
     // the app's page in 设置: HarmonyOS 5.0.0 (API 12) has no openNotificationSettings, it came with API 13
-    const appPage = () => {
-      try {
-        const bundle = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT).name;
-        const want: Want = {
-          bundleName: 'com.huawei.hmos.settings', abilityName: 'com.huawei.hmos.settings.MainAbility',
-          uri: 'application_info_entry', parameters: { 'pushParams': bundle },
-        };
-        ctx.startAbility(want).catch(() => {});
-      } catch (e) {
-        AppState.warn('settings: ' + JSON.stringify(e));
-      }
-    };
+    const appPage = () => Permissions.openAppSettings();
     if (deviceInfo.sdkApiVersion < 13) {
       appPage();
       return;
