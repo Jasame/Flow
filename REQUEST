@@ -1,3 +1,3 @@
-c5a249e627576f8ff383f65be4599be2d50f96f4 0627dd7ffc761ed93b85236569be2108105a8f4b5519d350344c115b0450f4f4 e2e light ref=build-fa03b8abc3ab tag=b137 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
-# b137 main: Merge pull request #473 from Jasame/ledger-android105 = build of fa03b8abc3ab
+b0d4c1969cbb87666526dbb9df366fa6e377414b d9d587e7cbd45d230191cd69741253f80ab84876cb0dd3a4c5499e6c2df4cc72 e2e light ref=build-4d2dcf99ee73 tag=b138 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
+# b138 main: 桌面版：切换账号以后提醒跟着现在的账号（account.changed） (#461) = build of 4d2dcf99ee73
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
