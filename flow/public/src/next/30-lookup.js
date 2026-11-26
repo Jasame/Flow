@@ -9,7 +9,7 @@
     try { e = (await api('/api/next/lookup?w=' + encodeURIComponent(word))).entry; } catch (x) { /* show fallback */ }
     const meaning = e ? e.meaning : '';
     // The recorded pronunciation when there is one (it plays in every browser, WeChat's too); else the browser voice.
-    const sayWord = () => (e && e.audio && (e.audio.us || e.audio.uk) ? CLIP.word({ text: e.word, audio: e.audio }) : TTS.say(e ? e.word : word));
+    const sayWord = () => (e && e.audio && (e.audio.us || e.audio.uk) ? CLIP.word({ text: e.word, audio: e.audio }) : TTS.word(e ? e.word : word));
     const mt = MAT[pack];
     // This text's own gloss (本篇词汇) says what the word means here; the dictionary lists every sense.
     const here = mt && (mt.vocabulary || []).find(v => { const t = v.term.toLowerCase(); return t === word.toLowerCase() || (e && t === e.lemma); });
@@ -49,7 +49,7 @@
         ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small" data-ex>${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
         ${x.pattern ? `<div class="card sunk stack-s"><div class="kicker">可模仿的句型</div><div class="frame">${esc(x.pattern.frame)}</div>${x.pattern.example ? `<div class="text small">${esc(x.pattern.example)}</div>` : ''}<div><button class="btn small" id="savePat">收藏这个句型</button></div></div>` : ''}
         <button class="btn ghost" data-close>关闭</button></div>`, card => {
-        card.querySelector('#sayS').onclick = () => TTS.say(sentence, null, null, { pack });  // an import's sentence: its owner's file
+        card.querySelector('#sayS').onclick = () => TTS.say(sentence, null, null, { pack, rate: 1 });  // an import's sentence: its owner's file
         card.querySelectorAll('.node-chip').forEach(a => a.addEventListener('click', closeSheet));
         const sp = card.querySelector('#savePat'); if (sp) sp.onclick = () => saveCard({ text: x.pattern.frame, meaning: '句型' + (x.pattern.example ? '｜例：' + x.pattern.example : ''), context: sentence, pack }, sp);
       });
