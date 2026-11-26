@@ -128,8 +128,14 @@
   // without it only username + password is offered, as the server then accepts.
   async function mailOn() {
     if (S.home && S.home.session && 'mail' in S.home.session) return !!S.home.session.mail;  // carried by the home data
-    if (S.mail == null) { try { S.mail = !!(await api('/api/health')).mail; } catch (e) { return true; } }
+    if (S.mail == null) { try { const h = await api('/api/health'); S.mail = !!h.mail; S.inviteOnly = !!h.invite; } catch (e) { return true; } }
     return S.mail;
+  }
+  // 内测版 (FLOW_SIGNUP_INVITE_ONLY, beta_invites.py): a new 学生账号 needs an invite code; 语流's sign-up asks for none
+  async function inviteOn() {
+    if (S.home && S.home.session && 'invite' in S.home.session) return !!S.home.session.invite;
+    if (S.inviteOnly == null) await mailOn();
+    return !!S.inviteOnly;
   }
   // An account without an email cannot reset a forgotten password by itself: say so on 今日 until it binds one
   // (or the learner says 以后再说, which waits 14 days).
@@ -208,7 +214,7 @@
         if (r !== 'agreed') return;
       }
     }
-    const mail = await mailOn(), teacher = opts && opts.teacher;
+    const mail = await mailOn(), teacher = opts && opts.teacher, invite = !teacher && await inviteOn();
     tab = teacher ? 'reg' : tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
     // 注册 and 登录 side by side, one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」); 密码 or 验证码 is
     // a choice inside 登录, a link under its form
@@ -218,7 +224,7 @@
       <div><h2 class="h2" id="sheetTitle">${teacher ? '注册老师账号' : reset ? '找回密码' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
       ${teacher ? '' : reset ? '<p class="small">填绑定的邮箱，收到验证码后设一个新密码。设好就直接登录，其他手机和电脑上的登录会退出。</p>'
         : `<div class="seg two" role="tablist" aria-label="注册或登录">${tabs.map(([k, l, on]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${on.split(' ').includes(tab)}">${l}</button>`).join('')}</div>`}
-      <form id="authForm" class="stack" novalidate>${authFields(tab, mail, teacher)}</form>
+      <form id="authForm" class="stack" novalidate>${authFields(tab, mail, teacher, invite)}</form>
       <p class="err" id="authErr" role="alert"></p>
       ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : `<button class="btn ghost" data-close type="button">${tab === 'reg' && !teacher ? '先不注册' : '先不登录'}</button>`}</div>`, card => {
       card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
@@ -230,7 +236,7 @@
         err.textContent = ''; sendBtn.disabled = true;
         try {
           // from a class invite link (82-class.js joinRoute): the class's own code allowance, not this network's (auth_service)
-          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab], ...(tab === 'reg' && S.invite ? { class: S.invite } : {}) });
+          const r = await api('/api/auth/code', { email: form.email.value.trim(), purpose: { reg: 'register', code: 'login', reset: 'reset' }[tab], ...(tab === 'reg' && S.invite ? { class: S.invite } : {}), ...(tab === 'reg' && invite ? { invite: form.invite.value.trim() } : {}) });
           toast(r.message || '验证码已发送，请查看邮箱'); countdown(sendBtn); form.code.focus();
         } catch (x) { fieldError(form, err, { message: x.message, field: x.field || 'email' }); sendBtn.disabled = false; }
       };
@@ -238,13 +244,13 @@
         e.preventDefault(); err.textContent = '';
         const v = n => (form.elements[n] ? form.elements[n].value : '');
         // the checks the server would make, said at once and without a round trip
+        if (tab === 'reg' && invite && !v('invite').trim()) return fieldError(form, err, { message: '内测版要凭邀请码注册，请填写收到的邀请码', field: 'invite' });
         if (tab === 'reg' && !USERNAME_OK.test(v('username').trim())) return fieldError(form, err, { message: '用户名需 2–40 个字符，不能有空格和 @', field: 'username' });
         if ((tab === 'reg' || tab === 'reset') && v('password').length < 10) return fieldError(form, err, { message: '密码至少 10 位', field: 'password' });
         if ((tab === 'code' || tab === 'reset' || (tab === 'reg' && mail)) && !/^\d{6}$/.test(v('code').trim())) return fieldError(form, err, { message: '请输入邮件里的 6 位验证码', field: 'code' });
         const ag = teacher ? {} : readAge(form), agp = tab === 'reg' && !teacher ? ageProblem(ag, true, false) : '';
         if (agp) return fieldError(form, err, { message: agp, field: ag.age ? 'guardian' : 'age' });
-        if (tab === 'reg' && !form.terms.checked) return fieldError(form, err, { message: '请先勾选同意《用户协议》和《隐私和数据》', field: 'terms' });
-        if (tab === 'reg' && !form.storage.checked) return fieldError(form, err, { message: '请先勾选同意把账号和学习数据存放在香港的服务器上', field: 'storage' });
+        if (tab === 'reg' && !form.consent.checked) return fieldError(form, err, { message: '请先勾选同意：数据存放在香港，以及《用户协议》和《隐私和数据》', field: 'consent' });
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
           let r;
@@ -252,7 +258,7 @@
           else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
           else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true, terms: true }
-            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true, terms: true });
+            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true, terms: true, ...(invite ? { invite: v('invite').trim() } : {}) });
           await afterLogin(); closeSheet();
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : teacher ? `老师账号注册好了，欢迎你${name ? '，' + name : ''}` : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
@@ -261,7 +267,7 @@
       };
     });
   }
-  function authFields(tab, mail, teacher) {
+  function authFields(tab, mail, teacher, invite) {
     const email = '<label class="field">邮箱<input name="email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" required></label>';
     const code = `<div class="code-row"><label class="field">验证码<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\\d{6}" required></label>
       <button class="btn small" type="button" data-send>发送验证码</button></div><span class="hint">验证码 10 分钟内有效。收不到就看看垃圾邮件，60 秒后可以重发。</span>`;
@@ -271,13 +277,14 @@
       <button class="btn primary block" type="submit">登录</button>`;
     if (tab === 'code') return email + code + '<div class="auth-links"><button class="link small" type="button" data-tab="pw">用密码登录</button></div><button class="btn primary block" type="submit">登录</button>';
     if (tab === 'reset') return email + code + pwField('新密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话') + '<button class="btn primary block" type="submit">设置新密码并登录</button>';
-    return (mail ? email + code : '') + `<label class="field">用户名<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="40" required>
+    const inv = invite ? '<label class="field">邀请码<input name="invite" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12" required>'
+      + '<span class="hint">内测版要凭邀请码注册。字母不分大小写，横线可以不写。</span></label>' : '';
+    return inv + (mail ? email + code : '') + `<label class="field">用户名<input name="username" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="40" required>
         <span class="hint">2–40 个字符，可以用中文，不能有空格和 @。登录时用户名和邮箱都可以用。</span></label>
       ${pwField('密码', 'password', 'new-password', '至少 10 位，最好是一句只有你知道的话')}
       ${mail ? '' : '<span class="hint">注册后可以在「我的」里绑定邮箱，忘记密码时用它找回。</span>'}
       ${teacher ? '' : ageFields('', false)}
-      ${termsField()}
-      ${storageField()}
+      ${consentField()}
       <button class="btn primary block" type="submit">${teacher ? '注册老师账号并登录' : '注册并登录'}</button>`;
   }
   // An older password-reset email links to /#reset=<token>: set the new password here, then sign in with it.
@@ -362,6 +369,7 @@
       else if (name === 'speak') { setNav('practice'); await (a === 'ielts' ? (b ? ieltsPractice(decodeURIComponent(b)) : ieltsView()) : a ? speakScene(decodeURIComponent(a)) : speakView()); }
       else if (name === 'radar') { setNav('practice'); await (a === 'goals' ? radarGoals() : a === 'test' && (b === 'reading' || b === 'listening') ? assessComprehension(b) : a === 'test' && (b === 'speaking' || b === 'writing') ? assessJudged(b) : a === 'test' ? radarTests() : radarView()); }
       else if (name === 'growth') { setNav('me'); await growthView(a ? decodeURIComponent(a) : ''); }
+      else if (name === 'two') { setNav('today'); await twoView(decodeURIComponent(a || '')); }  // 听两句、答一句 (26-two-lines.js)
       else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' || a === 'more' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }

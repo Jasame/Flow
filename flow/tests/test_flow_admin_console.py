@@ -387,6 +387,34 @@ class ExportTests(Console):
         self.assertIn('xiaolin', self.console('/export/learners.csv')[1].decode('utf-8'))
 
 
+class SiteTests(Console):
+    """One console for both sites (2026-11-26): xmc.hk/flow/ for 语流, xmc.hk/flow-beta/ for the 内测版, each nginx
+    location reaching its own site's admin port. The API answers under either prefix; /me says which site it is from
+    FLOW_CHANNEL, never from the path, so the page can mark the 内测版 and ask before a change on 语流."""
+
+    def test_me_says_which_site_and_both_prefixes_answer(self):
+        h = {'Cf-Access-Authenticated-User-Email': BOSS}
+        st, me, _ = self.call(self.admin, '/flow/api/me', None, h)
+        self.assertEqual((st, me['env'], me['role']), (200, 'prod', 'admin'))
+        self.assertTrue(me['site'])
+        with patch.object(app, 'CHANNEL', 'beta'), patch.dict(os.environ, {'FLOW_PUBLIC_URL': 'https://flow.jasa.hk'}):
+            st, me, _ = self.call(self.admin, '/flow-beta/api/me', None, h)
+            self.assertEqual((st, me['env'], me['site']), (200, 'beta', 'flow.jasa.hk'))
+            self.assertEqual(self.call(self.admin, '/flow-beta/api/overview', None, h)[0], 200)
+        self.assertEqual(self.call(self.admin, '/other/api/me', None, h)[0], 404)
+
+    def test_the_page_marks_the_site_and_asks_before_a_change_on_prod(self):
+        root = Path(app.ROOT).parent / 'xmc-admin'
+        html = (root / 'index.html').read_text(encoding='utf-8')
+        js = (root / 'admin.js').read_text(encoding='utf-8')
+        self.assertIn('id="envBar"', html); self.assertIn('id="envTag"', html); self.assertIn('id="favicon"', html)
+        self.assertNotIn('"/flow/admin', html)  # relative: the same files serve /flow/ and /flow-beta/
+        self.assertIn("var API = BASE + '/api';", js)
+        self.assertIn('这是正式版（', js)
+        for path in ('/learner/disable', '/settings/ai-budget', '/announcements/create', '/learner/level', '/learner/staff'):
+            self.assertIn("'" + path + "'", js.split('var PROD_ASK')[1].split('};')[0], path)
+
+
 class PageTests(unittest.TestCase):
     def test_the_console_has_groups_tabs_and_views(self):
         root = Path(app.ROOT).parent / 'xmc-admin'

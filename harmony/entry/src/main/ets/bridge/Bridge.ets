@@ -4,6 +4,8 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { AppState } from '../common/AppState';
 import { Site } from '../common/Site';
 import { Permissions } from '../common/Permissions';
+import { Consent } from '../common/Consent';
+import { ConsentGate } from '../common/ConsentGate';
 import { Reminders } from '../notify/Reminders';
 import { Recorder } from '../rec/Recorder';
 import { FlowAudio } from '../audio/FlowAudio';
@@ -40,8 +42,9 @@ export class Bridge {
    * No 'notify' yet: HarmonyOS gives a third-party app no 后台代理提醒 until Huawei opens it for the bundle (publishReminder
    * answers 1700002 with a limit of 0; seen on the 5.0.1 emulator, 2026-11-26). Until then the page reminds as in a browser
    * (mail, 加到手机日历); notify/ stays ready, and the commands still answer.
+   * 'privacy' as Android's (docs/native-bridge.md §10): the first start's question and what 「我的 → 设置」 offers about it.
    */
-  static readonly FEATURES: string[] = ['audio', 'rec'];
+  static readonly FEATURES: string[] = ['audio', 'rec', 'privacy'];
 
   readonly proxy: BridgeProxy = new BridgeProxy(this);
   private web: webview.WebviewController;
@@ -72,7 +75,7 @@ export class Bridge {
 
   /** The page's message. Only from the site's own page (the proxy is the web view's, so check what it shows). */
   onPost(json: string): void {
-    if (!Site.isOwn(this.web.getUrl())) {
+    if (!Site.isOwn(this.url())) {
       return;
     }
     let m: Msg;
@@ -128,12 +131,40 @@ export class Bridge {
       case 'audio.progress':
         return FlowAudio.progressJson(typeof raw === 'string' ? raw as string : String(o['key'] ?? ''));
 
+      // the first start's answer (common/ConsentGate.ets): its state, 基本模式's question again, 撤回同意, 系统权限
+      case 'privacy.state': {
+        const st: Record<string, Object> = {
+          'state': ConsentGate.current(), 'version': ConsentGate.docs().version, 'beian': Site.beian, 'store': true,
+        };
+        return st;
+      }
+      case 'privacy.ask':
+        return ConsentGate.ask('');
+      case 'privacy.withdraw':
+        return ConsentGate.withdraw();
+      case 'privacy.permissions': {
+        const p: Record<string, Object> = { 'mic': await Permissions.mic(), 'notify': Permissions.notifyState() };
+        return p;
+      }
+      case 'privacy.settings':
+        if (o['what'] === 'notify') {
+          Permissions.openNotifySettings();
+        } else {
+          Permissions.openAppSettings();
+        }
+        return true;
+
       case 'rec.permission':
         return Permissions.mic();
       case 'rec.ask':
-        return Permissions.askMic();
+        // 基本模式: the microphone asks for the agreement first
+        return (await ConsentGate.ask(Consent.WHY_MIC)) === Consent.AGREED && Permissions.askMic();
       case 'rec.start': {
         const token = Recorder.begin();
+        if ((await ConsentGate.ask(Consent.WHY_MIC)) !== Consent.AGREED) {
+          const no: Record<string, Object> = { 'ok': false, 'why': 'denied', 'message': '没有同意《隐私和数据》，不能录音' };
+          return no;
+        }
         if (!(await Permissions.askMic())) {
           const denied: Record<string, Object> = { 'ok': false, 'why': 'denied', 'message': '没有拿到麦克风权限' };
           return denied;
@@ -209,8 +240,17 @@ export class Bridge {
     this.run(JSON.stringify(m));
   }
 
+  /** What the web view shows; '' once it is gone (撤回同意 takes the page away while it waits for its answer). */
+  private url(): string {
+    try {
+      return this.web.getUrl();
+    } catch (e) {
+      return '';
+    }
+  }
+
   private run(json: string): void {
-    if (!Site.isOwn(this.web.getUrl())) {
+    if (!Site.isOwn(this.url())) {
       return;
     }
     // the JSON is a JavaScript literal as it is; U+2028 and U+2029 are escaped for older parsers anyway
