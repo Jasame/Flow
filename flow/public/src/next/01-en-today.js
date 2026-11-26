@@ -72,7 +72,6 @@
     '背单词': 'Learn words', '按遗忘曲线': 'Spaced repetition',
     '选一本词书，每天几个新词；例句来自你读的文章，还能听原文录音。': 'Pick a word book and learn a few new words a day. Examples come from texts you read, with their original recordings.',
     '· 新词': '· New words', '今天的单词都完成了': "Today's words are done", '明天见': 'See you tomorrow', '查看': 'View',
-
     // 11-progress.js: 这周进步 (the card, its sheet), the weekly mail and its unsubscribe page
     '这周进步': 'This week', '看明细': 'Details', '已达成 {n} 周': '{1} {1|week|weeks} reached',
     '记住的新词': 'Words remembered', '学完的文章': 'Texts finished', '做题正确率': 'Accuracy', '上周 {n}': 'Last week {1}',
@@ -112,7 +111,6 @@
     '每周日晚上 {n} 点，语流会把你这周的进步发到绑定的邮箱：记住的新词、学完的文章、做题正确率和每周目标。退订后就不再发。': "Every Sunday at {1} p.m., Flow sends this week's progress to your email: words remembered, texts finished, accuracy and your weekly goal. Unsubscribe and it stops.",
     '撤销，继续收': 'Undo, keep getting it', '去学习': 'Go study', '退订': 'Unsubscribe', '不退订，去学习': 'Keep it, go study',
     '会继续收到每周进度邮件': "You'll keep getting the weekly progress email",
-
     // 12-daily-line.js: 今日好句 (labels and buttons; its meaning and note stay Chinese) and 今日一读
     '今日好句': 'Line of the day', '{x}今日好句': '{1} line of the day',
     '公版名句': 'Public-domain quote', '语流文章': 'Flow text', '出自《{x}》': 'From “{1}”', '读原文': 'Read the text',
@@ -123,7 +121,6 @@
     '（AI 估计，仅供参考）': ' (AI estimate, a guide only)',
     '· 读到 {n}/{n} 个词': '· {1}/{2} words read',
     '今日一读': "Today's read", '· 约 {n} 分钟': '· About {1} min', '读这篇 →': 'Read it →',
-
     // 26-two-lines.js: 听两句，答一句 (the question's Chinese and the AI's note are content)
     '听两句，用一句话回答': 'Hear two lines, answer in one sentence', '听这两句': 'Play the two lines',
     '出自《{x}》 ·': 'From “{1}” ·', '看原文': 'Show the text', '收起原文': 'Hide the text',
@@ -136,7 +133,6 @@
     '看了提示': 'With a hint', '没看提示，自己说的': 'No hint, all your own',
     '再说一次': 'Say it again', '先跳过，明天再练': 'Skip for now, practice tomorrow',
     '{x} · 「{x}」已存进单词本，明天复习 ·': '{1} · Saved “{2}” to Words for review tomorrow ·',
-
     // 70-learner.js: the ability list, the level suggestion, the microphone (its sheet's privacy sentence stays Chinese)
     '词汇量约 {x}': 'About {1} words', '已掌握 {n} 词': '{1} {1|word|words} learned', '测一次词汇量': 'Take the vocabulary test',
     '{n} 个知识点用对或做对': '{1} grammar {1|point|points} used or answered right', '{n} 个要留意': '{1} to watch',
@@ -166,4 +162,20 @@
     // 70-learner.js: before the first recording (D2 2026-11-26: English is fine; the system's own microphone prompt is not ours)
     '说出来的回答要录音。麦克风只在你点录音键以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。':
       'Your spoken answer is recorded. The microphone is on only for the seconds after you tap the record button, and off as soon as you stop. The recording goes to the AI only for checking and is not kept on the server.',
+    // 13-today-views.js: 今日 as a list or as cards (B1 #442)
+    '列表': 'List', '卡片': 'Cards', '今日的样子': 'Today view', '已完成': 'Done', '{n} 项': '{1}',
+    '学了 {n} 天，目标达成': '{1} {1|day|days}, goal met', '学了 {n} 天，目标 {n} 天': '{1} of {2} days', '还没开始，目标 {n} 天': 'Not started, goal {1} days',
+    '这周学了 {n} 天，目标达成': 'This week: {1} {1|day|days}, goal met', '这周学了 {n} 天，目标 {n} 天': 'This week: {1} of {2} days',
+    '这周还没开始，目标 {n} 天': 'This week: not started, goal {1} days',
+    '记住 {n} 个新词': '{1} new {1|word|words} remembered', '学完 {n} 篇': '{1} {1|text|texts} finished', '正确率 {n}%': '{1}% correct',
+    '这周{x}：{x}。点开看明细': 'This week: {1}. {2}. Tap for details', '这周{x}。点开看明细': 'This week: {1}. Tap for details',
+    '还要约 {n} 分钟 ·': 'About {1} min to go ·',
+    '今天要做的几步': "Today's steps", '学了几天、记住多少': 'Days studied, words remembered', '每天一句，能听能跟读': 'A line a day to hear and shadow',
+    '你自己贴进来的那篇': 'The text you pasted in', '每天一篇短文': 'A short text every day', '错题、复听、语法': 'Mistakes, listening again, grammar',
+    '{n} 步，做完 {n} 步了': '{1} steps, {2} done', '{n} 步，都做完了': '{1} steps, all done', '学了 {n} 步，共 {n} 步': '{1} of {2} steps done',
+    '还没开始': 'Not started', '接着读': 'Keep reading', '开始练': 'Start', '读这篇': 'Read this',
+    '还可以再练 {n} 项': '{1} more to practice', '不算进今天的计划': "Not part of today's plan",
+    '上一张': 'Previous', '下一张': 'Next', '今日，{n} 张卡片，左右翻': 'Today, {1} cards: swipe left or right', '第 {n} 张，共 {n} 张，{x}': 'Card {1} of {2}: {3}',
+    '调整顺序': 'Reorder', '编辑': 'Edit', '上移': 'Move up', '下移': 'Move down',
+    '按住一块拖动。排在最前面的，打开今日先看到。': 'Press and drag a block. The first one is what you see first on Today.',
   });
