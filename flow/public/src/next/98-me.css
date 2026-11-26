@@ -1,0 +1,46 @@
+/* ---------- 我的 (81-me.js; B9's batch 1, the user 2026-11-26): white cards, no lines or borders; the folds as D2 set
+   them (the name in ink, what is inside on the right in grey, the arrow turns over); no accent but the switch ---------- */
+.me-card{display:flex;align-items:center;gap:14px;margin:4px 0 0;padding:16px;border-radius:20px;background:var(--paper)}
+.me-card .t{display:grid;gap:3px;min-width:0;flex:1}
+.me-name{margin:0;font-size:20px;font-weight:600;line-height:1.35;color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.me-line{font-size:13.5px;line-height:1.5;color:var(--muted)}
+.avatar{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--ink2);font-size:20px;font-weight:600}
+.me-head .btn{flex:none}
+.me-sec{margin-top:20px}
+.me-h{margin:0 4px 8px;font-size:13.5px;font-weight:400;line-height:1.5;color:var(--muted)}
+.me-sec .glist{border-radius:20px}
+.me-sec .gfoot{margin:8px 4px 0}
+/* 进步: three tiles, each with what it says now */
+.me-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.me-tile{display:grid;gap:4px;align-content:start;min-width:0;padding:12px;border-radius:20px;background:var(--paper);color:var(--ink);text-decoration:none;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.me-tile .fi-tile{margin-bottom:6px}
+.me-tile b{font-size:15.5px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-tv{min-height:18px;font-size:12px;line-height:1.5;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-tile:active{transform:scale(.98)}
+/* 设置: an icon in front of each row */
+.grow.gi{grid-template-columns:34px auto minmax(0,1fr) 14px;gap:12px}
+.grow.gswitch.gi{grid-template-columns:34px minmax(0,1fr) auto}
+.me-pfoot{margin:0 10px 8px 56px}
+.me-pfoot #mePersInfo{margin-left:4px}
+/* 账号和隐私, 帮助: a fold, opened in place */
+.me-folds{display:grid;gap:12px;margin-top:20px}
+.me-fold{border-radius:20px;background:var(--sunk)}
+.me-fold[open]{background:var(--paper)}
+.fold-s{display:block;border-radius:20px;cursor:pointer;list-style:none;color:var(--ink)}
+.fold-r{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 16px}  /* inside the summary: an older Safari does not lay a summary out as flex */
+.fold-s::-webkit-details-marker{display:none}
+.fold-s .fi{color:var(--ink2)}
+.fold-n{flex:none;font-size:15.5px;line-height:1.35}
+.fold-v{flex:1;min-width:0;text-align:right;font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fold-a{flex:none;width:18px;height:18px;fill:none;stroke:var(--ink2);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.me-fold[open] .fold-a{transform:rotate(180deg)}
+.fold-s:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.fold-b{padding:0 0 8px}
+.fold-b .glist{padding-top:0}
+.fold-b .gfoot{margin:4px 16px 4px}
+.me-fold[open] .fold-b{animation:fold-in .24s cubic-bezier(.2,.8,.2,1)}
+@keyframes fold-in{from{opacity:0;transform:translateY(-6px)}}
+.me-beian{margin:12px 4px 0}
+.me-out{margin-top:20px}
+.me-out .glist,.me-out .grow.danger{border-radius:20px;background:var(--paper)}
+@media (prefers-reduced-motion:reduce){.me-tile,.fold-a{transition:none}.me-fold[open] .fold-b{animation:none}}

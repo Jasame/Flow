@@ -352,6 +352,23 @@ final class FlowUITests: XCTestCase {
         tapButton("开关复原")
     }
 
+    /// 「切换账号」 (account.changed): right after the page says so, the phone's search has none of the last account's words,
+    /// its review's Live Activity is gone and so is the widgets' card (the new account's numbers come after, as on opening)
+    @MainActor func test14AccountChanged() {
+        bridgePage()
+        tapButton("开关复原")
+        tapButton("搜索样例")
+        wait(line("acct: search 3"), 15, "three words in the phone's search: \(value("acct: "))")
+        tapButton("打开实时活动")
+        tapButton("实时活动 3/10")
+        wait(line("glance: activity true  count 1"), 10, "a review going on: \(value("glance: "))")
+        tapButton("小组件样例")
+        tapButton("切换账号")
+        let done = web.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "acct: changed true search 0 activity 0 card (none|signedOut)")).firstMatch
+        wait(done, 20, "nothing of the last account: \(value("acct: "))")
+        tapButton("开关复原")
+    }
+
     /// 「Siri 和专注模式」: the switch (on as it comes), the Focus filter explained under it, and the page seeing it off
     @MainActor func test12SiriAndFocus() {
         bridgePage()

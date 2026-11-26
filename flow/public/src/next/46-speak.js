@@ -28,7 +28,7 @@
       ${swap ? '' : `<details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow">${sayIcon(`data-say="${esc(u.text)}"`, '朗读')}<span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>`}
       <div class="chat" id="chat"></div>
       <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
-        <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点 ● 说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
+        <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点录音键说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
         <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
       <div class="dlg-go"><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));

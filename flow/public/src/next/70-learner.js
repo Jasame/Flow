@@ -36,7 +36,7 @@
     try { seen = localStorage.getItem(MIC_SEEN) === '1'; } catch (e) { /* storage blocked: do not ask every time */ }
     if (seen) return true;
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">要用一下麦克风</h2>
-      <p class="small">说出来的回答要录音。麦克风只在你点 ● 以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。</p>
+      <p class="small">说出来的回答要录音。麦克风只在你点录音键以后、说话的这几秒打开，说完马上关；录音只在批改时发给 AI，服务器上不留。</p>
       <p class="small muted">接下来系统会问能不能用麦克风，请选「允许」。${APP_REC() ? '在语流 App 里只问这一次。' : '放在 iPhone 主屏上的语流，每次重新打开后第一次录音，系统都会再问一次，这是 iOS 的规定。'}</p>
       <div class="row"><button class="btn primary" id="micGo" type="button">好，开始录音</button><button class="btn ghost" type="button" data-close>先不用</button></div></div>`, card => {
       card.querySelector('#micGo').onclick = () => { try { localStorage.setItem(MIC_SEEN, '1'); } catch (e) { /* asked again next time */ } closeSheet(); go(); };
@@ -126,12 +126,12 @@
         if (long && size > this.FULL && mr.state === 'recording') { full = true; mr.stop(); }
       };
       mr.onstop = () => {
-        micClose(stream); clearTimeout(this.timer); btn.classList.remove('on');
+        micClose(stream); clearTimeout(this.timer); btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false');
         if (full) toast('录音到了长度上限，已经停下，先交这一段');
         if (chunks.length) onDone(new Blob(chunks, { type: mr.mimeType || type || 'audio/webm' }));
       };
       if (long) mr.start(1000); else mr.start();
-      btn.classList.add('on');
+      btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
       this.timer = setTimeout(() => this.stop(), maxSecs * 1000);
     },
     async payload(blob) {
@@ -140,7 +140,12 @@
       return { mime_type: /wav/.test(blob.type) ? 'audio/wav' : /mp4|m4a|aac/.test(blob.type) ? 'audio/mp4' : /ogg/.test(blob.type) ? 'audio/ogg' : 'audio/webm', data };
     },
   };
-  const recBtn = (id, label) => `<button class="icon-btn rec" id="${id}" type="button" aria-label="${label || '录音'}"><span class="dot"></span></button>`;
+  // The record key is 语流's own mark: the rounded square with four sound waves (B9, 2026-11-26; the user: 我们这个语流
+  // 的logo是很像一个录音键的……点的时候……波动动画，而不是这种默认的这种录音按钮). Small beside a field or a sentence (a soft patch
+  // of the theme colour), large where speaking is the whole task (the mark itself); while it records (.on, set by
+  // MIC.toggle) the four waves move and two rings stand round it (97-rec-key.css).
+  const REC_MARK = '<svg class="rec-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="5.5" y="13" width="3" height="6" rx="1.5"/><rect x="11.5" y="8" width="3" height="16" rx="1.5"/><rect x="17.5" y="10.5" width="3" height="11" rx="1.5"/><rect x="23.5" y="14" width="3" height="4" rx="1.5"/></svg>';
+  const recBtn = (id, label, big) => `<button class="icon-btn rec${big ? ' big' : ''}" id="${id}" type="button" aria-label="${label || '录音'}" aria-pressed="false">${REC_MARK}</button>`;
   const fixesHTML = fs => fs && fs.length ? `<div class="stack-s">${fs.map(f => `<div class="change"><span class="ft"><del>${esc(f.from)}</del> → <ins>${esc(f.to)}</ins></span><span class="why">${esc(f.why)}</span></div>`).join('')}
     <div class="tiny muted">这些已经放进错题本，会按遗忘曲线回来让你再改一次。</div></div>` : '';
 

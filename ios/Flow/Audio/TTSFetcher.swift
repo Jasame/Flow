@@ -145,6 +145,9 @@ final class ProgressStore {
         UserDefaults.standard.set(o, forKey: key)
     }
 
+    /// another account (account.changed): every place kept is the last account's
+    func clearAll() { UserDefaults.standard.removeObject(forKey: key) }
+
     func clear(_ k: String) {
         var o = all()
         o[k] = nil

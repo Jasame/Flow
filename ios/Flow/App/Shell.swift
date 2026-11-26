@@ -75,6 +75,26 @@ final class Shell {
 
     func open(path: String) { web.open(path: path) }
 
+    /// The page switched the account, added one, signed out or deleted it (FlowApp.call('account.changed'),
+    /// docs/native-bridge.md §5). What is the last account's goes before this answers (the page may move on at once):
+    /// the words in the phone's search first, then the review's Live Activity, the widgets' card, the reading and the
+    /// places kept, the reminders. The new account's then come in the background, as when the app comes to the front.
+    func accountChanged() async -> [String: Any] {
+        await WordSearch.clear()
+        await ReviewActivities.endAll()
+        WidgetsFeed.forget()
+        player.forgetAccount()
+        site.forgetSession()
+        await reminders.forgetAccount()
+        Task { [reminders, site] in
+            let outcome = await reminders.refresh(force: true)
+            await WidgetsFeed.publish(reminders.input, outcome: outcome, site: site)
+            await WordSearch.refresh(site: site)
+            await Packs.shared.refresh(force: true)  // today's texts are the new account's (Wi-Fi, switched on)
+        }
+        return ["ok": true]
+    }
+
     // ---- once or twice a day, without the app being opened: the next two weeks of reminders follow the counts
     static func registerBackgroundRefresh() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: refreshTask, using: .main) { task in

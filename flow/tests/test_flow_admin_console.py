@@ -408,6 +408,10 @@ class SiteTests(Console):
         html = (root / 'index.html').read_text(encoding='utf-8')
         js = (root / 'admin.js').read_text(encoding='utf-8')
         self.assertIn('id="envBar"', html); self.assertIn('id="envTag"', html); self.assertIn('id="favicon"', html)
+        # 正式版 | 内测版 (the user, 2026-11-26): one two-way switch, the other console's same page; never a link inside the brand link
+        self.assertIn('<a href="../flow/" data-env="prod">正式版</a><a href="../flow-beta/" data-env="beta">内测版</a>', html)
+        self.assertNotIn('id="envTag"', html.split('class="adm-brand"')[1].split('</a>')[0])
+        self.assertIn("var BETA_ONLY = ['invites', 'tests'];", js); self.assertIn('otherHash(a.dataset.env)', js)
         self.assertNotIn('"/flow/admin', html)  # relative: the same files serve /flow/ and /flow-beta/
         self.assertIn("var API = BASE + '/api';", js)
         self.assertIn('这是正式版（', js)

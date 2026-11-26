@@ -87,6 +87,7 @@ FLOW_FILES=(
   ai_eval.py
   ai_help_service.py
   ai_jobs.py
+  ai_lang.py
   ai_quota.py
   ai_routes.py
   ai_stream.py

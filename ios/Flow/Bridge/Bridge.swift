@@ -123,6 +123,8 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
         case "audio.state": return player.snapshot()
         case "audio.progress": return player.progress(a["key"] as? String) ?? NSNull()
 
+        case "account.changed":  // switched, added, signed out, deleted: nothing of the last account stays (Shell)
+            return await Shell.shared.accountChanged()
         case "rec.permission": return recorder.permission()
         case "rec.ask": return await recorder.ask()
         case "rec.start": return await recorder.start(a)
@@ -138,6 +140,10 @@ final class Bridge: NSObject, WKScriptMessageHandlerWithReply {
             if let u = URL(string: UIApplication.openNotificationSettingsURLString) { await UIApplication.shared.open(u) }
             return true
         #if BETA
+        case "app.search-sample":  // tests: the sample words in the phone's search, whatever the switch says
+            await WordSearch.putSample()
+            return ["count": await WordSearch.count()]
+        case "app.search-count": return ["count": await WordSearch.count()]
         case "notify.test": return await reminders.testSchedule(a)
         case "audio.remote":  // the lock screen's buttons, for tests (a simulator has no Now Playing to press)
             switch a["cmd"] as? String {

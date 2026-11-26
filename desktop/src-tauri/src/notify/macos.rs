@@ -209,6 +209,13 @@ pub fn clear() {
     }
 }
 
+/// The reminders already shown (Notification Center): an account change takes the last account's away.
+pub fn clear_shown() {
+    if let Some(c) = center() {
+        c.removeAllDeliveredNotifications();
+    }
+}
+
 pub fn schedule(items: &[Planned], _scheme: &str) -> Result<usize, String> {
     let Some(c) = center() else { return Ok(0) };
     c.removeAllPendingNotificationRequests();
