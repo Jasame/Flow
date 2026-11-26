@@ -162,3 +162,64 @@ main>h1.sr-only+*{margin-top:0}
 
 /* no colour mixing (iOS before 16.2): the heat levels as opacity of the plain green set before each mix */
 @supports not (background:color-mix(in srgb,red 50%,blue)){.cal i.l1{opacity:.35}.cal i.l2{opacity:.6}.cal i.l3{opacity:.85}}
+/* 单词页 (B9's 第一批, the user 2026-11-26; ui-refine/batch1/spec.md): white blocks (radius 20, 12 apart), titles inside
+   (17 / 600) with a grey line on the right (13.5), rows 48 high, no lines or borders; the page's one main button full
+   width (56, radius 16); the theme colour only on that button, the book's progress and the small words that can be tapped */
+.wp-head{margin:0 0 14px}.wp-head .h1{margin:0}
+.wp-sub{display:block;margin-top:4px;font-size:13.5px;color:var(--muted)}
+.wp-blk{display:block;background:var(--paper);border-radius:20px;padding:14px 16px;margin:0 0 12px;color:inherit;text-decoration:none}
+.wp-blk-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:2px}
+.wp-blk-t{margin:0;font-size:17px;font-weight:600;line-height:1.35}
+.wp-blk-r{font-size:13.5px;color:var(--muted);white-space:nowrap}
+.wp-row{display:flex;align-items:center;gap:12px;min-height:48px;font-size:15.5px}
+.wp-row .fi{color:var(--ink)}
+.wp-row>span{flex:1;min-width:0}
+.wp-row>b{font-weight:400;font-variant-numeric:tabular-nums}
+.wp-note{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+.wp-lead{margin:0;font-size:15.5px;font-weight:600}
+.btn.primary.wp-go{display:flex;width:100%;min-height:56px;border-radius:16px;font-size:17px;font-weight:600;margin:0 0 12px}
+.wp-book{display:flex;align-items:center;gap:14px}
+.wp-book .fi-tile{width:48px;height:48px;border-radius:14px}
+.wp-book .fi-tile .fi{width:26px;height:26px;color:var(--ink)}
+.wp-bk{flex:1;min-width:0;display:grid;gap:6px}
+.wp-bk-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.wp-bk-t b{font-size:17px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-num{font-size:13.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.wp-book .vbar{height:4px;min-width:0}
+.wp-bk-s{font-size:13.5px;line-height:1.45;color:var(--muted)}
+.wp-link{font-size:13.5px;font-weight:600;color:var(--green-ink);text-decoration:none}
+.wp-top>#bookSoon{margin:-4px 4px 12px}
+/* four equal tiles, the icons in ink */
+.tools.wp-tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.tools.wp-tools a,.tools.wp-tools button{display:grid;justify-items:center;align-content:center;gap:6px;min-height:76px;padding:10px 2px;border:0;border-radius:16px;background:var(--paper);color:var(--ink);font-size:13.5px;text-decoration:none}
+.tools.wp-tools .fi{width:24px;height:24px;color:var(--ink);stroke:currentColor}  /* over .tools svg's green (91-refresh.css): the icons in ink */
+/* the stats: a fold in its place — the name in ink (D2: an entry drawn faint is hard to find), what is inside grey on the right */
+details.fold.wp-stats{background:var(--sunk);border-radius:16px;margin:0 0 12px;padding:0}
+details.fold.wp-stats>summary{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 40px 0 16px;flex-wrap:nowrap}
+details.fold.wp-stats>summary::after{right:18px;top:50%;margin-top:-6px;border-color:var(--ink2);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+details.fold.wp-stats>summary .fi{color:var(--ink2)}
+details.fold.wp-stats>summary b{font-size:15.5px;font-weight:600;color:var(--ink);white-space:nowrap}
+details.fold.wp-stats>summary .wp-r{flex:1;min-width:0;text-align:right;font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wp-stats-in{padding:0 16px 16px}
+@media (prefers-reduced-motion:reduce){details.fold.wp-stats>summary::after{transition:none}}
+/* the search, and a three-way switch beside it instead of the row of chips */
+.wp-search{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.wp-search .searchrow{flex:1;min-width:0;margin:0}
+.wp-search .searchrow input{width:100%}
+.seg.wp-filt{flex:none;display:grid;grid-template-columns:repeat(3,auto);gap:2px;margin:0;padding:3px;border-radius:12px}
+.seg.wp-filt button{padding:6px 12px;font-size:15.5px;font-weight:400;color:var(--ink2)}
+.seg.wp-filt button[aria-pressed=true]{background:var(--paper);color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+/* one word a row: the English left (serif), the meaning grey on the right, one line each */
+.xlist.wp-list{gap:0;border-radius:20px;padding:4px 6px}
+.xlist.wp-list .xrow{grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:16px;min-height:52px}
+.xlist.wp-list .xrow .x{max-width:62vw}
+.xlist.wp-list .xrow .m{text-align:right;font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 错题本 (B9's 第三批): ‹ 练习 grey; the count big in the block; one mistake a row of two lines, its state on the right */
+.wp-back{color:var(--ink2);font-weight:400}
+.wp-big{margin:4px 0 0;font-size:28px;font-weight:600;line-height:1.25}
+.wp-msearch{margin:0 0 12px}.wp-msearch input{width:100%}
+.xlist.wp-mlist .xrow{grid-template-columns:minmax(0,1fr) auto;min-height:64px}
+.xlist.wp-mlist .xrow .t{display:grid;gap:2px;min-width:0}
+.xlist.wp-mlist .xrow .x{max-width:none}
+.xlist.wp-mlist .xrow .m{text-align:left;font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xlist.wp-mlist .xrow .st{font-size:13.5px;color:var(--muted);white-space:nowrap}
