@@ -1342,3 +1342,11 @@
   - #528 练习记录：列表、单条、删除（后端）（测试）
 - 自检：DEPLOYED，装了 5 个文件（1 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45875938351
+
+### b163 · 2026-11-27 03:19
+- main `85fa038`，构建 `79cd4dd`
+- 新合并的 PR（自 b162 起）：
+  - #531 错题卡带上来源：「来自 … ›」 (练习记录 第 4 节)（单词、今日和计划、开局和考试）
+  - #533 test_history：老卡那条测试自己去掉 rid（#528 和 #531 合在一起后 main 红了）（测试）
+- 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45882578928
