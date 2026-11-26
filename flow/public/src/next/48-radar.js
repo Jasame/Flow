@@ -2,7 +2,7 @@
   const DIM_TEST = { vocab: '#/vocab/test', grammar: '#/placement', reading: '#/radar/test/reading', listening: '#/radar/test/listening', speaking: '#/radar/test/speaking', writing: '#/radar/test/writing' };
   const CONF = { high: '测评', medium: '估计', low: '粗略估计' };
   // The radar as one part (B9, 2026-11-26; the user: 没测过雷达图就显示 0，点雷达图上面的字就可以对这个模块进行测试): the web is
-  // three soft fills, no hairlines; the learner's shape is ink; the six names around it are links, and a tap on a name
+  // three soft fills, no hairlines; the learner's shape is in the theme colour; the six names around it are links, and a tap on a name
   // starts that skill's check (DIM_TEST). Nothing measured yet: a dot at the centre (all 0) and every name says 去测.
   // A skill with no score last time keeps today's place in the dashed outline (no spike to the centre).
   // opts.prev: last time's scores by id, drawn as a dashed outline. The names sit by percentages, so the part scales with its box.
@@ -17,7 +17,7 @@
     // where each name sits is in 89-radar.css (.rdr-ax.k0 … .k5): the page's rules allow no style attribute in markup
     const names = dims.map((d, k) => {
       const has = d.score != null, say = !has ? '还没测，点一下去测' : d.assessed ? d.score + ' 分，点一下' + (d.due ? '再测' : '重测') : '按平时练习估计 ' + d.score + ' 分，点一下去测';
-      return `<a class="rdr-ax k${k}" href="${DIM_TEST[d.id]}" data-tap="radar-name" aria-label="${esc(d.label)}，${say}">${esc(d.label)}<small>${has ? d.score : '去测'}</small></a>`;
+      return `<a class="rdr-ax k${k}" href="${DIM_TEST[d.id]}" data-tap="radar-name" aria-label="${esc(d.label)}，${say}">${esc(d.label)}<small${has ? '' : ' class="go"'}>${has ? d.score : '去测'}</small></a>`;
     }).join('');
     return `<div class="rdr" role="group" aria-label="能力雷达：${dims.map(d => d.label + (d.score == null ? '还没测' : ' ' + d.score + ' 分')).join('，')}">
       <svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><polygon class="w1" points="${ring(R)}"/><polygon class="w2" points="${ring(R * 2 / 3)}"/><polygon class="w1" points="${ring(R / 3)}"/>

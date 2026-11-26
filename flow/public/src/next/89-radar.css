@@ -1,19 +1,22 @@
 /* ---------- r17: ability radar ---------- */
-/* The radar part (48-radar.js radarChart; B9, 2026-11-26): soft fills for the web, the shape in ink, the six names as links.
-   No green here: on the radar page the one green thing is the button under it. */
+/* The radar part (48-radar.js radarChart; B9, 2026-11-26): soft fills for the web, the six names as links.
+   The theme colour (the user: 在合适的地方加入主题色) marks what is the learner's own and what can be tapped: the shape
+   and its dots, 去测 under a name. The web, last time's outline and the scores stay ink and grey. */
 .rdr{position:relative;width:100%;max-width:420px;margin:0 auto}
 .rdr svg{display:block;width:100%;height:auto;overflow:visible}
 .rdr .w1{fill:var(--sunk)}
 .rdr .w2{fill:var(--paper);opacity:.55}
 .rdr .prev{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3}
-.rdr .area{fill:var(--ink2);fill-opacity:.2;stroke:var(--ink2);stroke-width:1.4;stroke-linejoin:round}
-.rdr .zero,.rdr .dt{fill:var(--ink2)}
+.rdr .area{fill:var(--green);fill-opacity:.16;stroke:var(--green);stroke-width:1.6;stroke-linejoin:round}
+.rdr .zero{fill:var(--ink2)}
+.rdr .dt{fill:var(--green)}
 .rdr .cur{transform-origin:160px 150px;transform:scale(.3);opacity:0;transition:transform .5s var(--ease),opacity .3s}
 .rdr .cur.on{transform:none;opacity:1}
 .rdr-ax{position:absolute;transform:translate(-50%,-50%);display:grid;justify-items:center;align-content:center;gap:1px;min-width:48px;min-height:44px;text-decoration:none;font-size:15.5px;font-weight:600;line-height:1.3;color:var(--ink);border-radius:10px}
 /* six names, clockwise from the top (34 units outside the web's corners, a little closer above and below) */
 .rdr-ax.k0{left:50.00%;top:10.94%}.rdr-ax.k1{left:84.10%;top:30.47%}.rdr-ax.k2{left:84.10%;top:69.53%}.rdr-ax.k3{left:50.00%;top:89.06%}.rdr-ax.k4{left:15.90%;top:69.53%}.rdr-ax.k5{left:15.90%;top:30.47%}
 .rdr-ax small{font-size:13.5px;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.rdr-ax small.go{color:var(--green-ink);font-weight:600}
 .rdr-ax:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .radar-card{padding:6px 0 10px}
 .radar-go{min-height:56px;font-size:17px;border-radius:16px}
@@ -21,18 +24,14 @@
 @media (max-height:700px){.radar-page .rdr{max-width:296px}}
 .radar-key,.radar-note{margin:0;text-align:center}
 .radar-key{padding:0 14px}
-/* under the first screen: each skill in one white block, in ink and grey (the green stays with the button) */
+/* under the first screen: each skill in one white block; bars, trends and links in the theme colour, the rest ink and grey */
 .radar-each{padding:14px 16px 12px}
 .radar-each h2{margin:0;font-size:17px;font-weight:600}
-.radar-goals{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;font-size:13.5px;color:var(--muted);text-decoration:none}
+.radar-goals{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0;font-size:13.5px;font-weight:600;color:var(--green-ink);text-decoration:none}
 .radar-each .rdim{padding:10px 0}
 .radar-gap{margin:6px 0 0}
 .radar-about{margin:0 4px}
-.radar-page .vbar i{background:var(--ink2)}
-.radar-page .spark polyline{stroke:var(--ink2)}
-.radar-page .rbar .up{color:var(--ink)}
 .radar-page .rbar .down{color:var(--muted)}
-.radar-page .rdim a.link{color:var(--ink)}
 .rdim .tiny a.link.rgap{display:block;white-space:normal}
 @media (prefers-color-scheme:dark){.rdr .w1{fill:var(--line)}.rdr .w2{fill:var(--sunk);opacity:1}}
 .rdim{display:grid;gap:4px;padding:10px 4px}
