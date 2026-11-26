@@ -169,6 +169,22 @@ pub async fn notify_hold(app: AppHandle) -> PlanResult {
     put(&app, vec![]).await
 }
 
+/// FlowApp.call('account.changed') (切换账号, 添加账号, 退出登录; docs/native-bridge.md §5): what this computer kept
+/// for the last account goes — its planned and shown reminders, the 「这次什么时候复习」 it saw — and the next look plans
+/// for the account now in use: the bridge asks at once, and if the page goes away first, opening or coming back to the
+/// front does, without the 30 minutes' wait. The switch stays as it is: it belongs to this computer, not the account.
+#[tauri::command]
+pub async fn notify_account(app: AppHandle) -> PlanResult {
+    let st = app.state::<AppState>();
+    if st.settings().once_seen.is_some() {
+        st.update_settings(|s| s.once_seen = None);
+    }
+    let _ = tauri::async_runtime::spawn_blocking(notify::clear_shown).await;
+    let r = put(&app, vec![]).await;
+    st.last_sync.store(0, Ordering::Relaxed);
+    r
+}
+
 /// FlowApp.notify.sync(null) or sync({app: false}): the learner turned the app's reminders off.
 #[tauri::command]
 pub async fn notify_off(app: AppHandle) -> PlanResult {

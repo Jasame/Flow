@@ -328,6 +328,9 @@ Tauri 2，一套代码出 Windows（WebView2）、macOS（WKWebView）和 Linux�
   - permission() 照第 5 节说的，是 App 的提醒开没开：系统允许并且开着是 `'granted'`，没开或关了是 `'undetermined'`，系统里关了是 `'denied'`。Windows 在第一次弹通知之前读不到系统设置，这时只看开关；ask() 不弹框。
     Linux 没有通知权限可问：桌面有通知服务（`org.freedesktop.Notifications`）就看开关，没有就是 `'denied'`。
   - 「每天的计划」（plan）：字段保留了；桌面的 `.ics` 链接还是交给系统日历。
+  - `account.changed`（切换账号、添加账号、退出登录，第 5 节）：先撤掉上一个账号排好的提醒，和通知中心里已经弹出来的（Windows、macOS；Linux 的通知服务各管各的），
+    忘掉它的「这次什么时候复习」，再马上按现在这个账号的 `/api/next/vocab` 重排；网页要是先走开了，下次打开或回到前台就排，不等 30 分钟。
+    提醒开关是这台电脑的，不跟账号走。登录凭证全在 WebView 自己的 cookie 里（`flow_session`、`flow_more` 一样存），桥不读也不挑。
 - 不做：`audio`、`rec`、`speech`。桌面网页本来就能放声音、getUserMedia，麦克风只给本站（WebKitGTK 默认关着 media stream，Linux 上 App 把它打开）。
   Linux 的网页引擎靠 GStreamer 解码：AAC 要 libav 插件，AppImage 自带，deb 依赖它；别的装法缺的话，网页对 AAC 放不了的情况改用 AI 朗读（B3）。
 - 静音开关：环境变量 `FLOW_MUTE=1`。冒烟测试 `--smoke-test=<file>` 一律静音：网页的 `<audio>` 静音，Web Audio 接一个音量为 0 的节点，speechSynthesis 音量 0，通知不带声音。
