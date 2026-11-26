@@ -34,7 +34,9 @@
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
     const chat = view.querySelector('#chat');
     const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
-    const busy = on => { ['#dlgSend', '#dlgEnd', '#dlgMic'].forEach(s => { const b = view.querySelector(s); if (b) b.disabled = on; }); };
+    // 8 lines a round (output_service.DIALOG_LINES): then only 结束并看反馈, which the server takes whatever the length
+    const FULL = 8, full = () => mine() >= FULL;
+    const busy = on => { ['#dlgSend', '#dlgEnd', '#dlgMic', '#dlgText'].forEach(s => { const b = view.querySelector(s); if (b) b.disabled = (on && s !== '#dlgText') || (s !== '#dlgEnd' && full()); }); };  // the box only when the round is full
     const showInput = () => { const box = view.querySelector('#dlgIn'); if (box && !box.hidden) box.scrollIntoView({ block: 'end', behavior: REDUCED ? 'auto' : 'smooth' }); };
     const mine = () => hist.filter(h => h.role === 'me').length;
     async function turn(body) {
@@ -77,6 +79,7 @@
       };
     }
     async function send(text, blob) {
+      if (full()) return;
       const w = waiting(!!blob);
       let body;
       try { body = blob ? { audio: await MIC.payload(blob) } : { text }; } catch (e) { w.done(); toast(e.message); return; }
@@ -98,8 +101,9 @@
       const hint = view.querySelector('#dlgHint');
       hint.innerHTML = (r.hint ? esc('提示：' + r.hint) : '') + (r.say ? `<span class="say-line">${r.hint ? '' : '提示：'}可以说 <b lang="en">${esc(r.say)}</b>${sayIcon('id="dlgSay"', '朗读这句')}</span>` : '');
       const sb = hint.querySelector('#dlgSay'); if (sb) sb.onclick = () => TTS.say(r.say);
-      const n = mine(); view.querySelector('#dlgCount').textContent = n < 4 ? `已经说了 ${n} 句，说到 4 句左右就可以看反馈` : `已经说了 ${n} 句，可以看反馈了`;
-      showInput();
+      const n = mine(); view.querySelector('#dlgCount').textContent = n >= FULL ? `这一轮说满 ${FULL} 句了，点「结束并看反馈」`
+        : n < 4 ? `已经说了 ${n} 句，说到 4 句左右就可以看反馈` : `已经说了 ${n} 句，可以看反馈了`;
+      busy(false); showInput();
     }
     view.querySelector('#dlgSend').onclick = () => { const t = view.querySelector('#dlgText'); const v = t.value.trim(); if (!v) return; t.value = ''; send(v); };
     view.querySelector('#dlgText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); view.querySelector('#dlgSend').click(); } });

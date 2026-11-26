@@ -172,6 +172,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop', 'phone-360')},
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
+            'returning': ('B1', 'work', ['work']),  # an older account signing in from the start page (start_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
@@ -200,7 +201,7 @@ out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
         uname = '小林' if name == 'guide' else f'ui-{name}'
-        secret = 'ui-leaver-' + secrets.token_hex(8) if name == 'leaver' else ''
+        secret = f'ui-{name}-' + secrets.token_hex(8) if name in ('leaver', 'returning') else ''  # (the two that type a password)
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', (uname, app.password(secret) if secret else 'ui-no-login:' + secrets.token_hex(8)))
         uid = c.execute('SELECT id FROM users WHERE username=?', (uname,)).fetchone()[0]
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
@@ -211,6 +212,8 @@ with app.db() as c:
             continue
         nx.save_profile(c, uid, {'level': level, 'goal': goal if goal in nx.GOALS else next(iter(nx.GOALS)), 'themes': [t for t in themes if t in nx.THEMES], 'minutes': 15})
         vs.save_plan(c, uid, {'book': 'core' if level == 'A2' else 'mid', 'daily_new': 10, 'retention': 0.9})
+        if name == 'returning':  # made before more than one goal could be chosen: goal only
+            c.execute('UPDATE next_profiles SET goals=NULL WHERE user_id=?', (uid,)); c.commit()
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):
             nx.save_card(c, uid, {'text': w, 'context': ctx, 'pack': PID})
         nx.save_card(c, uid, {'text': 'not A so much as B', 'meaning': '句型｜例：It is not talent so much as practice.', 'context': 'It is not talent so much as practice.'})
