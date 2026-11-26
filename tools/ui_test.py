@@ -4691,6 +4691,29 @@ def start_run(pw):
                       (again, pg.evaluate('location.hash')))
                 check(dev, f'{tag}: no script errors', not errs, errs[:3])
                 ctx.close()
+        # an older account (goal only), signed out, opens the site (/, or 认识语流's 「免费开始学」 → /#/join), lands on the
+        # start page and signs in there: 今日 follows, not the questions again (the owner, 2026-11-26)
+        back = []
+        for start in ('/', '/#/join'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            if 'NO_INTRO' in globals():  # (新手引导 v2 over the start page: this check is about signing in under it)
+                ctx.add_init_script(NO_INTRO)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + start, wait_until='networkidle'); settle(pg); pg.wait_for_timeout(400)
+            landed = pg.evaluate('location.hash')
+            if pg.evaluate("document.getElementById('sheet').hidden"):
+                pg.click('#wgLogin'); pg.wait_for_selector('#authForm', timeout=4000)
+            tab = pg.query_selector('#sheetCard [role=tab]:has-text("登录")')
+            if tab and tab.get_attribute('aria-selected') != 'true':
+                tab.click(); pg.wait_for_timeout(250)
+            pg.fill('#authForm [name=username]', 'ui-returning'); pg.fill('#authForm [name=password]', CFG['learners']['returning']['password'])
+            pg.click('#authForm [type=submit]')
+            pg.wait_for_function("() => document.getElementById('sheet').hidden", timeout=8000); settle(pg); pg.wait_for_timeout(500)
+            back.append((start, landed, pg.evaluate('location.hash'), pg.query_selector('#view .hello, #view .today-plan') is not None,
+                         pg.query_selector('[data-goal]') is None, errs[:2]))
+            ctx.close()
+        check(dev, 'an older account signed out opens / or /#/join, lands on the start page, signs in there: 今日, not the questions again',
+              all(l == '#/welcome' and h in ('#/', '') and today and gone and not e for (_, l, h, today, gone, e) in back), back)
         # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
