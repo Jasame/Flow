@@ -102,12 +102,15 @@ def word_extras_post(c, path, data, op, who):
         xid = int(data.get('id'))
     except (TypeError, ValueError):
         return {'error': '参数不正确'}, 400
-    row = c.execute('SELECT norm, kind, en, zh FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
+    row = c.execute('SELECT norm, kind, en, zh, hidden FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
         c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras'").fetchone() else None
     if not row:
         return {'error': '没有找到这一条'}, 404
     target = f"{row[0]} · {WX_KIND.get(row[1], row[1])}：{row[2]} {row[3] or ''}".strip() + f' #{xid}'
     if path.endswith('take-down'):
+        if row[4]:  # hidden already (taken down here, or by the AI review): nothing to take down, and the review's own
+            # reason is never replaced by a console one (put_back would then show it again; B7 #443 guards the same)
+            return {'error': '这一条已经藏起来了（审稿时就藏了，或者之前下架过），不用再下架'}, 409
         why = re.sub(r'\s+', ' ', str(data.get('why') or '')).strip()
         if not why or len(why) > 120:
             return {'error': '写一句为什么下架（120 字以内）', 'field': 'why'}, 400
