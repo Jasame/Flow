@@ -352,6 +352,7 @@ flow/tests/test_audio_lines.py
 flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
+flow/tests/test_backup_beta.py
 flow/tests/test_beta_invites.py
 flow/tests/test_beta_tools.py
 flow/tests/test_channels.py
@@ -361,6 +362,7 @@ flow/tests/test_classes.py
 flow/tests/test_coach.py
 flow/tests/test_console_ai_quota.py
 flow/tests/test_console_overview_model.py
+flow/tests/test_console_word_extras.py
 flow/tests/test_content_fallback.py
 flow/tests/test_continuity.py
 flow/tests/test_corpus.py

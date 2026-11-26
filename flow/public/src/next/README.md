@@ -9,6 +9,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | part | what it holds |
 | --- | --- |
 | `00-head.js` | page elements, state, utilities, input helpers (touch, typing, scrolling), icons |
+| `00-icons.js` | 语流's own icons: one line set for every page, `fi('name')` and `fiTile('name')` (`99-icons.css`); a new icon goes here, not into a page's file |
 | `01-audio-offline.js` | browser voice, Kokoro narration, word and sentence clips, mini player, offline review queue |
 | `02-shell.js` | sheets (focus, swipe), keyboard shortcuts, session and sign-in, router |
 | `07-accent.js` | 主题色 (我的 → 外观): 松绿 (default) or 靛蓝 on `<html data-accent>`; kept with the account (`/api/next/accent`, `profile.accent`), before signing in on the device; `99-accent.css` changes only the `--green*` / `--fill` accent, while `--ok*` (right answers, rises, ✓) and `--brand` (the logo) stay green |
