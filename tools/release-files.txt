@@ -389,6 +389,7 @@ flow/tests/test_harmony_link_console.py
 flow/tests/test_ielts_speaking.py
 flow/tests/test_inapp_audio.py
 flow/tests/test_lab.py
+flow/tests/test_lab_jobs_privacy.py
 flow/tests/test_learner.py
 flow/tests/test_learner_round.py
 flow/tests/test_learning.py

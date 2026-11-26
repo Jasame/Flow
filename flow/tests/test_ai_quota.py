@@ -182,11 +182,17 @@ class QuotaTests(unittest.TestCase):
         ids = {r['request_id']: r['id'] for r in self.c.execute('SELECT id, request_id FROM lab_jobs')}
         self.c.executemany('INSERT INTO feedback_disputes VALUES(?,?,?,?)', [(1, ids['old-job-00001'], '我觉得没错', now - 180 * 86400),
                                                                            (1, ids['new-job-00001'], '这里不对', now)])
+        # the old dispute route's copy of the result (lab_service, kind 'feedback'): goes with its job; others stay
+        self.c.executemany('INSERT INTO teaching_corrections(user_id,kind,ref,original,correction,created) VALUES(?,?,?,?,?,?)',
+                           [(1, 'feedback', ids['old-job-00001'], '{"summary": "x"}', '我觉得没错', now - 180 * 86400),
+                            (1, 'feedback', ids['new-job-00001'], '{"summary": "x"}', '这里不对', now),
+                            (1, 'memory', ids['old-job-00001'], 'a memory', 'not this', now - 200 * 86400)])
         self.c.commit()
         self.assertEqual(self.c.execute('PRAGMA foreign_keys').fetchone()[0], 1)  # as the site runs: the dispute must go first
-        self.assertEqual(q.prune(self.c, now), 3)  # two results, one dispute
+        self.assertEqual(q.prune(self.c, now), 4)  # two results, one dispute, one copy
         self.assertEqual([r[0] for r in self.c.execute('SELECT request_id FROM lab_jobs')], ['new-job-00001'])
         self.assertEqual([r[0] for r in self.c.execute('SELECT correction FROM feedback_disputes')], ['这里不对'])
+        self.assertEqual(sorted(tuple(r) for r in self.c.execute('SELECT kind, correction FROM teaching_corrections')), [('feedback', '这里不对'), ('memory', 'not this')])
         self.assertEqual(q.prune(self.c, now), 0)
 
     def test_read_aloud_characters_go_after_90_days_with_the_account_and_into_the_export(self):  # B6, D2

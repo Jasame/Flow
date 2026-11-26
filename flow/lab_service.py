@@ -294,6 +294,9 @@ def post(c,uid,path,data):
   c.execute('INSERT OR REPLACE INTO material_difficulty VALUES(?,?,?,?)',(uid,pack['id'],rating,time.time()));c.commit()
   return {'ok':True,'message':'已记录；仅调整材料排序，不改变你的能力等级或正在进行的任务。'},200
  if path=='/api/lab/feedback/dispute':
+  # 对 AI 批改提异议: no page or app calls it any more (the classic site's), so nothing new is taken (D2 2026-11-27);
+  # the rows already there go with their results after 180 days (ai_quota.prune) and with the account
+  return {'error':'这个功能已经停用','code':'gone'},410
   correction=text(data.get('correction'),maximum=600)
   job=c.execute("SELECT id,result FROM lab_jobs WHERE user_id=? AND request_id=? AND status='complete' AND kind IN ('feedback','audio','vocab-feedback')",(uid,data.get('request_id'))).fetchone()
   if not job:raise ValueError('反馈不存在或无权纠正')

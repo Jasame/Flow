@@ -188,7 +188,8 @@ def give_back(c, uid, kind, day=None):
 def prune(c, now=None):
     """Once a day (ai_routes.tick): a person's counts older than KEEP_DAYS become the day's total with no account, and
     each AI result older than JOB_KEEP_DAYS goes (lab_jobs, with a learner's dispute of it first: feedback_disputes.job
-    refers to it and the site runs with foreign keys on). Returns the rows folded or removed. Every reader of the counts
+    refers to it and the site runs with foreign keys on; and the copy the old dispute route kept in teaching_corrections,
+    kind 'feedback', ref = the job). Returns the rows folded or removed. Every reader of the counts
     looks 30 days back at most (console_data.ai, report(), site_limit 7); every reader of lab_jobs looks at a request
     just made or at recent days (B7 checked them all, 2026-11-27)."""
     cut = _today((now or time.time()) - KEEP_DAYS * 86400)
@@ -208,6 +209,8 @@ def prune(c, now=None):
         old = (now or time.time()) - JOB_KEEP_DAYS * 86400
         if _table(c, 'feedback_disputes'):
             n += c.execute('DELETE FROM feedback_disputes WHERE job IN (SELECT id FROM lab_jobs WHERE created<?)', (old,)).rowcount
+        if _table(c, 'teaching_corrections'):  # the old dispute route's copy of the result (its first 1,200 characters): no longer than it
+            n += c.execute("DELETE FROM teaching_corrections WHERE kind='feedback' AND ref IN (SELECT id FROM lab_jobs WHERE created<?)", (old,)).rowcount
         n += c.execute('DELETE FROM lab_jobs WHERE created<?', (old,)).rowcount
     c.commit()
     return n
