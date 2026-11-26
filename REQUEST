@@ -1,3 +1,3 @@
-c19f3bd2f68cb55e3401e249d6b57495edb66e81 b8907b00e3191f0a95054663b5fa734d190ec48f9e69d923a6831eee089130e3 e2e light ref=build-664206240008 tag=b105 tools=c8f8bc8e43fd5f240d1e4b9541d9e4edc8f88c917b5795e6ecafd8f51af4bfbb
-# b105 main: Merge pull request #369 from Jasame/about-linux-ios = build of 664206240008
+365484d238ac16c89e5fb6f1fd9c67950a34f31e 4d03adb8017fce1006b562035de1510fb471f81a226dee82400b498c73526b32 e2e light ref=build-765ed02cd64b tag=b106 tools=e07e9179c07ca1092a9fdce25ea2559cbb18d22b5010fe24fc31ff5779d1ce02
+# b106 main: Merge pull request #382 from Jasame/android-104-guide = build of 765ed02cd64b
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
