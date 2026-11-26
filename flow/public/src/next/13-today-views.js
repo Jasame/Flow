@@ -197,6 +197,12 @@
     const go = k => dk.scrollTo({ left: left(Math.max(0, Math.min(cards.length - 1, k))), behavior: calm ? 'auto' : 'smooth' });
     fit();
     dk.scrollLeft = left(start); paint();
+    // measured again once the line above has its height (a reminder filled in, closed, or the fonts arriving): one height
+    // for all six cards, the dots and 编辑 never moving while the cards are swiped
+    const refit = () => { if (!dk.isConnected) return; const k = at(); fit(); dk.scrollLeft = left(k); paint(); };
+    const notes = document.querySelector('.tv-notes');
+    if (notes && window.ResizeObserver) new ResizeObserver(refit).observe(notes);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
     dk.addEventListener('scroll', () => { if (!frame) frame = requestAnimationFrame(paint); }, { passive: true });
     dk.addEventListener('keydown', e => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -221,7 +227,7 @@
     ['pointerup', 'pointercancel', 'scroll'].forEach(t => dk.addEventListener(t, stop, { passive: true }));
     dk.addEventListener('click', e => { if (held) { e.preventDefault(); e.stopPropagation(); held = false; } }, true);
     dk.addEventListener('contextmenu', e => { if (e.target.closest('.tv-dc')) e.preventDefault(); });
-    const onResize = () => { if (!dk.isConnected) return removeEventListener('resize', onResize); const k = at(); fit(); dk.scrollLeft = left(k); paint(); };
+    const onResize = () => { if (!dk.isConnected) return removeEventListener('resize', onResize); refit(); };
     addEventListener('resize', onResize);
   }
 

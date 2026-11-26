@@ -3209,7 +3209,8 @@ DECK_JS = r"""() => { const q = s => document.querySelector(s), r = e => e.getBo
     cardBottom: cards[at] ? Math.round(r(cards[at]).bottom) : null, wide: document.scrollingElement.scrollWidth - innerWidth,
     arrows: [...document.querySelectorAll('.tv-arrow')].filter(a => a.offsetParent !== null).length,
     rest: !!q('#view #mTitle'), snap: getComputedStyle(dk).scrollSnapType, stop: getComputedStyle(cards[0]).scrollSnapStop,
-    edit: (q('.tv-under .tv-edit') || { getAttribute: () => null }).getAttribute('href') }; }"""
+    edit: (q('.tv-under .tv-edit') || { getAttribute: () => null }).getAttribute('href'),
+    heights: [...new Set(cards.map(c => c.offsetHeight))], under: q('.tv-under') ? Math.round(r(q('.tv-under')).top) : null }; }"""
 
 SWIPE_SIZES = {'ipad-land': (1180, 820), 'ipad-mini-land': (1133, 744), 'phone': (390, 844)}
 SWIPE_AT = """([x, y, dx, dy]) => {
@@ -3404,6 +3405,11 @@ def progress_run(pw):
                 pg.focus('#tvDeck'); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(500)
                 moved = pg.evaluate(DECK_JS)
                 check(dev, f'{tag}: → turns to the next card (这周), and its dot lights', moved['at'] == 1 and moved['dotOn'] == 1 and moved['keys'][1] == 'week', (moved['at'], moved['dotOn']))
+                ys = []
+                for k in range(len(deck['keys'])):  # every card in turn: one height for all, the dots and 编辑 never move
+                    pg.evaluate("k => { const d = document.getElementById('tvDeck'); d.scrollLeft = k * (d.children[0].offsetWidth + 10); }", k); pg.wait_for_timeout(120)
+                    ys.append(pg.evaluate(DECK_JS)['under'])
+                check(dev, f'{tag}: the six cards are one height and the dots stay put while the cards are swiped', len(deck['heights']) == 1 and len(set(ys)) == 1, (deck['heights'], ys))
                 if size == 'phone-390' and theme == 'light':
                     # 调整顺序: 编辑 opens it; 好句 dragged to the front, 我的材料 moved with the keys; 完成 keeps it with the
                     # account and 今日 opens on the new first card. Put back after.

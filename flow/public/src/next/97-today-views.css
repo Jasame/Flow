@@ -54,6 +54,7 @@
 
 /* 卡片: one screen; the card in the middle, a sliver of each neighbour; snapping is the browser's own */
 .tv-notes:empty{display:none}
+#notice .mail-line .link{color:var(--ink);font-weight:600}  /* 今日's one green thing is its button: 去绑定 in ink */
 .tv-notes>:not(:empty)~*{display:none}  /* one reminder at a time, in a line above the cards */
 .tv-notes .notice{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;margin:0 0 10px;padding:8px 8px 8px 14px}
 .tv-notes .notice>.small,.tv-notes .notice>span.muted{display:none}
