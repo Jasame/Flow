@@ -306,24 +306,28 @@ def reviewer(review=True):
 
 
 def run_batch(c, batch, nx, guard, review=True):
-    """Write, check, store and review one batch: {'words', 'rows', 'left_out', 'hidden'}. The reviewer is looked up
-    first: without one nothing is asked or stored."""
+    """Write, check, review and store one batch: {'words', 'rows', 'left_out', 'hidden'}. The reviewer is looked up
+    first: without one nothing is asked or stored. Both model calls come before the database is written, so the write
+    is one short transaction (2026-11-26 22:4x on 正式版: storing before the review held the site's write lock for the
+    reviewer's ~10 s, and four workers ran into 「database is locked」)."""
     reviewer_name = reviewer(review)
     out, model = ask(write_messages(batch))
     by = {str(x.get('word', '')).lower(): x for x in (out.get('items') or []) if isinstance(x, dict)}
     rows = left = 0
-    passed = []
+    kept, passed = [], []
     for w, _, meaning, _ in batch:
         keep, why = check(w, by.get(w) or {}, nx, guard)
-        store(c, w, keep, model)
+        kept.append((w, keep))
         rows += len(keep); left += len(why)
         if keep:
             passed.append({'word': w, 'meaning': meaning, 'collocations': [{'en': e, 'zh': z} for k, e, z, _ in keep if k == 'colloc'],
                            'near': [{'word': e, 'zh': z, 'diff': d} for k, e, z, d in keep if k == 'near']})
-    hidden = 0
+    problems = []
     if reviewer_name and passed:
-        problems, _ = ask(review_messages(passed), reviewer_name)
-        hidden = flag(c, problems.get('problems'))
+        problems = (ask(review_messages(passed), reviewer_name)[0] or {}).get('problems')
+    for w, keep in kept:  # one transaction, milliseconds long
+        store(c, w, keep, model)
+    hidden = flag(c, problems)
     c.commit()
     return {'words': len(batch), 'rows': rows, 'left_out': left, 'hidden': hidden}
 

@@ -177,6 +177,18 @@ class StoreTests(unittest.TestCase):
         self.assertEqual([x['en'] for x in wx.shown(self.c, 'borrow') if x['kind'] == 'near'], [])
         self.assertEqual(wx.shown(self.c, 'penny'), [])  # nothing passed: the card shows nothing, nothing made up
 
+    def test_the_database_is_written_only_after_both_model_calls(self):  # 正式版 2026-11-26: 「database is locked」
+        seen = []
+
+        def ask(messages, model=None):
+            seen.append((model, self.c.in_transaction))
+            return ({'items': [GOOD]}, 'flow-batch-ds-flash') if model is None else ({'problems': []}, model)
+        with patch.object(wx, 'ask', ask), patch('chat_service.backup_model', lambda: 'flow-text-qwen-plus'):
+            r = wx.run_batch(self.c, [('borrow', '四级', '借', False)], nx, topic_guard.hits)
+        self.assertEqual(seen, [(None, False), ('flow-text-qwen-plus', False)])  # no write lock held while a model answers
+        self.assertEqual((r['rows'], self.c.in_transaction), (4, False))
+        self.assertEqual(len(wx.shown(self.c, 'borrow')), 4)
+
     def test_no_reviewer_no_items(self):  # the guide (B2's #429): every item on a card was read by a second model
         calls = []
 
