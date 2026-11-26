@@ -156,6 +156,22 @@ class QuotaTests(unittest.TestCase):
         self.assertIn('ai_quota', data); self.assertIn('ai_usage_kind', data)
         self.assertNotIn('changed_by', data['ai_quota'][0])
 
+    def test_a_persons_counts_go_after_90_days_and_the_days_total_stays(self):  # D2: 「保存多久」
+        now = time.time()
+        old, kept = (time.strftime('%Y-%m-%d', time.gmtime(now - d * 86400)) for d in (95, 30))
+        self.c.executemany('INSERT INTO ai_usage VALUES(?,?,?)', [(1, old, 4), (2, old, 3), (0, old, 2), (1, kept, 5)])
+        self.c.executemany('INSERT INTO ai_usage_kind VALUES(?,?,?,?)', [(1, old, 'chat', 4), (2, old, 'chat', 1), (2, old, 'next-essay', 2), (1, kept, 'chat', 5)])
+        q.set(self.c, 1, 'admin@flow', '一直留', limit=8); self.c.commit()
+        self.assertEqual(q.prune(self.c, now), 2)
+        self.assertEqual([tuple(r) for r in self.c.execute('SELECT user_id, count FROM ai_usage WHERE day=? ORDER BY user_id', (old,)).fetchall()], [(-1, 7), (0, 2)])
+        self.assertEqual([tuple(r) for r in self.c.execute('SELECT kind, count FROM ai_usage_kind WHERE day=? ORDER BY kind', (old,)).fetchall()], [('chat', 5), ('next-essay', 2)])
+        self.assertEqual([tuple(r) for r in self.c.execute('SELECT user_id FROM ai_usage_kind WHERE day=? GROUP BY user_id', (old,)).fetchall()], [(-1,)])
+        self.assertEqual(q.used(self.c, 1, kept), 5)  # 30 days back: kept
+        self.assertIsNotNone(q.get(self.c, 1)); self.assertTrue(q.history(self.c, 1))  # the quota and its log stay
+        self.assertEqual(q.prune(self.c, now), 0)  # once is enough
+        self.assertNotIn(-1, [r['user_id'] for r in q.report(self.c, now=now)])
+        self.assertIn('「我的 → 问题反馈」', q.PAUSED)
+
     def test_the_consoles_see_each_persons_use(self):
         self.use(1, 4); self.use(2, 1, 'chat')
         q.set(self.c, 3, 'owner', '观察', limit=2); self.c.commit()  # an account with an override is listed even unused

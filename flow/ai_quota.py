@@ -7,12 +7,15 @@ own ceiling. An account's ceiling: an override in force (a number of calls a day
 FLOW_AI_USER_DAILY_LIMIT (the console's value over /etc/flow.env). Admins have no ceiling of their own but can be
 paused. Paused also stops AI voice (the page reads with the browser's voice); learning without AI goes on.
 Counting: ai_usage (a UTC day, reset at 08:00 Beijing), and per task in ai_usage_kind beside it, written and given
-back in the same places, so the parts always add up to the number the gates use.
+back in the same places, so the parts always add up to the number the gates use. Kept KEEP_DAYS a person (D2, the
+privacy chapter's 「保存多久」): then folded into one row a day with no account (user_id TOTAL), so the site's daily
+totals stay; the quota itself and its log stay while the account does.
 """
 import datetime, json, time
 
 DAILY_MAX, FACTOR_MIN, FACTOR_MAX, REASON_MAX, UNTIL_MAX_DAYS = 1000, 0.1, 10.0, 120, 366
-PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请联系老师或管理员。'
+KEEP_DAYS, TOTAL = 90, -1  # TOTAL: the no-account row of a day once its people are folded in (0 is the site's own, daily_service)
+PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 问题反馈」里说。'  # D2: a way to reach someone
 SITE_FULL = '本站今日 AI 调用额度已用完，请明天再来。'
 RESET_TEXT = '北京时间早上 8 点'
 
@@ -153,6 +156,21 @@ def give_back(c, uid, kind, day=None):
     day = day or _today()
     c.execute('UPDATE ai_usage SET count=MAX(0, count-1) WHERE user_id=? AND day=?', (uid, day))
     c.execute('UPDATE ai_usage_kind SET count=MAX(0, count-1) WHERE user_id=? AND day=? AND kind=?', (uid, day, kind or 'other'))
+
+
+def prune(c, now=None):
+    """Once a day (ai_routes.tick): a person's counts older than KEEP_DAYS become the day's total with no account.
+    Returns the rows folded. Every reader looks 30 days back at most (console_data.ai, report(), site_limit 7)."""
+    cut = _today((now or time.time()) - KEEP_DAYS * 86400)
+    n = c.execute('SELECT COUNT(*) FROM ai_usage WHERE day<? AND user_id>0', (cut,)).fetchone()[0]
+    c.execute('INSERT INTO ai_usage(user_id, day, count) SELECT ?, day, SUM(count) FROM ai_usage WHERE day<? AND user_id>0 GROUP BY day '
+              'ON CONFLICT(user_id, day) DO UPDATE SET count=count+excluded.count', (TOTAL, cut))
+    c.execute('DELETE FROM ai_usage WHERE day<? AND user_id>0', (cut,))
+    c.execute('INSERT INTO ai_usage_kind(user_id, day, kind, count) SELECT ?, day, kind, SUM(count) FROM ai_usage_kind WHERE day<? AND user_id>0 '
+              'GROUP BY day, kind ON CONFLICT(user_id, day, kind) DO UPDATE SET count=count+excluded.count', (TOTAL, cut))
+    c.execute('DELETE FROM ai_usage_kind WHERE day<? AND user_id>0', (cut,))
+    c.commit()
+    return n
 
 
 # ---------- what learners and the consoles read ----------
