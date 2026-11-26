@@ -253,6 +253,11 @@ def persona_a2(cl):
     check(who, 'plan core book', s == 200, pl)
     s, q = cl.get('/api/next/review')
     check(who, 'review queue has items', s == 200 and len(q.get('items', [])) >= 5, (q.get('due'), q.get('new'), len(q.get('items', []))) if isinstance(q, dict) else q)
+    # #344: the word review holds words and phrases only; mistakes, saved sentences and patterns have their own (?part=other)
+    s2, qo = cl.get('/api/next/review?part=other')
+    mixed = [x.get('mode') for x in q.get('items', []) if x.get('mode') in ('fix', 'question', 'sound')] if isinstance(q, dict) else []
+    check(who, 'the word review has no mistakes; 错题和句型 is its own queue', s2 == 200 and isinstance(qo, dict) and isinstance(qo.get('items'), list) and not mixed,
+          (s2, mixed, len(qo.get('items', [])) if isinstance(qo, dict) else qo))
     grades = ['good', 'again', 'hard', 'easy', 'good', 'good', 'again']
     modes = ['recognize', 'recall', 'spell', 'cloze', 'recognize', 'recall', 'spell']
     rated = 0
