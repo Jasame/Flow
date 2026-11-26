@@ -609,6 +609,56 @@
       });
     }).catch(function (e) { box.innerHTML = '<p class="err">' + esc(e.message) + '</p>'; });
   }
+  /* ---------- 内测邀请码（beta_invites.py）：内测版凭邀请码注册。发码、作废、看谁用了哪个码；开码以前的账号可以逐个停用 ---------- */
+  function invitesView() {
+    if (!isBeta()) { main.innerHTML = '<div class="card"><p>邀请码只在内测版的后台（xmc.hk/flow-beta）里发。正式版注册不用邀请码。</p></div>'; return Promise.resolve(); }
+    return getJSON('/beta-invites').then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>内测邀请码</h1><p class="muted">' + esc(siteName()) + ' · ' +
+          (d.on ? '注册要邀请码（已打开）' : '<span class="err">注册还不要邀请码：服务器上的开关没打开</span>') + '</p></div></div>' +
+        '<div class="grid2">' +
+        '<section class="card"><h2>发一个邀请码</h2><form id="invNew" class="stack-s">' +
+          '<label class="field">能用几次<input class="input" name="uses" type="number" min="1" max="' + d.max_uses + '" value="' + d.uses + '"></label>' +
+          '<label class="field">有效几天<input class="input" name="days" type="number" min="1" max="' + d.max_days + '" value="' + d.days + '"></label>' +
+          '<label class="field">备注（发给谁，自己看）<input class="input" name="note" maxlength="40" placeholder="比如 第二批内测、周三口语课（不写真名）"></label>' +
+          '<div class="row"><button class="btn primary">生成</button></div></form><div id="invOut"></div></section>' +
+        '<section class="card"><h2>开邀请码以前注册的账号</h2><p><b>' + n(d.before) + '</b> 个，照常能用。</p>' +
+          '<p class="muted small">想停用哪一个：到「学员」里筛「没用邀请码注册的」，点开账号，用「停用账号」。停用以后马上退出登录，也登不进来；随时可以恢复。</p>' +
+          '<p><a class="btn" href="#learners">去「学员」</a></p></section></div>' +
+        '<section class="card"><h2>发过的邀请码</h2>' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>邀请码</th><th>状态</th><th class="num">用了</th><th>谁用了</th><th class="opt">生成</th><th class="opt">有效到</th><th></th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr' + (x.status === 'open' ? '' : ' class="dim"') + '><td><code>' + esc(x.code) + '</code>' + (x.note ? '<span class="sub">' + esc(x.note) + '</span>' : '') + '</td>' +
+              '<td><span class="pill' + (x.status === 'open' ? '' : ' off') + '">' + esc(x.status_label) + '</span></td>' +
+              '<td class="num">' + n(x.used) + ' / ' + n(x.uses) + '</td>' +
+              '<td>' + (x.people.length ? x.people.map(function (p) { return '<a href="#learners/' + p.id + '">' + esc(p.username) + '</a><span class="sub">' + esc(p.at) + '</span>'; }).join('') : '<span class="muted">还没人用</span>') + '</td>' +
+              '<td class="opt">' + esc(x.created) + (x.by ? '<span class="sub">' + esc(x.by) + '</span>' : '') + '</td><td class="opt">' + esc(x.expires) + '</td>' +
+              '<td>' + (x.status === 'open' ? '<button class="btn" type="button" data-irevoke="' + x.id + '">作废</button>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">还没有发过邀请码。</p>') + '</section>';
+      var f = document.getElementById('invNew');
+      f.onsubmit = function (e) {
+        e.preventDefault();
+        var b = f.querySelector('button');
+        busy(b, postJSON('/beta-invite/create', { uses: +f.uses.value, days: +f.days.value, note: f.note.value })).then(function (r) {
+          var msg = '语流内测版邀请码：' + r.code + '（能用 ' + r.uses + ' 次，' + r.expires + ' 以前有效）。打开 ' + siteUrl('/') + '，点「注册」时填这个码。';
+          invitesView().then(function () {
+            var out = document.getElementById('invOut');
+            out.innerHTML = '<p class="inv-code"><code>' + esc(r.code) + '</code></p><p><input class="input acc-link" id="invMsg" readonly value="' + esc(msg) + '"> <button class="btn" type="button" id="invCopy">复制这段话</button></p>' +
+              '<p class="muted small">发给要内测的人。码在下面的列表里一直看得到，用完、过期或作废以后就不能再注册。</p>';
+            document.getElementById('invCopy').onclick = function () {
+              var i = document.getElementById('invMsg'); i.select();
+              (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(function () { document.getElementById('invCopy').textContent = '已复制'; }, function () { document.execCommand('copy'); });
+            };
+          });
+        }, function () { /* shown */ });
+      };
+      main.querySelectorAll('[data-irevoke]').forEach(function (b) {
+        b.onclick = function () {
+          if (!ask('作废这个邀请码？\n\n作废后马上不能再用来注册；已经用它注册的账号照常能用。')) return;
+          busy(b, postJSON('/beta-invite/revoke', { id: +b.dataset.irevoke })).then(invitesView, function () { /* shown */ });
+        };
+      });
+    }).catch(fail);
+  }
   function openClass(id) {
     drawer.hidden = drawerBg.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -1181,8 +1231,8 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, classes: classesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
-  var ADMIN_TABS = ['responses', 'learners', 'classes', 'feedback', 'errors', 'log'];
+    learners: learnersView, classes: classesView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
+  var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
     var h = (location.hash || '#overview').slice(1), cut = h.indexOf('/');
@@ -1244,7 +1294,7 @@
       if (w) { w.textContent = (me.email || '未识别的账号') + ' · ' + me.label; w.hidden = false; }
       var el = document.getElementById('srv');
       if (el && me.server) { el.textContent = '数据来自' + me.server; el.hidden = false; }
-      document.querySelectorAll('.adm-tabs [data-admin], .adm-groups [data-admin]').forEach(function (a) { a.hidden = !isAdmin(); });
+      document.querySelectorAll('.adm-tabs [data-admin], .adm-groups [data-admin]').forEach(function (a) { a.hidden = !isAdmin() || (a.hasAttribute('data-beta') && !isBeta()); });
       if (isAdmin()) getJSON('/feedback?status=new&page=1').then(function (d) { fbBadge(d.counts.new); }).catch(function () { /* an older Flow */ });
     }).catch(function () { /* an older Flow without /me: everything as before */ });
   }
