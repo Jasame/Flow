@@ -65,7 +65,7 @@
     view.querySelector('h1').textContent = met ? '说到了' : '意思还没到';
     scrollTo(0, 0);
     const out = view.querySelector('#twOut');
-    out.innerHTML = `<div class="two-fb stack-s"><span class="tiny muted">✦ AI 点评</span><span class="${met ? 'two-ok' : ''}">${esc(x.note || '')}</span>
+    out.innerHTML = `<div class="two-fb stack-s" data-ex-block><span class="tiny muted">✦ AI 点评</span><span class="${met ? 'two-ok' : ''}" data-ex>${esc(x.note || '')}</span>
         ${said ? `<div class="stack-s"><span class="tiny muted">你说的</span><span class="two-en" lang="en">${esc(said)}</span></div>` : ''}
         ${better ? `<div class="stack-s"><span class="tiny muted">${met ? '还可以这样说' : '可以这样开头'}</span><span class="two-en" lang="en">${better}</span></div>` : ''}
         <span class="tiny muted" id="twSaved">${hinted ? '看了提示' : '没看提示，自己说的'}</span></div>

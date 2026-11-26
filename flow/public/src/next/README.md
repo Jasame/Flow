@@ -30,6 +30,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`); 仿写 in three blocks: the sentence and the task, the writing box, one full-width button (`97-out-model.css`) |
 | `25-finish.js` | 这篇完成了 (r27): the finish card after any 用出来, with three lines on what the text gave (expressions, words, a grammar point) |
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
+| `31-ex-zh.js` | 看中文 under the AI's English explanations (English mode): one 「Show Chinese · 看中文」 after each `data-ex-block`, the block's `data-ex` lines to `/api/next/zh` and back in Chinese under each line; lines added later come in Chinese while it is on (`31-ex-zh.css`) |
 | `40-graph.js` | knowledge graph: learning route and full map; grammar-point pages (Chinese-speaker trap, connected points, rounds of 4 from a bank of 10) |
 | `41-placement.js` | 语法起点小测: 16 questions band by band, places the learner and lights the graph |
 | `42-exam.js` | 考试练习: timed sets for 中考 … 专八 / IELTS, results and their trend |
