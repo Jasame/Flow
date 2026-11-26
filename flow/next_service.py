@@ -772,6 +772,32 @@ def read_fits(words, minutes, exam=False):
     return tb.read_minutes(words, b['read_mode']) <= b['read'] / b['texts'] + 1
 
 
+def mine(c, uid, prof=None):
+    """练我自己的材料 on 今日 (r29, the user's pick 2026-11-26): the learner's own article (我的文章) to go on with:
+    the one studied most recently and not finished (no 用出来 yet), else the newest not studied yet; with 按我的学习记录推荐
+    off, simply the newest. {count, item: {id, title, level, words, steps, started} or None}: None when there is none
+    to go on with (none imported, or all finished), and 今日 asks for one."""
+    rows = c.execute("SELECT content, created FROM lab_packs WHERE owner=? AND origin='import' ORDER BY created DESC", (uid,)).fetchall()
+    packs = [json.loads(r['content']) for r in rows]
+    if not packs:
+        return {'count': 0, 'item': None}
+    done = _done(c, uid)
+    if follows_records(prof):
+        touched = {r['pack']: r['t'] for r in c.execute(
+            'SELECT pack, MAX(created) t FROM (SELECT pack, created FROM next_progress WHERE user_id=? '
+            'UNION ALL SELECT pack, created FROM next_step_log WHERE user_id=?) GROUP BY pack', (uid, uid))}
+        unfinished = [p for p in packs if 'output' not in done.get(p['id'], set())]
+        started = sorted((p for p in unfinished if p['id'] in touched), key=lambda p: -touched[p['id']])
+        pick = (started or unfinished or [None])[0]
+    else:
+        pick = packs[0] if 'output' not in done.get(packs[0]['id'], set()) else None
+    if not pick:
+        return {'count': len(packs), 'item': None}
+    steps = sorted(done.get(pick['id'], set()), key=lambda s: STEPS.index(s) if s in STEPS else len(STEPS))
+    return {'count': len(packs), 'item': {'id': pick['id'], 'title': pick['title'], 'level': pick.get('cefr') or pick.get('level'),
+                                          'words': len(WORD.findall(pick.get('body') or '')), 'steps': steps, 'started': bool(steps)}}
+
+
 def featured_left(c, uid, level, done=None):
     """How many of a level's featured texts the learner has not learned yet (every episode of a serial counts).
     今日 says so from seven down (r27 content line); other parts of 今日 can use it too (今日好句 avoids the last few)."""
@@ -930,7 +956,8 @@ def home(c, uid, level=None, themes=None):
            'announce': __import__('console_ops').current_announcement(c),
            'trial_survey': bool(uid) and __import__('class_service').survey_due(c, uid),  # 公告 from the xmc.hk console, at the top of 今日
            'update': __import__('updates_service').latest(),  # 「语流更新了」 on 今日: the newest release's highlights (updates_service.py)
-           'personalized': bool(uid) and not plain}  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
+           'personalized': bool(uid) and not plain,  # 按我的学习记录推荐: whether today's picks followed the records (B8: 今日 shows nothing for it; 我的 → 设置 says it)
+           'mine': mine(c, uid, prof) if uid else None}  # 练我自己的材料 (r29): 今日's third row
     if uid and prof:
         import skills_service as sk
         out['sprint'] = __import__('exam_sprint').brief(c, uid)  # 考试冲刺: the exam and its days left, in the plan's header line
