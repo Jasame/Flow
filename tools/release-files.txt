@@ -335,6 +335,7 @@ flow/teacher_service.py
 flow/tests/test_ability_radar.py
 flow/tests/test_access_check.py
 flow/tests/test_account_data.py
+flow/tests/test_account_tables.py
 flow/tests/test_adaptive.py
 flow/tests/test_admin_roles.py
 flow/tests/test_ai_cost.py
@@ -344,6 +345,7 @@ flow/tests/test_ai_quota.py
 flow/tests/test_ai_routing.py
 flow/tests/test_ai_shape.py
 flow/tests/test_ai_stream.py
+flow/tests/test_ai_usage_page.py
 flow/tests/test_aigc_label.py
 flow/tests/test_atlas.py
 flow/tests/test_audio_lines.py
