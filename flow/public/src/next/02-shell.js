@@ -110,6 +110,7 @@
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
     if (S.user && S.home.profile) langFromAccount(S.home.profile);  // and 界面语言 (07-lang.js)
+    if (S.user && S.home.profile) prefsFromAccount(S.home.profile);  // and the rest of 使用习惯 (07-prefs.js)
     setDueBadge();
     return changed;
   }
@@ -417,7 +418,7 @@
       else if (name === 'library') { setNav('practice'); await libraryView(); }
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
-      else if (name === 'me') { setNav('me'); await meView(a); }  // #/me/account, #/me/help: that fold open
+      else if (name === 'me') { setNav('me'); if (a === 'habits') habitsView(); else await meView(a); }  // #/me/account, #/me/help: that fold open; 使用习惯 (81-habits.js)
       else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }
       else if (name === 'class' && a) { setNav(S.user && S.user.teacher ? 'today' : 'me'); await classView(decodeURIComponent(a)); }
       else if (name === 'feedback') { setNav('me'); await feedbackView(); }

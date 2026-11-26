@@ -67,7 +67,7 @@
         ${edit ? '<a class="btn ghost block" href="#/me">取消</a>' : S.user ? '' : `<div class="wg-acct"><button class="btn block" id="wgReg" type="button" data-tap="welcome-register">注册账号</button>
           <button class="btn block" id="wgLogin" type="button" data-tap="welcome-login">已有账号？登录</button></div>
         <p class="tiny muted tc">不注册也能先学；注册以后，进度换手机、换电脑都在。</p>`}</div>
-      ${edit ? '' : '<p class="tiny tc about-line"><a class="link" href="/about" data-tap="welcome-about">第一次来？先花一分钟看看语流能帮你做什么</a></p>'}</div>`;  // 认识语流 (#32)
+      </div>`;  // 认识语流 (#32) is in 我的 → 帮助 → 更多: 新手引导 v2 says what it said (one-time-list.md #3)
     const sync = () => {
       if (!picked) st.target = suggest();
       if (!dayPicked) st.days = daysFor();
@@ -116,14 +116,21 @@
       const level = S.placed ? S.placed : edit ? st.level || below(st.target) : below(st.target);
       const source = S.placed ? 'placed' : edit && st.level === cur.level ? (cur.level_source || 'self') : edit && st.level ? 'self' : 'guess';
       const prof = { goal: st.goal, goals: st.goals, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date, weekly_goal: st.days };
-      let made = null;
-      if (S.user) { try { made = (await api('/api/next/profile', prof)).plan_made; } catch (x) { btn.disabled = false; toast(x.message); return; } }
-      S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);
-      document.body.classList.remove('onboarding');
-      await refreshHome(); S.homeFresh = true;
-      if (made) toast(`已为你建好《${made.title}》每天 ${made.daily_new} 个新词`); else if (edit) toast('已保存');
+      try { await welcomeSave(prof, edit); } catch (x) { btn.disabled = false; toast(x.message); return; }
       location.hash = edit ? '#/me' : '#/';
     };
+    // 新手引导 v2 (08-intro.js): a new learner gets 欢迎 and these choices one at a time over this page, once (跳过: this page)
+    if (!edit && !hasProfile() && !load('flow-intro')) introSoon({ setup: true, from: introLeftAt() });
+  }
+  // the profile saved (this page, or the steps of 新手引导 v2); an error is thrown to the caller
+  async function welcomeSave(prof, edit) {
+    let made = null;
+    if (S.user) made = (await api('/api/next/profile', prof)).plan_made;
+    S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);
+    document.body.classList.remove('onboarding');
+    await refreshHome(); S.homeFresh = true;
+    if (made) toast(`已为你建好《${made.title}》每天 ${made.daily_new} 个新词`); else if (edit) toast('已保存');
+    return made;
   }
 
   // 今日: the level was guessed from the target and nothing has been tested yet; one notice suggests a test (the

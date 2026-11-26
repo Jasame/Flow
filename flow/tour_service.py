@@ -7,7 +7,7 @@ has no account in it; next_tours only says, per account, that its tour is behind
 """
 import datetime, os, time
 
-TOURS = {'learner': 5, 'teacher': 3}  # name: steps
+TOURS = {'learner': 13, 'teacher': 3}  # name: steps (新手引导 v2: up to 13 for a new learner, 08-intro.js)
 # Accounts made before the tour existed never see it (they know the pages); FLOW_TOUR_FROM moves the date (the UI tests
 # set it far ahead and give the tour to their own learner only).
 TOUR_FROM = float(os.getenv('FLOW_TOUR_FROM') or datetime.datetime(2026, 11, 25, tzinfo=datetime.timezone(datetime.timedelta(hours=8))).timestamp())
