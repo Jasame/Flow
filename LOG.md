@@ -876,3 +876,12 @@
   - #389 每周进度邮件：链接带 ?from=remind&k=weekly；真发出去才记 mailed（今日和计划）
 - 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45743142588
+
+### b109 · 2026-11-26 10:45
+- main `369a959`，构建 `2087e7e`
+- 新合并的 PR（自 b108 起）：
+  - #383 练习: a 复习 block for mistakes, patterns and sentences, with 错题本 and a tab badge（接替 #346）（开局和考试、后台和班级）
+  - #390 主 AI 关着时，不填主模型名也算 AI 可用（为删掉服务器上的 Gemini 设置做准备）（AI）
+  - #385 更新记录 r37：复习分开、背单词左中右三块、精听和离线朗读（内容）
+- 自检：DEPLOYED，装了 10 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45744380880
