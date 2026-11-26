@@ -1273,3 +1273,12 @@
   - #517 全英文界面：读屏标题带记号也能找到英文，使用习惯短词，english 组加使用习惯页（开局和考试、发版和构建）
 - 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45857581369
+
+### b154 · 2026-11-27 00:32
+- main `5f15a75`，构建 `bc67e56`
+- 新合并的 PR（自 b153 起）：
+  - #518 复习单词's dot only while today's words wait; word counts say what they are（单词、开局和考试、操作指南）
+  - #513 考试冲刺：单词每天的时间最多按每天 40 个新词算（不再出现「单词每天 475 分钟」）（单词、操作指南）
+  - #510 返回和切底栏：回到看过的页不再抖一下（开局和考试、操作指南）
+- 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45859534020
