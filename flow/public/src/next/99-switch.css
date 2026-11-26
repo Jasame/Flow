@@ -16,6 +16,5 @@
 .sw-why{margin:0}
 .sw-note{margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--muted)}
 /* 我的: 「切换 ›」 by the name, only with two or more accounts here */
-.me-id{position:relative}
-.me-switch-top{position:absolute;right:0;top:2px;color:var(--brand)}
+.me-switch-top{margin-left:auto;flex:none;color:var(--brand)}
 .me-switch-top[hidden]{display:none}
