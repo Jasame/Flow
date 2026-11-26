@@ -376,4 +376,7 @@ ERRORS = {
     '一次最多 {n} 段': 'Up to {1} at a time',
     '今天「看中文」已经用了很多次，明天再看吧': "You've used “Show Chinese” a lot today. Try again tomorrow",
     '这会儿翻不出中文，稍后再试一次。': "Couldn't get the Chinese just now. Please try again shortly",
+    # ai_quota.PAUSED after 语流 B7 #468 (问题反馈 under 我的 → 帮助)
+    '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 帮助 → 问题反馈」里说。':
+        'Your AI features are paused. Texts, words and exercises still work. Questions? Me → Help → Feedback',
 }
