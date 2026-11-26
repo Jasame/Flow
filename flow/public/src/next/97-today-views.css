@@ -1,0 +1,146 @@
+/* 今日的样子 (r39, the user's picks 2026-11-26, B9's v3): 列表 and 卡片 drawn from the same parts — a white block, a
+   step row (the next one in ink), the one green button, a grey second button. No lines and no borders; sizes from the
+   seven steps (12 / 13.5 / 15.5 / 17 / 20 / 24 / 28). 13-today-views.js draws them. */
+.vt-today button{min-width:48px;height:30px;font-size:13.5px;font-weight:500}
+.tv-card{display:block;width:100%;box-sizing:border-box;background:var(--paper);border:0;border-radius:20px;text-decoration:none;color:inherit;text-align:left;font:inherit}
+.tv-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.tv-hd h1,.tv-hd b{margin:0;min-width:0;font:600 17px/1.4 var(--sans);color:var(--ink)}
+.tv-hd>span{flex:none;font-size:13.5px;color:var(--muted);white-space:nowrap}
+.tv-hd .tp-count,.tv-sub .tp-count{font:inherit;color:inherit;margin:0}
+.tv-sub{display:block;margin:3px 0 0;font-size:13.5px;line-height:1.5;color:var(--muted)}
+
+/* 这周: one sentence, the days as dots */
+.tv-week{padding:14px 18px 15px;margin-bottom:12px;cursor:pointer}
+.tv-days{display:inline-flex;gap:5px;align-items:center;flex:none;align-self:center}
+.tv-days i{width:7px;height:7px;border-radius:50%;background:var(--line2)}
+.tv-days i.on{background:var(--ink2)}
+
+/* 今天的计划: a step a line — number, title, about how long */
+.tv-plan{padding:16px 18px 8px}
+.tv-plan .sprint-line{margin-top:4px}
+.tv-steps{list-style:none;margin:6px 0 0;padding:0}
+.tv-step{display:flex;align-items:center;gap:12px;min-height:52px;font-size:15.5px;color:var(--ink2);text-decoration:none}
+.tv-step .n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13.5px;background:var(--sunk);color:var(--muted)}
+.tv-step .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-step .m{flex:none;font-size:13.5px;color:var(--muted)}
+.tv-step.next{color:var(--ink);font-weight:600}
+.tv-step.next .n{background:var(--ink);color:var(--paper);font-weight:600}
+.tv-step.next .m{font-weight:400}
+.tv-step.done{color:var(--muted)}
+.tv-plan .tp-note{margin:0 0 8px}
+
+/* the one green thing */
+.tv-btn,.tv-btn.go-next{display:grid;place-items:center;justify-content:center;box-shadow:none;min-height:56px;padding:0 16px;border-radius:16px;background:var(--fill);color:var(--on-fill);font:600 17px/1.25 var(--sans);text-align:center;text-decoration:none}
+.today-plan .tp-more{display:grid;gap:2px;justify-items:center;text-align:center}
+
+/* 还有时间的话: folded under the button; a row a line, its name on the left and what it is in grey on the right */
+.today-plan .tv-fold{gap:8px;grid-template-columns:minmax(0,1fr)}
+.today-plan .tv-fold>summary{min-height:48px;padding:0 18px;border-radius:14px;background:var(--sunk);font-size:15.5px;color:var(--ink2)}
+.today-plan .tv-fold>summary>span:first-child::after{content:none}
+.tv-n{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted)}
+.tv-chev{transition:transform .2s}
+.tv-fold[open] .tv-chev{transform:rotate(180deg)}
+.tv-more{padding:6px 18px}
+.tv-row{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:0;border:0;background:none;font:inherit;font-size:15.5px;color:var(--ink);text-align:left;text-decoration:none;cursor:pointer}
+.tv-row .t{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-row .m{flex:1 1 auto;min-width:0;text-align:right;font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-row .m .ai-mark{font-size:13.5px;font-weight:400;line-height:inherit;vertical-align:baseline;color:inherit}
+.tv-row.named .t,.tv-row .m.tm{flex-shrink:0}  /* a name stays whole, and so does a time: the other side gives way */
+.tv-row.done{color:var(--muted)}
+.line-row .lc-body{display:none;padding:4px 0 16px}
+.line-row.open .lc-body{display:grid}
+.line-row .lc-en{font-size:20px}
+.line-row .lc-en.long{font-size:17px}
+
+/* 卡片: one screen; the card in the middle, a sliver of each neighbour; snapping is the browser's own */
+.tv-notes:empty{display:none}
+.tv-notes>:not(:empty)~*{display:none}  /* one reminder at a time, in a line above the cards */
+.tv-notes .notice{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;margin:0 0 10px;padding:8px 8px 8px 14px}
+.tv-notes .notice>.small,.tv-notes .notice>span.muted{display:none}
+.tv-notes .notice>b,.tv-notes .notice>span:first-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;font-weight:500}
+.tv-notes .notice .row{flex:none;flex-wrap:nowrap;gap:4px}
+.tv-deckbox{position:relative;margin:2px calc(-1 * var(--gut)) 0}
+.tv-deck{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 26px;scrollbar-width:none;outline:none}
+.tv-deck::-webkit-scrollbar{display:none}
+.tv-deck:focus-visible{box-shadow:inset 0 0 0 2px var(--ink2);border-radius:22px}
+.tv-dc{flex:0 0 100%;box-sizing:border-box;height:var(--dk-h,428px);display:flex;flex-direction:column;padding:20px 20px 18px;border-radius:22px;background:var(--paper);overflow:hidden;scroll-snap-align:center;scroll-snap-stop:always;transform-origin:center}
+.tv-dc.today-plan{display:flex;gap:0}
+.tv-scroll{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto}  /* 计划卡: everything above its button, which never leaves the card */
+.tv-scroll .tv-st{flex:none;overflow:visible}
+.tv-lb{margin:0;font:400 13.5px/1.4 var(--sans);color:var(--muted)}
+.tv-big{margin:6px 0 0;font:600 24px/1.3 var(--sans);color:var(--ink)}
+.tv-ttl{margin:6px 0 0;font:600 20px/1.35 var(--sans);color:var(--ink)}
+.tv-dc .tv-sub{margin-top:6px}
+.tv-dc .tv-p{margin:12px 0 0;font-size:15.5px;line-height:1.65;color:var(--ink2)}  /* .tv-dc: over 好句's own .lc-zh margin */
+.tv-clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.tv-quote{margin:14px 0 0;font-family:var(--serif);font-size:24px;line-height:1.42;color:var(--ink);overflow-wrap:anywhere}
+.tv-quote.long{font-size:20px}
+.tv-quote b{font-weight:600;background:linear-gradient(transparent 62%,var(--mark) 0)}
+.tv-mid{margin:auto 0}
+.tv-mid+.tv-act{margin-top:0}  /* 这周's dots in the middle of the space above 看明细 */
+.tv-st{margin-top:10px;min-height:0;overflow:auto}
+.tv-dc .tv-step{min-height:56px}
+.tv-dc .tp-back{margin-bottom:10px}
+.tv-dc .tp-over{margin:8px 0 0}
+.tv-wk7{display:flex;justify-content:space-between;padding:0 4px}
+.tv-wk7 span{display:grid;justify-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.tv-wk7 i{width:12px;height:12px;border-radius:50%;background:var(--line2)}
+.tv-wk7 i.on{background:var(--ink2)}
+.tv-bar{height:4px;margin:12px 0 0;border-radius:2px;background:var(--line2)}
+.tv-bar i{display:block;height:100%;border-radius:2px;background:var(--ink2)}
+.tv-act{display:grid;place-items:center;width:100%;min-height:52px;margin-top:auto;border:0;border-radius:14px;background:var(--sunk);color:var(--ink);font:600 15.5px/1.2 var(--sans);text-decoration:none;cursor:pointer}
+.tv-dc .tv-btn{flex:none;margin-top:auto}
+.tv-also{align-self:center;margin-top:auto}
+.tv-scroll+.tv-btn{margin-top:8px}
+.tv-foot{display:grid;gap:8px;margin-top:auto}
+.tv-ai{margin:0;text-align:center}
+.tv-three{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:8px}  /* 听一遍 the widest; 跟读 and 收藏 as online */
+.tv-three .tv-act{margin:0}
+.tv-dc.tv-line{overflow-y:auto}  /* 跟读 opens its recorder inside the card: the card scrolls, nothing is cut off */
+.tv-foot .lc-sh{margin-bottom:4px}
+.tv-rows{margin-top:10px;min-height:0;overflow:auto}
+.tv-en{margin:14px 0 0;font-family:var(--serif);font-size:17px;line-height:1.6;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* a long press opens 调整顺序: not the link menu, not a text selection (the finger is still down when it opens) */
+.tv-dc,.tv-grid,.tv-edit-head,.tv-edit-hint{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.tv-more+.tv-edit,.tv-fold .tv-edit{justify-self:center;color:var(--muted);font-weight:400}
+
+/* 调整顺序: small white tiles in two columns; the one held lifts, a grey space where it was */
+.tv-edit-head{margin-bottom:12px}
+.tv-edit-t{margin:0;font:600 20px/1.4 var(--sans);color:var(--ink)}
+.tv-done{min-height:44px;padding:0 18px;border:0;border-radius:14px;background:var(--sunk);color:var(--ink);font:600 15.5px/1 var(--sans)}
+.tv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.tv-tile{position:relative;display:grid;align-content:start;gap:4px;height:84px;box-sizing:border-box;padding:14px 16px;border-radius:16px;background:var(--paper);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.tv-tile b{font:600 15.5px/1.4 var(--sans);color:var(--ink)}
+.tv-tile>span{font-size:12px;line-height:1.5;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-tile .tv-ix{position:absolute;top:12px;right:14px;font-style:normal;font-size:13.5px;color:var(--muted)}
+.tv-tile:focus-visible{outline:2px solid var(--ink2);outline-offset:2px}
+.tv-tile.lift{position:fixed;z-index:50;margin:0;cursor:grabbing;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+.tv-slot{height:84px;border-radius:16px;background:var(--sunk);list-style:none}
+.tv-edit-hint{margin:16px 0 0;text-align:center}
+.tv-under{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;margin:10px 0 0;padding:0 2px}
+.tv-under .tv-edit{justify-self:end;color:var(--muted);font-weight:400}
+.tv-dots{display:flex;justify-content:center;gap:7px}
+.tv-dots i{width:6px;height:6px;border-radius:50%;background:var(--line2)}
+.tv-dots i.on{background:var(--ink2)}
+.tv-arrow{display:none}
+@media (min-width:760px){
+  .tv-deckbox{margin-left:0;margin-right:0}
+  .tv-deck{padding:0 48px;scroll-padding:0 48px}
+  .tv-dc{flex-basis:300px;scroll-snap-align:start}  /* side by side: lined up from the left, the first card first */
+  .tv-arrow{display:grid;place-items:center;position:absolute;top:50%;z-index:1;width:36px;height:36px;margin-top:-18px;border:0;border-radius:50%;background:var(--sunk);color:var(--ink);font-size:20px;line-height:1;cursor:pointer}
+  .tv-arrow.prev{left:4px}
+  .tv-arrow.next{right:4px}
+}
+@media (max-height:500px){  /* a phone held sideways: 列表 a little tighter, shorter cards; the plan's button still on the first screen */
+  .tv-week{padding-top:9px;padding-bottom:9px;margin-bottom:8px}
+  .tv-week .tv-sub{display:none}  /* its numbers are one tap away, in the details */
+  .today-plan{gap:10px}
+  .tv-plan{padding-top:8px;padding-bottom:2px}
+  .tv-plan .tv-steps{margin-top:2px}
+  .tv-plan .tv-step{min-height:44px}  /* 44: still a finger's tap */
+  .tv-dc{padding:14px 18px 12px}
+  .tv-dc .tv-big{margin-top:2px;font-size:20px}
+  .tv-dc .tv-step{min-height:44px}
+  .tv-under{margin-top:0}
+}
+@media (prefers-reduced-motion:reduce){.tv-chev{transition:none}}

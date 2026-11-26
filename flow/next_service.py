@@ -36,6 +36,11 @@ MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 # 主题色 (我的 → 外观): the accent the pages are drawn in; green is 配色 A, indigo the optional blue (99-accent.css)
 ACCENTS = ('green', 'indigo')
+# 今日的样子 (r39, the user's pick 2026-11-26: the learner chooses, the list by default): 列表 (the plan, its button,
+# 还有时间的话 folded under it) or 卡片 (one screen, six cards side by side). Kept with the account, like 主题色.
+TODAY_VIEWS = ('list', 'cards')
+# 今日's blocks in the learner's order (one order for both looks; 调整顺序 on 今日 changes it): 今天的计划 first by default
+TODAY_KEYS = ('plan', 'week', 'line', 'mine', 'news', 'extra')
 # 界面语言 (全英文界面, 语流 E1): 'zh', the default, or 'en'; kept with the account like 主题色 (07-lang.js, ui_lang.py)
 LANGS = ('zh', 'en')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
@@ -99,6 +104,10 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
+    if 'today_view' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 今日的样子, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN today_view TEXT NOT NULL DEFAULT 'list'")
+    if 'today_order' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 今日's order, a JSON list of TODAY_KEYS
+        c.execute('ALTER TABLE next_profiles ADD COLUMN today_order TEXT')
     if 'goals' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         # 学英语为了什么, more than one (the user, 2026-11-26): a JSON list, the first the main goal (always = goal, which every
         # reader of the profile keeps using); NULL for an account from before, read as [goal]
@@ -393,6 +402,8 @@ def profile(c, uid):
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
             'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
             'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green',
+            'today_view': r['today_view'] if 'today_view' in r.keys() and r['today_view'] in TODAY_VIEWS else 'list',
+            'today_order': _today_order(r['today_order'] if 'today_order' in r.keys() else None),
             'lang': r['lang'] if 'lang' in r.keys() and r['lang'] in LANGS else 'zh',
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
 
@@ -502,6 +513,38 @@ def set_voice(c, uid, data):
     return {'voice': voice}, 200
 
 
+def _today_order(raw):
+    """The learner's order of 今日's blocks: every key once; a key added later goes where the default has it."""
+    try:
+        got = [k for k in json.loads(raw) if k in TODAY_KEYS] if raw else []
+    except (TypeError, ValueError):
+        got = []
+    got = list(dict.fromkeys(got))
+    for k in TODAY_KEYS:
+        if k not in got:
+            got.insert(min(TODAY_KEYS.index(k), len(got)), k)
+    return got
+
+
+def set_today_view(c, uid, data):
+    """POST /api/next/today-view {view: 'list' | 'cards', order: [TODAY_KEYS…]}: 今日的样子 (the switch on 今日, or 我的 →
+    使用习惯) and its order (调整顺序 on 今日), either or both. The order must name every block once."""
+    v, order = data.get('view'), data.get('order')
+    if v is None and order is None:
+        return {'error': '参数不正确'}, 400
+    if v is not None and v not in TODAY_VIEWS:
+        return {'error': '没有这种样子'}, 400
+    if order is not None and (not isinstance(order, list) or sorted(order) != sorted(TODAY_KEYS)):
+        return {'error': '顺序不正确'}, 400
+    if not c.execute('SELECT 1 FROM next_profiles WHERE user_id=?', (uid,)).fetchone():
+        return {'error': '请先设置学习目标和水平'}, 400
+    if v is not None:
+        c.execute('UPDATE next_profiles SET today_view=?, updated=? WHERE user_id=?', (v, time.time(), uid))
+    if order is not None:
+        c.execute('UPDATE next_profiles SET today_order=?, updated=? WHERE user_id=?', (json.dumps(order), time.time(), uid))
+    c.commit()
+    p = profile(c, uid)
+    return {'today_view': p['today_view'], 'today_order': p['today_order']}, 200
 def set_lang(c, uid, data):
     """界面语言: kept with the account, so another phone or computer opens in it too. Before there is a 学习目标 there is
     no profile to keep it in: kept is False and the page hands it over later (07-lang.js)."""
@@ -834,8 +877,10 @@ def mine(c, uid, prof=None):
     if not pick:
         return {'count': len(packs), 'item': None}
     steps = sorted(done.get(pick['id'], set()), key=lambda s: STEPS.index(s) if s in STEPS else len(STEPS))
+    body = re.sub(r'\s+', ' ', pick.get('body') or '').strip()
     return {'count': len(packs), 'item': {'id': pick['id'], 'title': pick['title'], 'level': pick.get('cefr') or pick.get('level'),
-                                          'words': len(WORD.findall(pick.get('body') or '')), 'steps': steps, 'started': bool(steps)}}
+                                          'words': len(WORD.findall(body)), 'steps': steps, 'started': bool(steps),
+                                          'opening': body[:240]}}  # 我的材料's card on 今日 (卡片): its first lines
 
 
 def featured_left(c, uid, level, done=None):
@@ -1971,6 +2016,8 @@ def post(c, uid, path, data):
         return set_voice(c, uid, data)
     if path == '/api/next/accent':
         return set_accent(c, uid, data)
+    if path == '/api/next/today-view':
+        return set_today_view(c, uid, data)
     if path == '/api/next/lang':  # 界面语言 (LANGS)
         return set_lang(c, uid, data)
     if path == '/api/next/progress':
