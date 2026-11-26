@@ -3,6 +3,7 @@
    (content:) get their English here. 07-lang.js: the 中文 | English switch and the line to undo a switch. */
 html[lang=en]{--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif}
 html[lang=en] body{overflow-wrap:break-word}
+html[lang=en] .kicker{text-transform:none;letter-spacing:normal}  /* sentence case, as loud as the Chinese line (B9) */
 html[lang=en] .cf-how>summary::after{content:'Show'}
 html[lang=en] .cf-how[open]>summary::after{content:'Hide'}
 html[lang=en] .sp-others summary::after{content:'Show ›'}

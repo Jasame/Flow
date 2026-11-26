@@ -7,8 +7,8 @@
     '更新于 {n}-{n}-{n}': 'Updated {1}-{2}-{3}',
 
     // 49-practice.js
-    '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed practice', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
-    '{n} 个生活和校园情景，和 AI 对话': '{1} everyday and campus scenes to talk through with AI',
+    '听和读': 'Listen and read', '说和写': 'Speak and write', '混合练习': 'Mixed drill', '{n} 个语法点按顺序连成路线，点亮一个学一个': '{1} grammar points in one path. Light them up one by one',
+    '{n} 个生活和校园情景，和 AI 对话': '{1} scenes with AI',
     '做错的题、句型和整句': 'Missed questions, patterns and sentences', '都复习完了': 'All reviewed',
     '第一次用？看操作指南 ›': 'New here? Read the guide ›',
     '需要留意：{x}': 'Needs work: {1}', '该复习：{x}': 'Due for review: {1}', '已点亮 {n} / {n}': '{1} / {2} lit',
@@ -155,7 +155,7 @@
     '退出所有设备？': 'Sign out everywhere?', '已在所有设备上退出': 'Signed out everywhere',
     '所有手机、平板和电脑上的语流都会退出登录，包括这一台。学习记录不会丢，重新登录就回来了。': "Flow will sign out on every phone, tablet and computer, this one too. Your learning records stay; sign in again and they're back.",
     // seen on the pages (english_run)
-    '错题和句型复习': 'Review mistakes and patterns', '写一段短文，让 AI 批改': 'Write a short piece for the AI to mark', '未加入': 'Not joined',
+    '错题和句型复习': 'Review mistakes and patterns', '写一段短文，让 AI 批改': 'Write a short piece', '未加入': 'Not joined',
     // 49-practice.js after the 练习 page's new look (#449)
     '几个语法点打乱一起练，记得更牢': 'Mix several grammar points for better recall',
     '读比你低一级的短文，练速度、攒阅读量': 'Short texts a level below yours, for speed and volume',
@@ -164,8 +164,8 @@
     '到期的单词和短语，一张张过': 'Due words and phrases, one card at a time', '最容易混的词放在一起练': 'Practice the words most often confused',
     '换词书、改每天学多少': 'Change your word book or daily amount', '{n} 分钟估一估你认识多少词': 'Estimate your vocabulary in {1} min',
     '考试和测评': 'Exams and tests', '中考高考、四六级、考研、专四专八、雅思，限时做': 'Timed sets: Zhongkao, Gaokao, CET-4/6, Kaoyan, TEM-4/8, IELTS',
-    '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes & patterns',
-    '{x}离你的目标最远，先练它': '{1} is furthest from your goal. Practice it first', '去练{x}': 'Practice {1}',
+    '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes',
+    '{x}离你的目标最远，先练它': '{1} is furthest from your goal', '去练{x}': 'Practice {1}',
     '{x}，有 {n} 项到期': '{1}, {2} due',
     // 81-privacy.js: 按我的学习记录推荐 (a description of the feature; D2 2026-11-26: English is fine, the name matches the privacy notes)
     '按我的学习记录推荐': 'Recommend from my learning records',
@@ -176,4 +176,8 @@
     '关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。':
       "Turning it off works at once: suggestions follow only the level you picked, featured and newest first, without your records. Word and mistake reviews, listening again and “Continue” still follow what you've studied, since they go over your own work.",
     '用到了哪些记录（隐私说明）': 'Which records are used (privacy notes, in Chinese)',
+    '错题和句型，有 {n} 项到期': 'Mistakes: {1} due',
+    // ability_radar.TIPS: the head of 今天建议 on 练习, one line (B9)
+    '逐句听写和精听': 'Dictation drills', '轻松读，读得多一点': 'Read more easy texts', '提高每天新词数': 'More new words a day',
+    '语法混合复习': 'Mixed grammar review', '口语路线的情景对话': 'Speaking scenes',
   });

@@ -61,6 +61,8 @@ Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines ca
 
 - American English (color, favorite, practice as noun and verb). The default voice is American too.
 - Sentence case everywhere: "Word plan", not "Word Plan". Brand names keep their case: IELTS, CET-4.
+- A row in a list or a two-column grid is one line: about 13 letters on an iPhone SE (B9). Page names are the
+  row names, so they are short too.
 - Short and plain; the learner is reading in a second language. A button is a verb or a noun: "Save", "Next".
   No exclamation marks, no "please" on buttons, no "Oops".
 - Numbers as digits ("3 words"), "min" in tight labels ("10 min"), "Beijing time" for 北京时间, "8 a.m." for 早上 8 点.
@@ -102,14 +104,16 @@ Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines ca
 | 单词卡 / 卡片 | card / word card | |
 | 词书 | Word book | |
 | 查词 | Look up | |
-| 测词汇量 | Vocabulary test | |
-| 错题本 · 错题和句型 | Mistake log · Mistakes & patterns | |
+| 测词汇量 | Vocab test | |
+| 错题本 · 错题和句型 | Mistake log · Mistakes | |
 | 讲解 | Explanation (noun) · Explain (button) | |
 | 看中文 | Show Chinese | under each AI explanation |
 | 例句 | Example | |
 | 释义 / 意思 | Meaning | |
 | 表达 | Expression | |
 | 生词 | New word | in a text |
+| 中文导读 | In Chinese (the button) · Chinese summary (in a sentence) | |
+| 改写成 B1 难度 | B1 version | |
 | 跟读 | Shadow (button) · Shadowing (noun) | |
 | 听写 | Dictation | |
 | 精听 | Close listening | |
@@ -126,15 +130,15 @@ Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines ca
 | 能力雷达 | Skills radar | |
 | 知识图谱 | Grammar map | |
 | 语法点 | Grammar point | |
-| 语法起点小测 | Grammar placement quiz | |
+| 语法起点小测 | Grammar level | |
 | 起点检查 | Placement check | |
 | 词汇辨析 | Word pairs | |
 | 口语路线 | Speaking path | |
 | 雅思口语 | IELTS Speaking | |
-| 发音入门 | Pronunciation basics | |
+| 发音入门 | Sounds | |
 | 考试练习 | Exam practice | |
 | 考试冲刺 | Exam sprint | |
-| 混合练习 | Mixed practice | |
+| 混合练习 | Mixed drill | |
 | 这周进步 | This week | card on 今日 |
 | 我的进步 | My progress | |
 | 周报 | Weekly report | |

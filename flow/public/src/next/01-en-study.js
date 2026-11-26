@@ -100,7 +100,7 @@
     '这篇的收获': 'Takeaways', 'AI 讲解第 {n} 句': 'Explain sentence {1} with AI',
     '这一版由 AI 按你的难度改写，原文没有改动': 'AI rewrote this version for your level. The original is unchanged',
     '适合我的版本（{x} · AI 改写）': 'My level ({1} · rewritten by AI)', '原文（{x}）': 'Original ({1})',
-    '中文导读': 'Chinese summary', '改写成 {x} 难度': 'Rewrite at {1}', '这篇原文是 {x}，你选的是 {x}': 'This text is {1}; your level is {2}',
+    '中文导读': 'In Chinese', '改写成 {x} 难度': '{1} version', '这篇原文是 {x}，你选的是 {x}': 'This text is {1}; your level is {2}',
     '伴读': 'Read along', '本篇词汇': 'Text vocabulary', '可能超出你的水平': 'May be above your level', '你在背的词': 'Words you are learning',
     '点词查词，点句尾 ✦ 讲解整句，长按拖选可收藏': 'Tap a word to look it up, tap ✦ to explain a sentence, press and drag to save',
     '点词查词，点句尾 ✦ 讲解整句，选中可收藏；键盘：Tab 进入正文后 ← → 逐词，↵ 查词，E 讲解': 'Click a word to look it up, click ✦ to explain a sentence, select to save. Keys: Tab into the text, then ← → by word, ↵ look up, E explain',
