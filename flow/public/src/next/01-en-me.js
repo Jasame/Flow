@@ -69,7 +69,7 @@
     '你的额度由管理员调整过。': 'Your limit was adjusted by an admin.',
 
     // 81-me.js: 外观 (字号、行距、主题色)
-    '标准': 'Standard', '大': 'Large', '特大': 'Extra large', '宽松': 'Wide', '行距宽松': 'Wide spacing',
+    '标准': 'Normal', '大': 'Large', '特大': 'Extra large', '宽松': 'Wide', '行距宽松': 'Wide spacing',
     '主题色': 'Accent', '字号': 'Text size', '行距': 'Spacing',
     '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone.',
     '只换按钮、进度和链接的颜色；答对答错的颜色和标识不变。浅色、深色跟着手机的设置。{x}': 'Changes only the color of buttons, progress and links; right and wrong answers keep their colors and marks. Light and dark follow your phone. {1}',
@@ -186,6 +186,6 @@
     '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
     '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
     // 81-habits.js: 我的 → 使用习惯 (B5), and its summary on 我的's row (今日列表 · 松绿 · 字号标准)
-    '今日列表': 'List view', '今日卡片': 'Card view', '字号标准': 'Standard text', '字号大': 'Large text', '字号特大': 'Extra large text',
+    '今日列表': 'List view', '今日卡片': 'Card view', '字号标准': 'Normal text', '字号大': 'Large text', '字号特大': 'Extra large text',
     '新词卡': 'New-word card', '背单词「认识」在': '“Know it” on the', '右边': 'Right', '返回我的': 'Back to Me',
   });
