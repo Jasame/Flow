@@ -33,6 +33,7 @@ flow/ability_radar.py
 flow/access_check.py
 flow/account_data.py
 flow/account_service.py
+flow/account_switch.py
 flow/adaptive_service.py
 flow/ai_check.py
 flow/ai_eval.py
@@ -336,6 +337,7 @@ flow/teacher_service.py
 flow/tests/test_ability_radar.py
 flow/tests/test_access_check.py
 flow/tests/test_account_data.py
+flow/tests/test_account_switch.py
 flow/tests/test_account_tables.py
 flow/tests/test_adaptive.py
 flow/tests/test_admin_roles.py

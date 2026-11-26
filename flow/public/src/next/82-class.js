@@ -108,11 +108,12 @@
     const page = body => { view.innerHTML = `<div class="stack cls-page">${teachIntro('注册老师账号')}${body}${teachWhat()}</div>`; };
     if (!token) return page('<div class="card flat"><p>老师账号要用语流发给你的「老师注册链接」注册，一条链接只能注册一个老师账号。还没有链接，请联系语流。在登录框里直接注册，得到的是学生账号。</p></div>');
     if (S.user) {
-      page(`<div class="card flat stack-s"><p>这台设备上现在登录着一个学生账号。老师账号要另外注册：先退出这个账号，再用这条链接注册。退出不会删掉学生账号里的任何东西。</p>
-        <div class="row"><button class="btn primary" id="tOut" type="button">退出登录，注册老师账号</button></div></div>`);
+      page(`<div class="card flat stack-s"><p>这台设备上现在登录着一个学生账号。老师账号要另外注册：可以把它加到这台设备上，学生账号留着，以后在「我的 → 账号和隐私 → 切换账号」里点一下就能回去。</p>
+        <div class="row"><button class="btn primary" id="tOut" type="button">把老师账号加到这台设备</button></div></div>`);
+      // 切换账号 (the owner, 2026-11-26): the student account stays on this device, a tap in 我的 → 切换账号 goes back
       document.getElementById('tOut').onclick = async e => {
-        e.target.disabled = true; await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (x) { /* signed out already */ }
-        snapClear(); S.user = null; S.csrf = ''; await refreshHome(); route();
+        e.target.disabled = true; await OUTBOX.flush(); e.target.disabled = false;
+        openLogin('学生账号会留在这台设备上，以后在「我的 → 账号和隐私 → 切换账号」里点一下就能回去。注册时要验证邮箱，忘记密码时用它找回。', 'reg', { teacher: token, add: true });
       };
       return;
     }

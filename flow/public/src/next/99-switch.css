@@ -1,0 +1,21 @@
+/* 切换账号 (81-switch.js; B9 2026-11-26): rows of 56, a grey initial, the name in bold with the role in grey, the one in
+   use ticked in the accent; 「⋯」 a 44 tap; 添加账号 in the accent, grey when the device is full; the note in 12px grey,
+   set apart by space, no line; no solid green block in the sheet */
+.sw-list{display:flex;flex-direction:column}
+.sw-row{display:flex;align-items:center;min-height:56px}
+.sw-main{flex:1;display:flex;align-items:center;gap:12px;min-height:56px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.sw-main:disabled{cursor:default}
+.sw-av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--muted);font-weight:600;font-size:15px}
+.sw-name{font-size:15.5px;font-weight:600}
+.sw-role{color:var(--muted);font-size:14px}
+.sw-on{margin-left:auto;color:var(--brand);font-weight:700;font-size:17px;padding-right:6px}
+.sw-more{flex:none;width:44px;height:44px;border:0;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;border-radius:10px}
+.sw-add .sw-name{color:var(--brand);font-weight:500}
+.sw-add .sw-av{font-size:20px}
+.sw-add:disabled .sw-name,.sw-add:disabled .sw-av{color:var(--muted);opacity:.6}
+.sw-why{margin:0}
+.sw-note{margin:14px 0 0;font-size:12px;line-height:1.6;color:var(--muted)}
+/* 我的: 「切换 ›」 on the name's line (the lines under it keep the card's width), only with two or more accounts here */
+.sw-nameline{display:flex;align-items:baseline;gap:8px;min-width:0}
+.me-switch-top{margin-left:auto;flex:none;color:var(--brand)}
+.me-switch-top[hidden]{display:none}

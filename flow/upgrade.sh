@@ -82,6 +82,7 @@ FLOW_FILES=(
   access_check.py
   account_data.py
   account_service.py
+  account_switch.py
   adaptive_service.py
   ai_check.py
   ai_eval.py

@@ -249,20 +249,22 @@
         if (r !== 'agreed') return;
       }
     }
-    const mail = await mailOn(), teacher = opts && opts.teacher, invite = !teacher && await inviteOn();
+    // opts.add: 切换账号 → 添加账号 (81-switch.js): the account in use stays on this device (account_switch.py)
+    const mail = await mailOn(), teacher = opts && opts.teacher, invite = !teacher && await inviteOn(), add = !!(opts && opts.add);
+    const more = add ? { add: true } : {};
     tab = teacher ? 'reg' : tab || 'pw'; if (!mail && (tab === 'code' || tab === 'reset')) tab = 'pw';
     // 注册 and 登录 side by side, one level (the owner on WeChat, 2026-11-25: 「注册一般和登录是一级的」); 密码 or 验证码 is
     // a choice inside 登录, a link under its form
     const tabs = [['reg', '注册', 'reg'], ['pw', '登录', 'pw code']];
     const reset = tab === 'reset';
     openSheet(`<div class="stack auth">
-      <div><h2 class="h2" id="sheetTitle">${teacher ? '注册老师账号' : reset ? '找回密码' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
+      <div><h2 class="h2" id="sheetTitle">${teacher ? (add ? '把老师账号加到这台设备' : '注册老师账号') : reset ? '找回密码' : add ? '添加账号' : tab === 'reg' ? '注册语流' : '登录语流'}</h2>${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>
       ${teacher ? '' : reset ? '<p class="small">填绑定的邮箱，收到验证码后设一个新密码。设好就直接登录，其他手机和电脑上的登录会退出。</p>'
         : `<div class="seg two" role="tablist" aria-label="注册或登录">${tabs.map(([k, l, on]) => `<button role="tab" type="button" data-tab="${k}" aria-selected="${on.split(' ').includes(tab)}">${l}</button>`).join('')}</div>`}
       <form id="authForm" class="stack" novalidate>${authFields(tab, mail, teacher, invite)}</form>
       <p class="err" id="authErr" role="alert"></p>
       ${reset ? '<button class="btn ghost" type="button" data-tab="pw">返回登录</button>' : `<button class="btn ghost" data-close type="button">${tab === 'reg' && !teacher ? '先不注册' : '先不登录'}</button>`}</div>`, card => {
-      card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab));
+      card.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => openLogin(reason, b.dataset.tab, add && b.dataset.tab !== 'reset' ? { add: true } : undefined));
       bindEyes(card);
       if (tab === 'reg' && !teacher) bindAge(card, false);
       const form = card.querySelector('#authForm'), err = card.querySelector('#authErr');
@@ -289,12 +291,14 @@
         const btn = form.querySelector('[type=submit]'); btn.disabled = true;
         try {
           let r;
-          if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password') });
-          else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim() });
+          if (tab === 'pw') r = await api('/api/login', { username: v('username').trim(), password: v('password'), ...more });
+          else if (tab === 'code') r = await api('/api/login', { method: 'code', email: v('email').trim(), code: v('code').trim(), ...more });
           else if (reset) r = await api('/api/auth/reset', { email: v('email').trim(), code: v('code').trim(), password: v('password') });
-          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true, terms: true }
-            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true, terms: true, ...(invite ? { invite: v('invite').trim() } : {}) });
-          await afterLogin(); closeSheet();
+          else r = await api('/api/register', teacher ? { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), teacher, storage: true, terms: true, ...more }
+            : { email: v('email').trim(), code: v('code').trim(), username: v('username').trim(), password: v('password'), age: ag.age, guardian: ag.guardian, storage: true, terms: true, ...(invite ? { invite: v('invite').trim() } : {}), ...more });
+          if (add) { snapClear(); S.user = null; S.csrf = ''; S.home = null; accountChanged(); }  // the last account's copies go (81-switch.js)
+          await afterLogin(add); closeSheet();
+          if (add) { switchedBar((S.user && S.user.username) || r.username || ''); if (location.hash && location.hash !== '#/') location.hash = '#/'; else route(true); return; }
           const name = (S.user && S.user.username) || r.username || '';
           toast(reset ? '密码已重设，已经登录' : teacher ? `老师账号注册好了，欢迎你${name ? '，' + name : ''}` : tab === 'reg' ? `注册成功，欢迎你${name ? '，' + name : ''}` : `欢迎回来${name ? '，' + name : ''}`);
           route(true);
@@ -339,8 +343,9 @@
     });
   }
   function countdown(btn) { let n = 60; btn.textContent = `${n} 秒后可重发`; const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = '重新发送'; } else btn.textContent = `${n} 秒后可重发`; }, 1000); }
-  async function afterLogin() {
+  async function afterLogin(added) {
     await refreshHome();
+    if (added) return;  // 添加账号: what was done without signing in belongs to nobody new (the guest's level and test stay as they are)
     if (!S.home.profile && S.guest && S.guest.level) { try { await api('/api/next/profile', S.guest); await refreshHome(); } catch (e) { /* keep guest */ } }
     const gt = load('flow-next-guest-test');  // a vocabulary test taken before signing in
     if (gt && gt.answers) { try { await api('/api/next/vocab/test', { answers: gt.answers }); save('flow-next-guest-test', null); } catch (e) { /* try next time */ } }

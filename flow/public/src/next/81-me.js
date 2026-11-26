@@ -130,7 +130,8 @@
     ].filter(Boolean);
     const sec = (h, body, foot) => `<section class="me-sec" aria-label="${h}"><h2 class="me-h">${h}</h2>${body}${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`;
     view.innerHTML = `<section class="me-card me-head">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
-        <div class="t"><h1 class="me-name">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1>
+        <div class="t"><div class="sw-nameline"><h1 class="me-name">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1>
+          ${u ? '<button class="link small me-switch-top" id="meSwitchTop" type="button" hidden>切换 ›</button>' : ''}</div>
           <span class="me-line">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span>
           ${st ? `<span class="me-line">${meTotals(st, days)}</span>` : u ? '' : '<span class="me-line">登录后才能保存进度、收藏表达和使用 AI。</span>'}</div>
         ${u ? '' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
@@ -138,7 +139,7 @@
       ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', '最近 7 天', '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
       ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
       ${groups.map(([h, rows, foot]) => sec(h, `<div class="glist">${rows.join('')}</div>`, foot)).join('')}
-      <div class="me-folds">${u ? meFold('account', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
+      <div class="me-folds">${u ? meFold('account', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         zhRow(grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age')), zhRow(grow('meStorage', '数据存放', '已同意 · 香港')), zhRow(grow('#/guide/terms', '用户协议', '和隐私说明一起同意')), zhRow(grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy')),
         grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。') : ''}
@@ -181,7 +182,10 @@
       document.getElementById('meAge').onclick = () => ageSheet(false);
       document.getElementById('meStorage').onclick = storageSheet;
       document.getElementById('meDelete').onclick = deleteAccountSheet;
-      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; await refreshHome(); toast('已退出'); route(); };
+      document.getElementById('meSwitch').onclick = () => switchSheet(); const swt = document.getElementById('meSwitchTop'); if (swt) swt.onclick = () => switchSheet();
+      fillSwitchRow();  // 切换账号 (81-switch.js)
+      // 退出登录: only this account; with others remembered here, they are offered (none is opened by itself)
+      document.getElementById('out').onclick = async () => { await OUTBOX.flush(); try { await api('/api/logout', {}); } catch (e) { /* ignore */ } snapClear(); S.user = null; S.csrf = ''; accountChanged(); await refreshHome(); toast('已退出'); route(); switchSheet(true); };
     }
   }
   // 字号和行距: the reading text (a material, the listening lines, review sentences, questions, the guide, meanings)
@@ -363,7 +367,7 @@
         const b = form.querySelector('[type=submit]'); b.disabled = true;
         try {
           await api('/api/account/delete', { password: form.password.value });
-          forgetAccountHere(); S.user = null; S.csrf = ''; closeSheet(); await refreshHome();
+          forgetAccountHere(); S.user = null; S.csrf = ''; accountChanged(); closeSheet(); await refreshHome();
           location.hash = '#/'; route(); toast('账号已注销，学习记录已全部删除');
         } catch (x) { fieldError(form, err, { message: x.message, field: 'password' }); b.disabled = false; }
       };
@@ -385,7 +389,7 @@
       <button class="btn primary" id="soAll" type="button">退出所有设备</button><button class="btn ghost" data-close type="button">取消</button></div>`, card => {
       card.querySelector('#soAll').onclick = async e => {
         e.currentTarget.disabled = true;
-        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear();
+        await OUTBOX.flush(); try { await api('/api/logout', { all: true }); } catch (x) { /* signed out already */ } snapClear(); accountChanged();
         S.user = null; S.csrf = ''; closeSheet(); await refreshHome(); toast('已在所有设备上退出'); route();
       };
     });
