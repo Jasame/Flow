@@ -4874,7 +4874,7 @@ LEAK_JS = r"""() => {
 }"""
 EN_PAGES = ['#/', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
             f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/library', '#/cards', '#/vocab/plan',
-            '#/vocab/test', '#/review', '#/me', '#/practice', '#/today/edit']
+            '#/vocab/test', '#/review', '#/me', '#/me/habits', '#/practice', '#/today/edit']
 EN_DONE = set(EN_PAGES)
 EN_ONCE = "try { if (!sessionStorage.getItem('en-set')) { sessionStorage.setItem('en-set', '1'); localStorage.setItem('flow-lang', JSON.stringify('en')); } } catch (e) {}"
 
