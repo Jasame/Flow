@@ -321,6 +321,12 @@ class OnceReminderTests(unittest.TestCase):
         self.assertEqual(self.mails(self.day + 21 * 3600 + 600), 0)  # once a day
         self.assertEqual(self.mails(self.day + 86400 + 20 * 3600 + 300), 1)  # tomorrow: every day at 20:00 again
         self.assertEqual(self.links, ['review'])
+        mailed = lambda: self.c.execute('SELECT last_sent, last_mailed FROM next_reminders WHERE user_id=1').fetchone()
+        tomorrow = datetime.datetime.fromtimestamp(self.day + 86400, nx.TZ).date().isoformat()
+        self.assertEqual(tuple(mailed()), (tomorrow, tomorrow))  # a mail went: both say so
+        self.c.execute("DELETE FROM next_cards WHERE user_id=1"); self.c.commit()
+        self.assertEqual(self.mails(self.day + 2 * 86400 + 20 * 3600 + 300), 0)  # nothing to review: the hour is handled, no mail
+        self.assertEqual(tuple(mailed()), (datetime.datetime.fromtimestamp(self.day + 2 * 86400, nx.TZ).date().isoformat(), tomorrow))
 
     def test_tomorrow_morning_comes_instead_of_tonight_and_that_day_has_no_second_mail(self):
         vs.set_reminder(self.c, 1, {'enabled': True, 'hour': 20})

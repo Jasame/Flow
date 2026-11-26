@@ -131,6 +131,8 @@ CREATE TABLE IF NOT EXISTS next_reminders(user_id INTEGER PRIMARY KEY REFERENCES
     rmcols = {r[1] for r in c.execute('PRAGMA table_info(next_reminders)')}
     if 'once_at' not in rmcols:  # 这次什么时候复习: the next reminder only, at a time the learner chose (then back to the hour)
         c.execute('ALTER TABLE next_reminders ADD COLUMN once_at REAL')
+    if 'last_mailed' not in rmcols:  # the day a reminder mail last went (last_sent is the day the hour was handled, mail or not)
+        c.execute('ALTER TABLE next_reminders ADD COLUMN last_mailed TEXT')
     if 'catch_up' not in pcols:  # after a break: {"day": the first day, "total": reviews due then} until caught up
         c.execute('ALTER TABLE next_vocab_plans ADD COLUMN catch_up TEXT')
     if 'test_skip' not in pcols:  # what the test said may be skipped, kept so "skip known words" can be turned back on
@@ -1392,6 +1394,8 @@ def send_reminders(c, now=None, send=None):
         try:
             send(r['email'], subject, text, html=page)
             sent += 1
+            # one date, overwritten: whether a reminder went that day, for the day's counts of who came back (语流 B1)
+            c.execute('UPDATE next_reminders SET last_mailed=? WHERE user_id=?', (today, r['user_id'])); c.commit()
         except Exception:
             pass  # a mail outage must not stop the loop; tomorrow is another try
     return sent
