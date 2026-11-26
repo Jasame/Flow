@@ -1828,10 +1828,51 @@ def post_public(c, uid, path, data):
 
 AI_PATHS = ('/api/next/assess/speaking', '/api/next/assess/writing', '/api/next/rewrite', '/api/next/variant', '/api/next/explain', '/api/next/shadow', '/api/next/vocab/examples', '/api/next/import/enrich',
             '/api/next/retell', '/api/next/dialog', '/api/next/essay', '/api/next/translate/source', '/api/next/translate', '/api/next/say',
-            '/api/next/ielts')
+            '/api/next/ielts', '/api/next/two/ask', '/api/next/two/check')
+
+
+def _two_lines():
+    """B7's two_lines (the question and the marking of 听两句、答一句), None until it is on main."""
+    try:
+        import two_lines
+        return two_lines
+    except ImportError:
+        return None
+
+
+TWO_OFF = ({'error': '这一项马上就开，先学今天这篇吧'}, 503)
+
+
+def two_ask(c, uid, data):
+    """听两句、答一句 (r29, 5 分钟的表达日): the question on two sentences of today's text (two_lines.ask)."""
+    tl = _two_lines()
+    return tl.ask(c, uid, data) if tl else TWO_OFF
+
+
+def two_check(c, uid, data):
+    """The one sentence back, said or typed, marked by two_lines.check. A marked answer is that day's 用出来: one skill
+    event, kind 'two', speaking when recorded, writing when typed; met 1.0, not yet 0.4. A recording with nothing heard
+    (heard_nothing) is no answer: no event, the page asks again. The words heard are never kept."""
+    tl = _two_lines()
+    if not tl:
+        return TWO_OFF
+    _, _, err = __import__('output_service')._audio_or_text(data, 3, 300)  # the recording checked here, as on every route
+    if err:
+        return err
+    out, status = tl.check(c, uid, data)
+    r, pid = out.get('result') or {}, str(data.get('pack', ''))
+    if status == 200 and not out.get('replayed') and not r.get('heard_nothing'):
+        row = _pack_row(c, uid, pid)
+        __import__('skills_service').log(c, uid, 'speaking' if data.get('audio') else 'writing', 'two', 1.0 if r.get('met') == 'met' else 0.4,
+                                         cefr(json.loads(row['content'])) if row else None, pid)
+    return out, status
 
 
 def post(c, uid, path, data):
+    if path == '/api/next/two/ask':
+        return two_ask(c, uid, data)
+    if path == '/api/next/two/check':
+        return two_check(c, uid, data)
     if path in ('/api/next/class/create', '/api/next/class/rename'):
         ts = __import__('teacher_service')  # 老师账号: its own classes (teacher_service.py)
         return (ts.create_class if path.endswith('/create') else ts.rename_class)(c, uid, data)

@@ -204,6 +204,7 @@ TAP_LABEL = {
     'home-extra': '今日 · 还有时间的话', 'home-week-task': '今日 · 本周任务',
     'line-say': '今日好句 · 听一遍', 'line-shadow': '今日好句 · 跟读', 'line-keep': '今日好句 · 收藏', 'line-read': '今日好句 · 读原文',
     'shadow-sound': '跟读 · 去练要练的音', 'speak-ielts': '口语路线 · 雅思口语',
+    'two-play': '听两句、答一句 · 听这两句', 'two-hint': '听两句、答一句 · 给我一点提示', 'two-next': '听两句、答一句 · 下一步',
 }
 
 

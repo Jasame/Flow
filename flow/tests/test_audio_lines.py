@@ -17,7 +17,7 @@ PROD = {'FLOW_AI_PROVIDER': 'openai', 'FLOW_AI_URL': 'https://gw.test/v1/chat/co
 # The route each recording endpoint's handler runs its AI under (B3 checked it against the handlers on main, 2026-11-26).
 KIND_OF = {'/api/lab/audio': 'audio', '/api/next/shadow': 'next-shadow', '/api/next/retell': 'next-retell',
            '/api/next/dialog': 'next-dialog', '/api/next/say': 'next-say', '/api/next/ielts': 'next-ielts',
-           '/api/next/assess/speaking': 'next-assess-speaking'}
+           '/api/next/assess/speaking': 'next-assess-speaking', '/api/next/two/check': 'next-two-check'}
 WORD_ONLY = {'next-say'}  # 发音: chat_service.hear_word writes the one word down on word_model(), not request_model
 WEBM = {'mime_type': 'audio/webm', 'data': base64.b64encode(b'\x1aE\xdf\xa3' + b'\0' * 64).decode()}
 MSGS = [{'role': 'system', 'content': '只输出 JSON。'}, {'role': 'user', 'content': '学习者的回答是一段录音。'}]

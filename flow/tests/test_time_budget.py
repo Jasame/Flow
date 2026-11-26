@@ -311,6 +311,110 @@ class BackTests(Db):
             self.assertIsNone(self.plan(c)['back'])
 
 
+class FiveMinuteTests(Db):
+    """5 分钟的日子 (r29, the user's pick 2026-11-26): words and 听两句、答一句 take turns by study day (B2's rule)."""
+    def setUp(self):
+        super().setUp()
+        self.ready = patch.object(sk, '_two_ready', lambda: True); self.ready.start()  # two_lines (B7) is there
+
+    def tearDown(self):
+        self.ready.stop(); super().tearDown()
+
+    def test_without_two_lines_five_minutes_stay_a_words_day(self):
+        now = time.time()
+        with app.db() as c, patch.object(sk, '_two_ready', lambda: False):
+            self.path(c, 5)
+            self.review_at(c, now - 86400)
+            self.assertNotIn('two', [s['key'] for s in self.plan(c, now)['steps']])
+    def review_at(self, c, t):
+        cid = c.execute("INSERT INTO next_cards(user_id,text,norm,kind,created,due) VALUES(?,?,?,'word',?,?)", (self.uid, f'w{t}', f'w{t}', t, t)).lastrowid
+        c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(?,?,'good',?)", (self.uid, cid, t)); c.commit()
+
+    def plan(self, c, now=None):
+        return sk.daily_path(c, self.uid, nx.home(c, self.uid), now or time.time())
+
+    def test_the_use_day_budget(self):
+        b = tb.budget(5, use_day=True)
+        self.assertEqual((b['words'], b['read'], b['output'], b['use_day']), (0, 2, 3, True))
+        self.assertEqual(sum(b[p] for p in tb.PARTS), 5)
+        self.assertFalse(tb.budget(10, use_day=True)['use_day'])  # only at 5 minutes
+
+    def test_words_one_study_day_then_two_lines_the_next(self):
+        now = time.time()
+        with app.db() as c:
+            self.path(c, 5)
+            p = self.plan(c, now)  # no review yet: a words day
+            self.assertEqual([s['key'] for s in p['steps'] if s['group'] == 'must'][:1], ['review'])
+            self.assertNotIn('two', [s['key'] for s in p['steps']])
+            self.review_at(c, now - 86400)  # words yesterday: today the use day
+            p = self.plan(c, now)
+            must = {s['key']: s for s in p['steps'] if s['group'] == 'must'}
+            self.assertIn('two', must)
+            self.assertEqual((must['two']['title'], must['two']['minutes'], must['two']['href'].startswith('#/two/')), ('听两句、答一句', 3, True))
+            self.assertEqual(next(s['group'] for s in p['steps'] if s['key'] == 'review'), 'extra')  # words if they want
+            self.assertIn('单词留到下次', p['note'])
+            # studied yesterday without words (the last review three days ago): a words day, before the catch-up line
+            c.execute('DELETE FROM next_reviews'); c.commit()
+            self.review_at(c, now - 3 * 86400)
+            c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,'p','read',?)", (self.uid, now - 86400)); c.commit()
+            p = self.plan(c, now)
+            self.assertNotIn('two', [s['key'] for s in p['steps']])
+            self.assertEqual(p['note'], '')
+
+    def test_a_words_day_holds_two_days_share_and_records_off_take_turns_by_date(self):
+        seen = []
+        real = vs.counts
+
+        def capped(c, uid, now=None, cap=None):
+            seen.append(cap)
+            return real(c, uid, now)
+        now = time.time()
+        with app.db() as c, patch.object(vs, 'counts', capped):
+            self.path(c, 5)
+            self.plan(c, now)
+            self.assertEqual(seen[-1], 2 * tb.TABLE[5]['words'])
+            c.execute('UPDATE next_profiles SET personalize=0 WHERE user_id=?', (self.uid,)); c.commit()
+            import progress_service as ps
+            use = ps._local(now).date().toordinal() % 2 == 1
+            self.assertEqual('two' in [s['key'] for s in self.plan(c, now)['steps']], use)
+
+    def test_the_answer_is_marked_by_two_lines_and_ticks_the_step(self):
+        import types
+        fake = types.ModuleType('two_lines')
+        fake.ask = lambda c, uid, data: ({'result': {'question': 'What would you say?', 'zh': '你会怎么说？', 'hint': 'Sorry, I…'}}, 200)
+        fake.check = lambda c, uid, data: ({'result': {'met': 'met', 'note': '意思到了', 'better': "It [[doesn't work for me]].", 'save': "doesn't work for me", 'assisted': data.get('assisted')}}, 200)
+        now = time.time()
+        with app.db() as c:
+            self.path(c, 5)
+            self.review_at(c, now - 86400)
+            step = next(s for s in self.plan(c, now)['steps'] if s['key'] == 'two')
+            pid = step['href'].split('/')[2]
+            with patch.dict(sys.modules, {'two_lines': fake}):
+                self.assertEqual(nx.post(c, self.uid, '/api/next/two/ask', {'pack': pid, 'i': 0})[1], 200)
+                out, st = nx.post(c, self.uid, '/api/next/two/check', {'pack': pid, 'i': 0, 'text': 'Sorry, I cannot.', 'assisted': False})
+            self.assertEqual((st, out['result']['met']), (200, 'met'))
+            self.assertTrue(next(s for s in self.plan(c, time.time())['steps'] if s['key'] == 'two')['done'])
+            ev = c.execute("SELECT skill, kind, score FROM next_skill_events WHERE user_id=? AND kind='two'", (self.uid,)).fetchone()
+            self.assertEqual(tuple(ev), ('writing', 'two', 1.0))
+            fake.check = lambda c, uid, data: ({'result': {'met': 'not_yet', 'note': '没听清', 'better': '', 'save': '', 'heard_nothing': True}}, 200)
+            with patch.dict(sys.modules, {'two_lines': fake}):  # nothing heard is no answer: no second event
+                self.assertEqual(nx.post(c, self.uid, '/api/next/two/check', {'pack': pid, 'i': 0, 'text': 'Sorry, I cannot.'})[1], 200)
+            self.assertEqual(c.execute("SELECT COUNT(*) FROM next_skill_events WHERE user_id=? AND kind='two'", (self.uid,)).fetchone()[0], 1)
+            with patch.dict(sys.modules, {'two_lines': None}):
+                self.assertEqual(nx.post(c, self.uid, '/api/next/two/check', {'pack': pid})[1], 503)  # not there yet: said so
+        self.assertIn('/api/next/two/check', app.AUDIO_PATHS)
+        self.assertIn('/api/next/two/check', nx.AI_PATHS)
+
+    def test_the_page_and_the_guide(self):
+        for s in ('function twoView', 'function twoPair', "api('/api/next/two/ask'", "api('/api/next/two/check'", '给我一点提示', 'aiTag()',
+                  "aiVoiceNote('朗读由 AI 合成')", '✦ AI 点评', '意思还没到', '撤销', "name === 'two'", 'tp-note', 'x.heard_nothing'):
+            self.assertTrue(s in JS, s)
+        for s in ('.two-listen', '.two-fb'):
+            self.assertTrue(s in CSS, s)
+        for s in ('单词和表达轮着来', '听两句、答一句', '给我一点提示', '转成的文字不保存'):
+            self.assertTrue(s in GUIDE, s)
+
+
 class PageTests(unittest.TestCase):
     def test_the_page_shows_must_extra_this_weeks_task_and_the_over_line(self):
         for s in ('还有时间的话', '本周任务', 'tp-extra', 'tp-week', 'tp-over', '剩下的可以留到明天', 'must_minutes', 'left_minutes', 'tp-back', '欢迎回来', '之后几天慢慢补上',

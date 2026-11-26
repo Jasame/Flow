@@ -51,6 +51,7 @@
             <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>
             <button class="link small hit44 tp-remind" type="button" id="remindOnce" data-tap="home-remind-once">今天或明天什么时候有空复习？</button></div>`}
         <div class="plist">${must.map((s, k) => planRowHTML(s, String(k + 1), s === next, s.key === 'read' ? art : null)).join('')}</div>
+        ${p.note ? `<p class="tiny muted tp-note">${esc(p.note)}</p>` : ''}
         ${extra.length ? `<details class="tp-extra"${next ? '' : ' open'}><summary><span>还有时间的话</span><span class="tiny muted">${extra.length} 项 · 不算进今天的计划</span></summary>
           <div class="plist">${extra.map(s => planRowHTML(s, '+', false, null, 'home-extra')).join('')}</div></details>` : ''}
         ${wk.length ? `<div class="tp-week"><div class="tp-week-head"><h2 class="h3">本周任务</h2><span class="tiny muted">这周哪天做都行，不占每天的时间</span></div>
