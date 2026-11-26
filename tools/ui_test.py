@@ -1798,7 +1798,12 @@ def ux_run(pw):
         p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
         p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
         p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
-        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        p8.click('#playAll')
+        for _ in range(50):  # up to 10 s for the switch to AI 朗读 (2026-11-26: a fixed 2.5 s was too short on a busy MSI)
+            p8.wait_for_timeout(200)
+            if tts8 and p8.evaluate("() => ((document.getElementById('playAll') || {}).textContent || '').trim() === '暂停'"):
+                break
+        p8.wait_for_timeout(300)
         eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
         check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
               eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
