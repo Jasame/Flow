@@ -19,9 +19,9 @@
     if (n.getFullYear() === p[0] && n.getMonth() + 1 === p[1] && n.getDate() === p[2]) return '今天';
     return `${p[0] === n.getFullYear() ? '' : p[0] + '年'}${p[1]}月${p[2]}日`;
   }
-  // A row: in the whole list it says which practice (口语情景 · 在咖啡店点单); under one practice, which time (11月6日 · 第 1 轮)
+  // A row: in the whole list it says which practice (口语情景 · 在咖啡店点单); under one practice, which time (11月6日 · 第 1 次)
   function histRow(x, whole) {
-    const name = whole ? x.label + (x.title ? ' · ' + x.title : '') : histDate(x.day) + (x.round ? ` · 第 ${x.round} 轮` : '');
+    const name = whole ? x.label + (x.title ? ' · ' + x.title : '') : histDate(x.day) + (x.round ? ` · 第 ${x.round} 次` : '');
     return `<a class="hist-row" href="${esc(x.open || '#/history/' + encodeURIComponent(x.id))}" data-tap="history-row"><span class="t"><b>${esc(name)}</b>${x.note ? `<span>${esc(x.note)}</span>` : ''}</span>${x.score ? `<span class="v">${esc(x.score)}</span>` : ''}${HIST_GO}</a>`;
   }
   const histGroups = items => {
@@ -42,7 +42,7 @@
   function historyDelete(rec, after) {
     const one = !!rec, n = one && rec.fixes ? rec.fixes.kept : 0;
     openSheet(`<div class="stack hist-del"><h2 class="h2" id="sheetTitle">${one ? `删除${histDate(rec.day)}的这次记录？` : '删除全部练习记录？'}</h2>
-      <p>${one ? '删掉以后，这一次的反馈和你的回答就看不到了，不能恢复。' : '删掉以后，以前每一次的反馈和你的回答就都看不到了，不能恢复。测评和考试的成绩不在这里面。'}</p>
+      <p>${one ? '删掉以后，这一次的反馈和你的回答就看不到了，不能恢复；分数会留着，用来算进步。' : '删掉以后，以前每一次的反馈和你的回答就都看不到了，不能恢复；分数会留着，用来算进步。测评和考试的成绩不在这里面。'}</p>
       ${!one || n ? `<p class="q">${one ? `这次练习留下的 ${n} 条错题也一起删掉吗？` : '这些练习留下的错题也一起删掉吗？'}</p>
         <div class="hist-two"><button class="btn" type="button" data-m="1">一起删</button><button class="btn" type="button" data-m="0">${one ? '只删这条记录' : '只删记录'}</button></div>`
         : '<button class="btn block" type="button" data-m="0">删除</button>'}
@@ -84,7 +84,7 @@
   // 可以写得更好, 原文要点, 示范); 改过的地方 says how many are in 错题本 now (D2: by the real count, they may be fewer).
   async function historyRecord(id) {
     const r = await api('/api/next/history/' + encodeURIComponent(id));
-    const x = r.result || {}, fixes = (x.fixes || []).filter(f => f && f.to), kept = r.fixes ? r.fixes.kept : 0;
+    const x = r.result || {}, fixes = (x.fixes || x.changes || []).filter(f => f && f.to), kept = r.fixes ? r.fixes.kept : 0;
     const saved = new Set((r.saved || []).map(s => String(s).toLowerCase()));
     const keep = t => `<button class="hist-keep${saved.has(t.toLowerCase()) ? ' on' : ''}" type="button" data-keep="${esc(t)}"${saved.has(t.toLowerCase()) ? ' disabled' : ''}>${HIST_MARK}<span>${saved.has(t.toLowerCase()) ? '已收藏' : '收藏'}</span></button>`;
     const blk = (h, right, body) => `<section class="hist-blk"><div class="hist-blk-h"><h2>${h}</h2>${right ? `<span>${right}</span>` : ''}</div>${body}</section>`;
@@ -92,8 +92,9 @@
     const summary = x.summary || x.comment || [x.accuracy, x.fluency].filter(Boolean).join(' ');
     const said = r.said && r.said.length ? r.said : x.transcript ? [x.transcript] : [];
     const points = x.points || [], good = x.good || [], better = (x.better || []).filter(b => b && b.to);
+    const versions = (x.versions || []).filter(v => v && v.text);  // 仿写: other ways to write it
     view.innerHTML = `<div><a class="link small hit44" href="#/history">← 练习记录</a></div>
-      <div class="hist-head"><span class="kicker"><span>${esc(r.label)}${r.title ? ' · ' + esc(r.title) : ''}</span>${r.round ? ` <span>· 第 ${r.round} 轮</span>` : ''}</span><h1 class="h1">${histDate(r.day)}的练习</h1>${aiMark('这是当时的反馈，仅供参考')}</div>
+      <div class="hist-head"><span class="kicker"><span>${esc(r.label)}${r.title ? ' · ' + esc(r.title) : ''}</span>${r.round ? ` <span>· 第 ${r.round} 次</span>` : ''}</span><h1 class="h1">${histDate(r.day)}的练习</h1>${aiMark('这是当时的反馈，仅供参考')}</div>
       ${blk('这次的结果', r.minutes ? `约 ${r.minutes} 分钟` : '', `${r.score ? `<p class="hist-big">${esc(r.score)}</p>` : ''}${r.note ? `<p class="hist-note">${esc(r.note)}</p>` : ''}`)}
       ${summary ? blk('AI 的总结', '', `<p class="hist-p">${esc(summary)}</p>`) : ''}
       ${points.length ? blk('原文要点', `讲到 ${points.filter(p => p.covered).length} / ${points.length} 个`, points.map(p => `<p class="hist-pt${p.covered ? ' ok' : ''}"><i aria-hidden="true">${p.covered ? '✓' : '·'}</i><span>${esc(p.point)}</span><span class="sr-only">${p.covered ? '讲到了' : '没讲到'}</span></p>`).join('')) : ''}
@@ -101,6 +102,7 @@
       ${fixes.length ? blk('改过的地方', `${fixes.length} 处${kept ? (kept >= fixes.length ? ' · 都在错题本里' : ` · 其中 ${kept} 处在错题本里`) : ''}`,
         fixes.map(pair).join('') + (kept ? `<a class="hist-more" href="#/cards/mistake" data-tap="history-mistakes">去错题本复习这 ${kept} 处 ${HIST_GO}</a>` : '')) : ''}
       ${better.length ? blk('可以写得更好', '收藏后会在单词里复习', better.map(b => `<div class="hist-say"><span class="t"><b lang="en">${esc(b.to)}</b>${b.why ? `<span>${esc(b.why)}</span>` : ''}</span>${keep(b.to)}</div>`).join('')) : ''}
+      ${versions.length ? blk('可以这样写', '收藏后会在单词里复习', versions.map(v => `<div class="hist-say"><span class="t"><b lang="en">${esc(v.text)}</b>${v.why && v.why !== '—' ? `<span>${esc(v.why)}</span>` : ''}</span>${keep(v.text)}</div>`).join('')) : ''}
       ${x.reference ? blk('参考译文', '', `<p class="hist-p" lang="en">${esc(x.reference)}</p>`) : ''}
       ${x.model ? `<details class="hist-fold"><summary><span>示范</span><span class="r">AI 写的一版</span>${HIST_DOWN}</summary><div class="hist-list"><p class="hist-p" lang="en">${esc(x.model)}</p></div></details>` : ''}
       ${said.length ? `<details class="hist-fold"><summary><span>你说的话</span><span class="r">${r.said && r.said.length ? said.length + ' 句 · ' : ''}文字</span>${HIST_DOWN}</summary><div class="hist-list">${said.map(s => `<p class="hist-p" lang="en">${esc(s)}</p>`).join('')}</div></details>` : ''}
