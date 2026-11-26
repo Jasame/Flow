@@ -36,7 +36,7 @@ ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/l
              '/classes', '/class', '/export/classes.csv', '/teacher-links'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
-ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据'}
+ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
 
 
 def operator(headers):
@@ -87,7 +87,9 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容'}
+                'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
+                'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
+                'account-purge-held': '暂停满 30 天的账号（备份不在，没删）'}
 
 
 def operator_log(c, limit=200):
@@ -193,7 +195,7 @@ TAP_LABEL = {
     'beta-main': '内测版 · 去正式版',
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
-    'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版',
+    'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版', 'about-dl-linux-appimage': '认识语流 · 下载 Linux 测试版（AppImage）', 'about-dl-linux-deb': '认识语流 · 下载 Linux 测试版（deb）',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',
@@ -243,6 +245,7 @@ def overview(c):
         'classes': _class_numbers(c),
         'task': __import__('console_ops').task_status()['state'],
         'backup': backup_status(), 'daily': __import__('daily_service').status(c),
+        'paused': __import__('privacy_service').paused_report(c),  # 数据存放在香港: paused, run out, deleted or not
         'server': server_label(),
         'generated_at': now,
     }
@@ -338,6 +341,7 @@ def console_get(c, path, one, op):
         if not admin:
             ex['task'].pop('by', None)
         return {'examples': ex, 'daily': __import__('daily_service').status(c), 'backup': backup_status(),
+                'paused': __import__('privacy_service').paused_report(c),
                 'books': [{'id': b['id'], 'title': b['title'], 'group': b['group']} for b in __import__('vocab_service').registry()]}
     if path == '/announcements':
         out = co.announcements(c)

@@ -211,8 +211,8 @@
   function personalizeSheet() {
     const p = (S.home && S.home.profile) || {}, on = p.personalize !== false;
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">按我的学习记录推荐</h2>
-      <p class="small">打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。</p>
-      <p class="small">关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。</p>
+      <div class="pers-text"><p class="small">打开时，语流按你的学习记录给你挑内容：今日的「今天这篇」和「也可以读」（看你学过哪些、哪些语法要补、收藏和在背的词）、今日好句、今日计划里练哪一项，以及级别建议和周报里的建议。</p>
+      <p class="small">关掉以后马上生效，只按你自己选的水平推荐：精选的在前，新的在前，不再看你的学习记录。复习单词和错题、复听和「接着学」还是按你学过的安排，那是在复习你自己的内容。</p></div>
       <div class="chips" role="radiogroup" aria-label="按我的学习记录推荐">${[[true, '打开'], [false, '关闭']].map(([v, l]) => `<button class="chip" type="button" role="radio" data-pers="${v}" aria-checked="${on === v}">${l}</button>`).join('')}</div>
       <a class="link small" href="#/guide/personalize" data-doc="personalize">用到了哪些记录（隐私说明）</a>
       <button class="btn ghost" data-close type="button">完成</button></div>`, card => {

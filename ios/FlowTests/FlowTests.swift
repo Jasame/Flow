@@ -569,6 +569,12 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: dir.path), "switched off: nothing stays")
     }
 
+    @MainActor func testOnlyTheRecordingsOwnEndFinishesAWholeText() {
+        XCTAssertFalse(LongPlayer.atTheEnd(3.0, of: 96.4), "a sentence's end reported after 单句循环 was turned off: it goes on")
+        XCTAssertTrue(LongPlayer.atTheEnd(96.2, of: 96.4))
+        XCTAssertTrue(LongPlayer.atTheEnd(3.0, of: .nan), "length unknown: as before")
+    }
+
     @MainActor func testTheRateGoesToThePageAsItWritesIt() {
         XCTAssertEqual(LongPlayer.shown(0.8), 0.8, "not 0.800000011920929: the page's chips compare it with theirs")
         XCTAssertEqual(LongPlayer.shown(1.25), 1.25)
@@ -665,5 +671,156 @@ final class FeelTests: XCTestCase {
         XCTAssertEqual(off?["ok"], false)
         let frugal = await b.handle("app.frugal", [:]) as? [String: Bool]
         XCTAssertNotNil(frugal?["on"])
+    }
+}
+
+/// 「iOS 专属功能」 third group: what the widgets show, the app's own links, the review's Live Activity
+final class GlanceTests: XCTestCase {
+    override func tearDown() { UserDefaults.standard.removeObject(forKey: Feature.reviewActivity.key) }
+
+    @MainActor func testTheAppsOwnLinksOpenOnlyTheSitesPages() throws {
+        let url = SharedStore.link("#/review", scheme: "yuliu-beta")
+        XCTAssertEqual(url.absoluteString, "yuliu-beta://open?path=%23/review")
+        XCTAssertEqual(SharedStore.path(from: url, scheme: "yuliu-beta"), "#/review")
+        XCTAssertEqual(SharedStore.path(from: SharedStore.link("#/m/v5-campus%20a", scheme: "yuliu"), scheme: "yuliu"), "#/m/v5-campus%20a")
+        XCTAssertNil(SharedStore.path(from: url, scheme: "yuliu"), "语流 does not open 语流内测's links")
+        for bad in ["yuliu://open?path=https://evil.example", "yuliu://open?path=javascript:alert(1)", "yuliu://other?path=%23/review",
+                    "yuliu://open?path=%23/<script>", "yuliu://open"] {
+            XCTAssertNil(SharedStore.path(from: try XCTUnwrap(URL(string: bad)), scheme: "yuliu"), bad)
+        }
+        XCTAssertNil(SharedStore.path(from: SharedStore.link("#/" + String(repeating: "a", count: 300), scheme: "yuliu"), scheme: "yuliu"), "too long")
+    }
+
+    @MainActor func testTheCardKeepsAndOnlyShowsWhatIsTheLearners() throws {
+        var x = ReminderPlan.Input()
+        x.due = 12
+        x.new = 5
+        x.minutes = 8
+        let home: [String: Any] = [
+            "line": ["en": "To be, or not to be / that is the question", "zh": "生存还是毁灭", "label": "公版名句", "source": "Hamlet"],
+            "path": ["steps": [["key": "read", "href": "#/m/v5-a"]]],
+            "today": [["id": "v5-a", "title": "新学期 1：第一天"]],
+        ]
+        let line = WidgetsFeed.line(home), read = WidgetsFeed.read(home)
+        XCTAssertEqual(line?.en, "To be, or not to be\nthat is the question")
+        XCTAssertEqual(line?.label, "公版名句", "the site's own label goes with it")
+        XCTAssertEqual(read, TodayCard.Read(title: "新学期 1：第一天", path: "#/m/v5-a"))
+        let ok = WidgetsFeed.card(x, state: .ok, line: line, read: read, accent: "indigo")
+        XCTAssertEqual([ok.due, ok.new, ok.minutes], [12, 5, 8])
+        let out = WidgetsFeed.card(x, state: .signedOut, line: line, read: read, accent: "green")
+        XCTAssertEqual([out.due, out.new, out.minutes], [0, 0, 0], "signed out: nobody's words on the home screen")
+        XCTAssertNil(out.read)
+        XCTAssertNotNil(out.line, "今日好句 is everyone's")
+        // kept in a store and read back as the widget does
+        let suite = "test-\(UUID().uuidString)"
+        let d = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { d.removePersistentDomain(forName: suite) }
+        SharedStore.save(ok, d)
+        XCTAssertEqual(SharedStore.load(d), ok)
+    }
+
+    @MainActor func testYesterdaysNumbersAreSaidToBeOld() {
+        let shanghai = TimeZone(identifier: "Asia/Shanghai")!
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = shanghai
+        let noon = cal.date(from: DateComponents(year: 2026, month: 11, day: 26, hour: 12))!
+        XCTAssertFalse(TodayCard(updated: cal.date(from: DateComponents(year: 2026, month: 11, day: 26, hour: 0, minute: 5))!).stale(now: noon))
+        XCTAssertTrue(TodayCard(updated: cal.date(from: DateComponents(year: 2026, month: 11, day: 25, hour: 23, minute: 55))!).stale(now: noon))
+    }
+
+    @MainActor func testTheReviewActivityIsOffUntilTurnedOn() async {
+        XCTAssertFalse(Features.on(.reviewActivity), "others can see the lock screen: off until the learner turns it on")
+        XCTAssertEqual(Feature.reviewActivity.group, .glance)
+        XCTAssertNotNil(Feature.Group.glance.footer, "how to add the widgets and the Control Center buttons")
+        XCTAssertTrue(Bridge.features.contains("activity"))
+        let r = await Shell.shared.bridge.handle("activity.review", ["done": 3, "total": 10]) as? [String: Any]
+        XCTAssertEqual(r?["ok"] as? Bool, false)
+        XCTAssertEqual(r?["why"] as? String, "off")
+    }
+}
+
+/// 「Siri 和专注模式」 (group 4): what Siri says, the pages it opens, the Focus filter's choices.
+final class AskTests: XCTestCase {
+    @MainActor private func input(due: Int = 0, new: Int = 0, minutes: Int = 0, words: Bool = true) -> ReminderPlan.Input {
+        var x = ReminderPlan.Input()
+        x.due = due
+        x.new = new
+        x.minutes = minutes
+        x.hasWords = words
+        return x
+    }
+
+    @MainActor func testSiriSaysTheCounts() {
+        XCTAssertEqual(AskLines.due(input(due: 12, new: 5, minutes: 8), outcome: .fresh), "今天还有 12 个词要复习，新词 5 个，大约 8 分钟。")
+        XCTAssertEqual(AskLines.due(input(due: 12), outcome: .fresh), "今天还有 12 个词要复习。")
+        XCTAssertEqual(AskLines.due(input(new: 5, minutes: 3), outcome: .fresh), "今天没有要复习的词，新词 5 个，大约 3 分钟。")
+        XCTAssertEqual(AskLines.due(input(), outcome: .fresh), "今天的单词都复习完了。")
+        XCTAssertEqual(AskLines.due(input(due: 2), outcome: .offline), "今天还有 2 个词要复习。（没连上网，这是上次的数字）")
+        XCTAssertTrue(AskLines.due(input(words: false), outcome: .fresh).contains("选一本词书"), "no words at all: how to start")
+    }
+
+    @MainActor func testNoNumbersForNobody() {
+        XCTAssertFalse(AskLines.due(input(due: 12), outcome: .signedOut).contains("12"), "signed out: nobody's words")
+        XCTAssertTrue(AskLines.due(input(due: 12), outcome: .signedOut).contains("登录"))
+        XCTAssertFalse(AskLines.due(input(due: 12), outcome: .paused).contains("12"))
+    }
+
+    func testTodaysTextOrToday() {
+        var card = TodayCard(updated: Date(), read: TodayCard.Read(title: "x", path: "#/m/abc"))
+        XCTAssertEqual(AskLines.todayPath(card), "#/m/abc")
+        XCTAssertEqual(AskLines.todayPath(nil), "#/", "nothing written yet: 今日")
+        card.updated = Date(timeIntervalSinceNow: -3 * 86_400)
+        XCTAssertEqual(AskLines.todayPath(card), "#/", "yesterday's text: 今日 has today's")
+        card.updated = Date()
+        card.state = .signedOut
+        XCTAssertEqual(AskLines.todayPath(card), "#/")
+        card.state = .ok
+        card.read = TodayCard.Read(title: "x", path: "#/review")
+        XCTAssertEqual(AskLines.todayPath(card), "#/", "only a text page")
+    }
+
+    func testFocusFilterLetsThroughByKind() {
+        XCTAssertEqual(Reminders.kind(of: "review-2026-11-26"), "review")
+        XCTAssertEqual(Reminders.kind(of: "plan-2026-11-26"), "plan")
+        XCTAssertNil(FocusReminders.all.predicate, "都提醒: no filter")
+        let review = FocusReminders.review.predicate!
+        XCTAssertTrue(review.evaluate(with: Reminders.reviewKind))
+        XCTAssertFalse(review.evaluate(with: Reminders.planKind))
+        let off = FocusReminders.off.predicate!
+        XCTAssertFalse(off.evaluate(with: Reminders.reviewKind))
+        XCTAssertFalse(off.evaluate(with: Reminders.planKind))
+    }
+
+    @MainActor func testSiriIsOnAndInItsGroup() {
+        XCTAssertTrue(Feature.siri.defaultOn)
+        XCTAssertEqual(Feature.siri.group, .ask)
+        XCTAssertNotNil(Feature.Group.ask.footer, "how to add the Focus filter")
+        XCTAssertNotNil(Features.state["siri"])
+    }
+}
+
+/// 「在系统搜索里找生词」 (item 7): the search entries made from the site's list, and the page a picked one opens.
+final class WordSearchTests: XCTestCase {
+    func testEntriesFromTheSitesList() {
+        let items = WordSearch.items([["id": 7, "text": "make up for", "zh": "弥补"], ["id": 8, "text": "  "], ["id": "9", "text": "rainbow"]])
+        XCTAssertEqual(items.count, 2, "an empty text makes no entry")
+        XCTAssertEqual(items[0].attributeSet.title, "make up for")
+        XCTAssertEqual(items[0].attributeSet.contentDescription, "弥补")
+        XCTAssertEqual(items[0].domainIdentifier, WordSearch.domain)
+        XCTAssertEqual(items[1].uniqueIdentifier, "card/9/rainbow")
+    }
+
+    func testAPickedWordOpensItsCard() {
+        // the site's route: #/cards/find/<encodeURIComponent(word)> (语流 B2, #366)
+        XCTAssertEqual(WordSearch.path(forIdentifier: WordSearch.identifier(id: "7", text: "make up for")), "#/cards/find/make%20up%20for")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/3/it's (not) a/b"), "#/cards/find/it's%20(not)%20a%2Fb")
+        XCTAssertEqual(WordSearch.path(forIdentifier: "card/4/café"), "#/cards/find/caf%C3%A9")
+        XCTAssertNil(WordSearch.path(forIdentifier: "something-else"))
+        XCTAssertNil(WordSearch.path(forIdentifier: "card/5/"))
+    }
+
+    @MainActor func testOffUntilTurnedOn() {
+        XCTAssertFalse(Feature.wordSearch.defaultOn, "the learner's words in the phone's search: the learner turns it on")
+        XCTAssertEqual(Feature.wordSearch.group, .ask)
     }
 }

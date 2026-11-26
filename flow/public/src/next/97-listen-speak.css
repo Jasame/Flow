@@ -79,18 +79,32 @@ div.round-extra{margin-top:8px;padding:8px 12px;border-radius:10px;background:va
 .mini-player.docked .close{min-height:44px;min-width:44px}
 .mini-player .speed-set{flex-shrink:0;min-width:44px;min-height:44px;padding:0 6px;border:0;border-radius:99px;background:transparent;color:inherit;font:inherit;font-weight:700;font-variant-numeric:tabular-nums}
 .mini-player .speed-set:focus-visible{outline:2px solid var(--fill);outline-offset:2px}
-@media (max-width:389px){.mini-player.docked:not(.idle) .speed-set{display:none}}
 @media (min-width:760px){.mini-player.docked{left:50%;right:auto;width:min(720px,calc(100% - 24px));transform:translateX(-50%)}}
 body.docked #view{padding-bottom:76px}
 /* 「正在准备朗读第 N 句…」 just above the bar */
 body.docked #lsPrep:not([hidden]){position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + var(--sab));z-index:46;margin:0;max-width:calc(100% - 32px);
   background:var(--ink);color:var(--bg);border-radius:99px;padding:6px 14px;box-shadow:var(--shadow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (min-width:760px){body.docked #lsPrep:not([hidden]){bottom:84px}}
-/* the short row above the sentences: 从头开始 (with a kept place) and 👁 on the right; on the left only when the browser's
-   own voice reads (「AI 合成」 is in the bar, once) */
-.ls-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin:2px 0 4px}
-.ls-head .listen-tip{margin:0;flex:1 1 auto;min-width:0}
-.ls-head .listen-tip:empty{display:none}
-.ls-tools{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto}
-.ls-tools #playRestart{min-height:44px;padding:0 6px}
+/* above the sentences, only when the browser's own voice reads (「AI 合成」 is in the bar, once) */
+.listen-tip:empty{display:none}
+/* 👁 in the bar while nothing plays, by the speed (B9's r36 audit F1); 1× stays while playing (F3), with 「12/30」 under
+   370 px and tighter gaps under 400 so 「AI 合成」, 暂停, 1× and ✕ keep one line */
+.mini-player .eye{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;border:0;border-radius:99px;background:transparent;color:inherit}
+.mini-player .eye svg,.ps-top .chip svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mini-player .eye.on{color:var(--green)}
+@media (max-width:399px){.mini-player.docked{gap:4px}.mini-player.docked .toggle{padding:0 12px}}
+/* 播放设置's top row: 只听不看 and 从头开始, playing or not */
+.ps-top{gap:8px;flex-wrap:wrap}
+.ps-top .chip{display:inline-flex;align-items:center;gap:6px;min-height:40px}
+.ps-top .chip svg{width:16px;height:16px}
+.ps-top .chip.on{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
+/* 读前先认识: no card under it (F1) */
+details.preread{padding:2px 0;margin:0 0 6px;background:none;border:0;box-shadow:none}
+/* dark: the bar one step lighter than the page with a thin line, not a near-white strip (B9 F2, the user's G5: large light
+   areas dimmed in dark); the green play / pause unchanged; 「AI 合成」 in --muted (5.8:1 on --sunk) */
+@media (prefers-color-scheme:dark){
+  .mini-player{background:var(--sunk);color:var(--ink);border:1px solid var(--line);box-shadow:0 4px 18px rgba(0,0,0,.4)}
+  :root .mini-player .ai-voice-note{color:var(--muted);opacity:1}  /* over 99-ai-mark.css's inherit + .78 */
+  .mini-player .close{color:inherit}
+}
 .mini-player .ai-voice-note[hidden]{display:none}  /* the browser's own voice: not 「AI 合成」 */

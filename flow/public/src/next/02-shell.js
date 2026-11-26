@@ -82,7 +82,7 @@
   function shortcutHelp() {
     const rows = [['通用', [['?', '显示这张快捷键表'], ['/', '跳到搜索框'], ['Esc', '关闭弹窗'], ['⌘/Ctrl + ↵', '提交写作、复述、翻译']]],
       ['听', [['空格 / K', '播放、暂停或继续全文']]], ['读', [['Tab 进入正文，← →', '逐词移动'], ['↵', '查当前的词'], ['E', 'AI 讲解当前这句']]],
-      ['复习', [['1 / 2 / 3', '从左到右的三个按钮，默认是不认识 / 模糊 / 认识'], ['← →', '最左边 / 最右边的按钮（默认不认识 / 认识）'], ['↵ 或 空格', '下一个'], ['X', '其实记错了'],
+      ['复习', [['← ↓ →', '正面：不认识 / 模糊 / 认识（「认识」放在左边时左右反过来）'], ['← ↓ →', '翻面：记错了 / 模糊 / 没错'], ['1 / 2 / 3', '从左到右的按钮'], ['↵ 或 空格', '翻面：加了框的那个（正面选的那一个）'], ['E', '太简单，以后不用再背'], ['X', '其实记错了'],
         ['← →', '测词汇量：默认不认识 / 认识（「认识」放在左边时反过来）']]]];  // 「认识」放在 (50-words.js KNOW): by place on screen
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">键盘快捷键</h2>${rows.map(([t, ks]) => `<div class="stack-s"><div class="kicker">${t}</div><dl class="keys">${ks.map(([k, d]) => `<dt><kbd>${esc(k)}</kbd></dt><dd>${esc(d)}</dd>`).join('')}</dl></div>`).join('')}
       ${TOUCH ? '<p class="muted small">触屏：复习时左滑「不认识」、右滑「认识」；弹窗向下拖可以关闭。</p>' : ''}<button class="btn ghost" data-close>关闭</button></div>`);
@@ -363,6 +363,9 @@
       else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' || a === 'more' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
+      // #/cards/find/<词>: the words list with that word searched (the iPhone's system search opens a word this way, 语流 C1)
+      // (a 「/」 left unencoded, as in borrow / lend, is still part of the word)
+      else if (name === 'cards' && a === 'find') { setNav('cards'); await vocabView(parts().slice(2).map(x => decodeURIComponent(x)).join('/').slice(0, 80), 1, ''); const sf = document.getElementById('sf'); if (sf) sf.scrollIntoView({ block: 'start' }); }
       else if (name === 'cards') { setNav('cards'); await vocabView('', 1, a || ''); }
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }

@@ -312,6 +312,7 @@ FLOW_FILES=(
   vocab_service.py
   voice_eval.py
   word_clip.py
+  word_extras.py
   word_links.py
 )
 for name in "${FLOW_FILES[@]}"; do

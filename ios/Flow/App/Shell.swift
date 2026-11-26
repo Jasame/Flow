@@ -38,14 +38,16 @@ final class Shell {
         recorder.keepSession = { [weak player] in (player?.state ?? .idle) != .idle }
         // 「iOS 专属功能」 switched on the app's page: what acts at once
         Packs.shared.site = site
-        Features.changed.append { [weak player] f, on in
+        Features.changed.append { [weak player, site] f, on in
             switch f {
             case .lockScreenStudy: player?.lockScreenChanged()
             case .offlinePacks:
                 if on { Task { await Packs.shared.refresh(force: true) } } else { Packs.shared.clear() }
                 Packs.schedule()
             case .frugal: Frugal.shared.update()
-            case .smartResume, .haptics: break
+            case .reviewActivity: if !on { Task { await ReviewActivities.endAll() } }
+            case .wordSearch: Task { if on { await WordSearch.refresh(site: site) } else { await WordSearch.clear() } }
+            case .smartResume, .haptics, .siri: break
             }
         }
     }
@@ -54,8 +56,12 @@ final class Shell {
         switch p {
         case .active:
             bridge.resendState()
-            Task { await reminders.refresh() }
+            Task { [reminders, site] in
+                let outcome = await reminders.refresh()
+                await WidgetsFeed.publish(reminders.input, outcome: outcome, site: site)  // the widgets' numbers too
+            }
             Task { await Packs.shared.refresh() }  // 离线朗读包: today's, over Wi-Fi (at most every 3 hours)
+            Task { [site] in await WordSearch.refresh(site: site) }  // 在系统搜索里找生词: only when the list changed
         case .background:
             recorder.cutNow()  // no recording behind the learner's back
             // the counts may have changed while the app was open (a review done): today's reminder follows them
@@ -76,7 +82,8 @@ final class Shell {
             MainActor.assumeIsolated {
                 var done = false
                 let job = Task {
-                    await Shell.shared.reminders.refresh(force: true)
+                    let outcome = await Shell.shared.reminders.refresh(force: true)
+                    await WidgetsFeed.publish(Shell.shared.reminders.input, outcome: outcome, site: Shell.shared.site)
                     if !done { done = true; task.setTaskCompleted(success: true) }
                 }
                 task.expirationHandler = {  // out of time: say so now (the cookie calls do not stop on cancel)

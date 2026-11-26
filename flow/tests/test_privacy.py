@@ -150,6 +150,65 @@ class StorageTests(Privacy):
         self.call('/api/account/storage', {'agree': False}, h)
         self.assertEqual(self.call('/api/password', {'old_password': PW, 'new_password': 'another long one'}, h)[0], 200)  # paused, still allowed
 
+    def test_a_paused_account_goes_once_the_day_the_page_names_is_over(self):
+        """隐私和数据: 30 天后还没有重新同意，语流会删除这个账号和数据 (purge_paused, from the reminder loop). Not before the
+        day the page names (「……以前」) is over; one agreed again stays; a staff account is never deleted here. A0's
+        rollout: off by default it only reports (once a day, numbers and dates, no names); switched on it still waits
+        for a fresh backup; each deletion is logged with the account's number only."""
+        import datetime
+        h, me = self.signed('xiaolin', age='18+')
+        keep_h, keep = self.signed('xiaowang', age='18+')
+        staff_h, staff = self.signed('laoshi', age='18+')
+        until = self.call('/api/account/storage', {'agree': False}, h)[1]['storage_until']
+        for hh in (keep_h, staff_h):
+            self.call('/api/account/storage', {'agree': False}, hh)
+        self.call('/api/account/storage', {'agree': True}, keep_h)  # 重新同意
+        with app.db() as c:
+            c.execute('UPDATE users SET admin=1 WHERE id=?', (staff['id'],))
+            c.execute('INSERT OR REPLACE INTO next_progress VALUES(?,?,?,?)', (me['id'], 'p1', 'listen', time.time()))
+            c.commit()
+            paused = c.execute('SELECT storage_no FROM users WHERE id=?', (me['id'],)).fetchone()[0]
+        bj = datetime.timezone(datetime.timedelta(hours=8))
+        end = datetime.datetime.strptime(until, '%Y-%m-%d').replace(tzinfo=bj).timestamp() + 86400
+        self.assertEqual(pv.gone_at(paused), end)
+        there = lambda c, uid: c.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone() is not None
+        logs = lambda c, action: [dict(r) for r in c.execute('SELECT * FROM flow_admin_log WHERE action=? ORDER BY id', (action,))]
+        status = app.DATA / 'backup-status.json'
+        with patch.dict(os.environ, {pv.PURGE_SWITCH: ''}), app.db() as c:
+            self.assertEqual(pv.paused_due(c, end - 1), [])  # still the day the page names
+            self.assertEqual([u for u, _ in pv.paused_due(c, end)], [me['id']])  # agreed again, staff: never
+            # off (the default): a report, once a day, and nothing deleted
+            for t in (end, end + 300, end + 600):
+                self.assertEqual(pv.purge_paused(c, now=t), 0)
+            self.assertTrue(there(c, me['id']))
+            rep = logs(c, 'account-purge-report')
+            self.assertEqual(len(rep), 1)
+            self.assertIn('1 个账号暂停满 30 天', rep[0]['detail']); self.assertIn(datetime.datetime.fromtimestamp(paused, bj).strftime('%Y-%m-%d'), rep[0]['detail'])
+            self.assertNotIn('xiaolin', ''.join(str(v) for v in rep[0].values()))
+            got = pv.paused_report(c, end)
+            self.assertEqual((got['paused'], got['due'], got['on']), (1, 1, False))  # agreed again and staff: not counted
+        with patch.dict(os.environ, {pv.PURGE_SWITCH: 'on'}), app.db() as c:
+            # on, but no backup to fall back on: held
+            status.unlink(missing_ok=True)
+            self.assertEqual(pv.purge_paused(c, now=end), 0)
+            self.assertTrue(there(c, me['id'])); self.assertEqual(len(logs(c, 'account-purge-held')), 1)
+            status.write_text(json.dumps({'ok': False, 'created': end - 3600}))  # the last one failed: held
+            self.assertEqual(pv.purge_paused(c, now=end), 0); self.assertTrue(there(c, me['id']))
+            status.write_text(json.dumps({'ok': True, 'created': end - 40 * 3600}))  # too old: held
+            self.assertEqual(pv.purge_paused(c, now=end), 0); self.assertTrue(there(c, me['id']))
+            status.write_text(json.dumps({'ok': True, 'created': end - 3600}))  # fresh: deleted
+            self.assertEqual(pv.purge_paused(c, now=end), 1)
+            self.assertFalse(there(c, me['id']))
+            self.assertIsNone(c.execute('SELECT 1 FROM next_progress WHERE user_id=?', (me['id'],)).fetchone())  # its records too
+            self.assertTrue(there(c, keep['id']) and there(c, staff['id']))
+            self.assertEqual(pv.purge_paused(c, now=end + 400 * 86400), 0)  # the other two, never
+            log = logs(c, 'account-purge')[-1]
+            self.assertEqual((log['role'], log['target']), ('system', f'账号 #{me["id"]}'))
+            self.assertNotIn('xiaolin', ''.join(str(v) for v in log.values()))
+        self.assertFalse(self.call('/api/session', headers=h)[1].get('user'))  # signed out with it
+        st, tasks = self.console('/tasks')
+        self.assertEqual((st, tasks['paused']['due']), (200, 0))
+
     def test_a_paused_account_gets_no_weekly_mail_and_is_out_of_class_numbers(self):
         import datetime, class_service as cs, progress_service as ps
         sunday = datetime.datetime(2026, 11, 29, 21, tzinfo=datetime.timezone(datetime.timedelta(hours=8))).timestamp()
