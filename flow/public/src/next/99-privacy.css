@@ -27,3 +27,16 @@
 /* a tick focused after 「请先勾选」 stays clear of the sticky top bar and the bottom tabs */
 .storagefs input{scroll-margin:96px 0 120px}
 .pers-text p{margin:0}.pers-text p+p{margin-top:12px}  /* 按我的学习记录推荐: the two paragraphs read as one block (B9: no 40 px hole between them) */
+/* 按我的学习记录推荐: a switch on the right of the row (the user's pick, 2026-11-26). The checkbox stays in the page for
+   screen readers and the keyboard; the track and the knob are drawn next to it. Off: an outlined track with a grey knob
+   (clear against the card, as Android draws it); on: green with a white knob. */
+.grow.gswitch{grid-template-columns:minmax(0,1fr) auto;cursor:pointer}
+.sw-in{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.sw{position:relative;display:block;width:48px;height:28px;border-radius:14px;background:var(--paper);box-shadow:inset 0 0 0 2px var(--muted);transition:background .18s}
+.sw::after{content:"";position:absolute;top:7px;left:7px;width:14px;height:14px;border-radius:50%;background:var(--muted);transition:transform .18s,width .18s,height .18s,top .18s,background .18s}
+.sw-in:checked+.sw{background:var(--green);box-shadow:none}
+.sw-in:checked+.sw::after{top:4px;width:20px;height:20px;background:#fff;transform:translateX(17px)}
+.sw-in:disabled+.sw{opacity:.6}
+.sw-in:focus-visible+.sw{outline:2px solid var(--green);outline-offset:2px}
+.gfoot #mePersInfo{margin-left:4px}
+@media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
