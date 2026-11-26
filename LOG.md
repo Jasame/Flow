@@ -892,3 +892,10 @@
   - #396 e2e：错题卡到「错题和句型」复习里找（#344 以后内测版一直挂这一项）（测试）
 - 自检：DEPLOYED，装了 2 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45747148634
+
+### b111 · 2026-11-26 11:39
+- main `05b7c72`，构建 `0903133`
+- 新合并的 PR（自 b110 起）：
+  - #377 字号阶梯 G1：今日、听、读并成 7 级（学优秀 UI 第一批）（今日和计划、开局和考试）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 160/160，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45750161478
