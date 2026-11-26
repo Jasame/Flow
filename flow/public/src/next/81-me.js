@@ -127,7 +127,7 @@
           ${st ? `<span class="me-line">这周学了 ${days} 天 · 学完 ${st.materials_done} 篇 · ${st.cards} 个词</span>` : u ? '' : '<span class="me-line">登录后才能保存进度、收藏表达和使用 AI。</span>'}</div>
         ${u ? '' : '<button class="btn primary small" id="lg" type="button">登录 / 注册</button>'}</section>
       ${u ? '<div id="meTeach"></div>' : ''}
-      ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', `这周 ${days} 天`, '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
+      ${u ? sec('进步', `<div class="me-tiles">${meTile('#/growth', 'trend', '我的进步', st && st.habit ? `达标 ${st.habit.weeks || 0} 周` : '', '', 'me-growth')}${meTile('#/report', 'week', '周报', '最近 7 天', '', 'me-report')}${meTile('#/cards/mistake', 'bookx', '错题本', '', 'meMistakeV', 'me-mistake')}</div>`) : ''}
       ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
       ${groups.map(([h, rows, foot]) => sec(h, `<div class="glist">${rows.join('')}</div>`, foot)).join('')}
       <div class="me-folds">${u ? meFold('account', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),

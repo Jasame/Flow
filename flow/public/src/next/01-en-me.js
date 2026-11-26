@@ -182,7 +182,7 @@
     '语法混合复习': 'Mixed grammar review', '口语路线的情景对话': 'Speaking scenes',
     // 81-me.js after 我的's new look (tiles, folds)
     '这周学了 {n} 天 · 学完 {n} 篇 · {n} 个词': 'This week: {1} {1|day|days} · {2} {2|text|texts} · {3} {3|word|words}',
-    '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '这周 {n} 天': '{1} {1|day|days} this week', '{n} 道': '{1}', '还没有': 'None yet',
+    '达标 {n} 周': 'Goal met {1} {1|week|weeks}', '最近 7 天': 'Last 7 days', '{n} 道': '{1}', '还没有': 'None yet',
     '提醒和每周邮件': 'Reminders and weekly email', '账号和隐私': 'Account and privacy', '导出、注销、数据存放': 'Export, delete, data storage',
     '指南、隐私说明、反馈': 'Guide, privacy notes, feedback',
     // 81-habits.js: 我的 → 使用习惯 (B5), and its summary on 我的's row (今日列表 · 松绿 · 字号标准)
