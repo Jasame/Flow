@@ -30,6 +30,14 @@
 
 ## 2026-11-26
 
+### 13:15 · 内测版：给内测版的后台开端口
+
+- **改了什么**：`/etc/flow-beta.env` 里原来空着的 `FLOW_ADMIN_PORT=` 改成 8093，只听 127.0.0.1；另加一行 `FLOW_ADMIN_EMAILS`，照抄正式版那一行
+  （值不写在这里）。然后重启 flow-beta。正式版没动。
+- **谁、为什么**：语流 A1·发版和服务器，语流 B6 内测版后台的第 1 步。用户在 A1 那边选了「新建一个应用（推荐）」。
+- **备份**：`/root/claude-ops/flow-beta.env.bak-console-20261126-131557`。
+- **撤回**：把 `FLOW_ADMIN_PORT=` 改回空的，删掉 `FLOW_ADMIN_EMAILS` 那一行，重启 flow-beta。按行撤回，不要拷回整份备份。
+
 ### 11:35 · 语流：删掉关着的 Gemini 主模型名
 
 - **改了什么**：`/etc/flow.env` 删掉 `FLOW_AI_MODEL=` 那一行（第 15 行，54 → 53 行），只删这一行；`FLOW_AI_URL`、`FLOW_AI_KEY`（网关，
