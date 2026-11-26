@@ -25,7 +25,8 @@ def built():
         raise AssertionError('the guide PDF was not built: python3 tools/build_release.py --here')
     return False
 # pages that need an id and are reached from pages the guide explains (a material from 今日 / 全部材料, a 连载 story)
-DYNAMIC = {'m', 'series', 'class'}  # class: one page per class, for its teacher (我的 → 我的班级)
+DYNAMIC = {'m', 'series', 'class', 'two'}  # class: one page per class, for its teacher (我的 → 我的班级); two: one per text,
+# opened from 今天的计划 on a 5-minute 表达日 (the guide explains it there)
 
 
 def routes():

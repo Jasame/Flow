@@ -222,6 +222,31 @@ def _easier(c, uid, level, now):
 READ_SUB = {'glance': '只听一遍，或只读一段', 'listen-read': '听一遍，再读一遍', 'core': '听、读、做理解题'}
 
 
+def _two_ready():
+    """听两句、答一句 needs B7's two_lines (the question and the marking): without it 5 分钟 stays a words day."""
+    import importlib.util
+    try:
+        return importlib.util.find_spec('two_lines') is not None
+    except (ValueError, ImportError):
+        return 'two_lines' in __import__('sys').modules and __import__('sys').modules['two_lines'] is not None
+
+
+def _use_day(c, uid, prof, now, start):
+    """5 分钟的日子 (r29, B2's rule, the user's pick): words and 听两句、答一句 take turns by study day. A use day when the
+    last study day before today had a words review; a words day when it had none, or when the last review is two
+    calendar days old or more (so the 3-day catch-up never starts), or there is none yet. Records switched off
+    (按我的学习记录推荐): every other calendar day instead, nothing read from the records."""
+    import progress_service as ps
+    today = ps._local(now).date()
+    if not nx.follows_records(prof):
+        return today.toordinal() % 2 == 1
+    last = c.execute('SELECT MAX(created) FROM next_reviews WHERE user_id=? AND created<?', (uid, start)).fetchone()[0]
+    if not last or (today - ps._local(last).date()).days >= 2:
+        return False
+    days = ps.study_days(c, uid, now - 30 * 86400, start)
+    return bool(days) and max(days) == ps._local(last).date()
+
+
 def daily_path(c, uid, home, now=None):
     """Today's plan packed into the learner's minutes (time_budget, r28 第 1 段). Every step says about how long it takes
     ('minutes') and which part of the day's budget it uses ('part'). 必做 ('group': 'must') holds the words, today's text
@@ -242,9 +267,13 @@ def daily_path(c, uid, home, now=None):
     sprinting = bool(sprint and sprint['sprint'])
     exams = __import__('exam_service')
     drill = getattr(exams, 'drill_step', None)  # 考试小练 (r28 第 4 段); until it exists exam learners keep the usual day
-    b = tb.budget(minutes, exam=bool(drill) and (prof.get('goal') == 'exam' or sprinting))
-    # The words step is capped (r28 第 3 段): vocab_service sizes the day's share once it takes the cap.
-    n = vs.counts(c, uid, now, cap=b['words']) if 'cap' in inspect.signature(vs.counts).parameters else vs.counts(c, uid, now)
+    five = tb.tier(minutes) == 5
+    use_day = five and _two_ready() and _use_day(c, uid, prof, now, start)
+    b = tb.budget(minutes, exam=bool(drill) and (prof.get('goal') == 'exam' or sprinting), use_day=use_day)
+    # The words step is capped (r28 第 3 段): vocab_service sizes the day's share once it takes the cap. At 5 minutes the
+    # words day holds two days' share (B2: the use day between), the use day the usual one, for those who want it.
+    cap = tb.TABLE[5]['words'] * (1 if use_day else 2) if five else b['words']
+    n = vs.counts(c, uid, now, cap=cap) if 'cap' in inspect.signature(vs.counts).parameters else vs.counts(c, uid, now)
     pick = (home.get('today') or [None])[0]
     # The material studied today stays "today's" even after it is finished (the recommendations move on).
     # Today's steps, a text studied again included (progress_service.steps_since: next_progress keeps the first time only).
@@ -312,7 +341,8 @@ def daily_path(c, uid, home, now=None):
                 or ('复习到期的词，再学新词' if n['new'] and n['due'] else '')) if todo else '今天的都完成了')
         if back and cu and todo:
             title = f"单词：先复习最容易忘的 {n['due']} 个"  # the first day's share of the backlog
-        add({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo}, n['minutes'] if todo else 0, ('words',), 0, must=True)
+        add({'key': 'review', 'title': title, 'sub': sub, 'href': '#/review', 'done': not todo}, n['minutes'] if todo else 0, ('words',), 0,
+            must=None if use_day and not back else True)  # a use day: words under 还有时间的话
     if minutes >= 10:
         # 复听 (relisten_service): a text from a few days ago heard again without the words, before today's new one
         import relisten_service as rl
@@ -344,6 +374,11 @@ def daily_path(c, uid, home, now=None):
             st2 = {r['step'] for r in today_steps if r['pack'] == other['id']}
             add({'key': 'read2', 'title': '再读一篇', 'sub': other['title'], 'href': f"#/m/{other['id']}", 'done': 'check' in st2 or 'output' in st2},
                 tb.read_minutes(other.get('words'), 'core'), ('read', 'other'), 8)
+    if use_day and pick and not back:
+        # 听两句、答一句 (r29): two neighbouring sentences of today's text, a question on them, one sentence back. The
+        # page picks the pair from the text as shown (a level's version may differ from the original).
+        add({'key': 'two', 'title': '听两句、答一句', 'sub': '听完用一句话回答', 'href': f"#/two/{pick['id']}", 'done': 'two' in today_kinds},
+            3, ('output',), 3)
     # With goals set, the output step works on the skill furthest from its goal on the radar; otherwise the weakest estimate.
     # 按我的学习记录推荐 switched off: the skill goes round by the day instead (speaking, writing, listening, reading)
     weakest = (__import__('ability_radar').weakest(c, uid, now) or ability(c, uid, now)['weakest']) if nx.follows_records(prof) else \
@@ -453,7 +488,7 @@ def daily_path(c, uid, home, now=None):
     # Packing: part by part in rank order, a step is 必做 if its part has its minutes left (a minute over is fine).
     room = {p: b[p] for p in tb.PARTS}
     for s in sorted(steps, key=lambda s: s['_rank']):
-        part = s['_parts'][0] if s['_must'] else next((p for p in s['_parts'] if s['minutes'] <= room[p] + 1), None)
+        part = s['_parts'][0] if s['_must'] else next((p for p in s['_parts'] if b[p] > 0 and s['minutes'] <= room[p] + 1), None)  # a part with no minutes today takes nothing
         s['group'], s['part'] = ('must', part) if part else ('extra', s['_parts'][0])
         if part:
             room[part] -= s['minutes']
@@ -470,7 +505,8 @@ def daily_path(c, uid, home, now=None):
                   'href': '#/review/other', 'done': False, 'minutes': oc['minutes'], 'group': 'extra', 'part': 'other'}] + extra[:EXTRA - 1]
     done = sum(1 for s in must if s['done'])
     studied = ps.active_minutes(c, uid, start, now + 1)
-    return {'minutes': minutes, 'budget': b, 'steps': must + extra + week, 'done': done, 'total': len(must),
+    note = '今天练表达，单词留到下次。5 分钟的日子，单词和表达轮着来。' if use_day and not back else ''
+    return {'minutes': minutes, 'budget': b, 'note': note, 'steps': must + extra + week, 'done': done, 'total': len(must),
             'must_minutes': sum(s['minutes'] for s in must), 'left_minutes': sum(s['minutes'] for s in must if not s['done']),
             'studied': studied, 'over': studied >= tb.over_at(minutes) and done < len(must), 'back': back}
 

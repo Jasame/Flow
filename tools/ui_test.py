@@ -2402,11 +2402,14 @@ def class_run(pw):
         # 老师模式: a 管理员 makes a 老师注册链接 on the console page (班级 → 老师注册链接), shown once and listed 未使用
         ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, locale='zh-CN')
         cp = ctx.new_page(); cp.on('pageerror', lambda e: errs.append('console: ' + str(e)))
+        asked = []  # the test site's console is 语流's (正式版): a change asks first, naming the site (#402)
+        cp.on('dialog', lambda d: (asked.append(d.message), d.accept()))
         cp.goto(CFG['console'] + '#classes', wait_until='networkidle'); cp.wait_for_selector('#tlF', timeout=8000)
         cp.fill('#tlF [name=note]', 'UI 测试 王老师'); cp.fill('#tlF [name=days]', '3'); cp.click('#tlF button')
         cp.wait_for_selector('#tlNew code', timeout=8000); cp.wait_for_selector('#tlList tbody tr', timeout=8000)
         made, row = cp.text_content('#tlNew code') or '', cp.text_content('#tlList tbody tr') or ''
         check(dev, '后台: 生成老师注册链接 shows the link once and lists it as 未使用', '/#/teacher/' in made and 'UI 测试 王老师' in row and '未使用' in row, (made[-20:], row[:60]))
+        check(dev, '后台（正式版）: the change asks first, and the question names 正式版', any('这是正式版' in m and '老师注册链接' in m for m in asked), asked)
         cp.screenshot(path=str(OUT / 'class-console-link.png'), full_page=True)
         # the link signs up a 老师账号 (no 年龄段); its home is its classes, and it makes one
         pctx = browser.new_context(**phone)
@@ -2418,7 +2421,7 @@ def class_run(pw):
         pg.fill('#authForm [name=email]', 'ui-teacher-new@example.com'); pg.click('#authForm [data-send]'); pg.wait_for_timeout(800)
         mail = sorted(Path(CFG['outbox']).glob('*.txt'), key=lambda f: f.stat().st_mtime)[-1].read_text(encoding='utf-8')
         pg.fill('#authForm [name=code]', re.search(r'验证码：(\d{6})', mail).group(1))
-        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=storage]'); pg.check('#authForm [name=terms]')
+        pg.fill('#authForm [name=username]', 'ui-new-teacher'); pg.fill('#authForm [name=password]', 'correct horse 1'); pg.check('#authForm [name=consent]')
         pg.click('#authForm [type=submit]'); pg.wait_for_selector('#tNew', timeout=8000); settle(pg)
         tab = pg.text_content('[data-nav="today"] span') or ''
         check(dev, '老师账号: after signing up, the home is 我的班级 and the first tab says 班级', '我的班级' in (pg.text_content('h1') or '') and tab == '班级', tab)
@@ -2497,13 +2500,15 @@ def privacy_run(pw):
         gp.click('#authForm .agechip:has-text("14–17 岁")'); gp.wait_for_timeout(150)
         check(dev, '注册: another band hides the tick again', not gp.is_visible('#authForm .guard'))
         gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
-        no_terms = gp.text_content('#authErr') or ''
+        no_tick = gp.text_content('#authErr') or ''
         links = gp.evaluate("[...document.querySelectorAll('#authForm .storagefs a')].map(a => a.getAttribute('href'))")
-        check(dev, '注册: 「我已阅读并同意《用户协议》和《隐私和数据》」 is required, both names open the text',
-              '用户协议' in no_terms and '/#/guide/terms' in links and '/#/guide/privacy' in links, (no_terms, links))
-        gp.check('#authForm [name=terms]'); gp.click('#authForm [type=submit]'); gp.wait_for_timeout(200)
-        no_store = gp.text_content('#authErr') or ''
-        check(dev, '注册: the separate 香港 tick is required too, and said before any request', '香港' in no_store and gp.is_visible('#authForm [name=storage]'), no_store)
+        lead = gp.text_content('#authForm .storagefs b') or ''
+        # D2's plan B, the owner's pick (2026-11-26): one tick, led in bold by the separate consent to the storage in Hong
+        # Kong, then the two texts (both names open them); required, said before any request, never ticked beforehand
+        check(dev, '注册: one tick led by the separate 香港 consent in bold, then 《用户协议》《隐私和数据》; required and not pre-ticked',
+              '香港' in no_tick and '用户协议' in no_tick and '/#/guide/terms' in links and '/#/guide/privacy' in links
+              and lead.startswith('我单独同意') and '香港' in lead and not gp.is_checked('#authForm [name=consent]')
+              and gp.locator('#authForm [name=storage], #authForm [name=terms]').count() == 0, (no_tick, links, lead))
         ctx.close()
         # 数据存放在香港 (privacy_service): an older account is asked on a page of its own, before any other page;
         # 不同意 pauses it (export, delete, sign out, agree again), and ticking goes on
@@ -2514,13 +2519,13 @@ def privacy_run(pw):
         asked = '补一个同意' in (pg.text_content('h1') or '') and pg.is_visible('#stoNo')
         pg.screenshot(path=str(OUT / 'privacy-storage-ask.png'))
         # not agreed yet, the names still open the text, over the page; 返回 leaves the form as it was
-        pg.check('#stoF [name=storage]')
+        pg.check('#stoF [name=consent]')
         pg.click('#stoF a[data-doc=terms]'); pg.wait_for_selector('.doc-over .doc-body h3', timeout=8000)
         over = '语流用户协议' in (pg.text_content('.doc-over .doc-bar') or '') and len(pg.text_content('.doc-over .doc-body') or '') > 500
         pg.screenshot(path=str(OUT / 'privacy-terms-over.png'))
         pg.click('.doc-over .doc-bar [data-doc-close]'); pg.wait_for_timeout(200)
-        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=storage]') and not pg.is_checked('#stoF [name=terms]')
-        pg.uncheck('#stoF [name=storage]')
+        over = over and pg.query_selector('.doc-over') is None and pg.is_checked('#stoF [name=consent]')
+        pg.uncheck('#stoF [name=consent]')
         check(dev, '补勾页: 《用户协议》 opens over the page before agreeing, 返回 keeps the ticks', over)
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); pg.wait_for_selector('#stoF', timeout=8000)
         other = '补一个同意' in (pg.text_content('h1') or '')
@@ -2529,10 +2534,8 @@ def privacy_run(pw):
         pg.screenshot(path=str(OUT / 'privacy-storage-paused.png'))
         pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
         err = pg.text_content('#stoErr') or ''
-        both = pg.is_visible('#stoF [name=terms]') and pg.is_visible('#stoF [name=storage]')
-        pg.check('#stoF [name=storage]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(200)
-        err = err + ' / ' + (pg.text_content('#stoErr') or '')  # the 用户协议 tick is asked for too
-        pg.check('#stoF [name=terms]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
+        both = pg.is_visible('#stoF [name=consent]') and pg.locator('#stoF [name=storage], #stoF [name=terms]').count() == 0  # one tick for both
+        pg.check('#stoF [name=consent]'); pg.click('#stoF [type=submit]'); pg.wait_for_timeout(1500); settle(pg)
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))

@@ -117,6 +117,11 @@ def request(c,data,ip):
  if purpose=='register' and exists:probed(c,ip);return {'error':'这个邮箱已经注册，可以直接用验证码登录。','code':'email_taken'},409
  if purpose=='login' and not exists:probed(c,ip);return {'error':'这个邮箱还没有绑定账号。老账号请先用密码登录，再到「我的」里绑定邮箱。','code':'email_unknown'},404
  if purpose=='reset' and not exists:probed(c,ip);return {'error':'没有找到绑定这个邮箱的账号。注册时没有填邮箱的话，请联系老师或管理员，在后台为你生成一个重设密码的链接。','code':'email_unknown','field':'email'},404
+ if purpose=='register' and not data.get('teacher'):
+  bi=__import__('beta_invites')  # 内测版: an invite code before a code is mailed (nothing used up yet)
+  if bi.on():
+   _,problem=bi.check(c,data.get('invite'),ip)
+   if problem:return problem
  return send(c,email,purpose,ip,invited_class(c,data.get('class')) if purpose=='register' else None)
 
 def probing(c,ip):
@@ -209,6 +214,10 @@ def register(c,data,hash_password,ip=''):
  if data.get('teacher'):
   link,problem=ts.usable(c,data.get('teacher'),ip)
   if problem:return None,problem
+ bi=__import__('beta_invites');invite=None
+ if bi.on() and not link:  # 内测版: a 学生账号 needs an invite code (a 老师注册链接 is an invite of its own)
+  invite,problem=bi.check(c,data.get('invite'),ip)
+  if problem:return None,problem
  name=str(data.get('username','')).strip();p=str(data.get('password',''));email=normalize(data.get('email'))
  held=probing(c,ip)
  if held:return None,held
@@ -229,11 +238,14 @@ def register(c,data,hash_password,ip=''):
  problem=pv.check_storage(data) or pv.check_terms(data)  # 数据存放在香港 and 用户协议+隐私和数据: two ticks, teachers too
  if problem:return None,problem
  taken=({'error':'这个老师注册链接刚刚被用掉了。需要的话，请联系语流重新发一个。','code':'teacher_link'},410)
+ gone=({'error':'这个邀请码的名额刚刚用完了，请向发码的人要一个新的。','field':'invite','code':'invite'},403)
  if not account.configured():
   if link and not ts.claim(c,link['id']):return None,taken
+  if invite and not bi.claim(c,invite['id']):c.rollback();return None,gone
   c.execute('INSERT INTO users(username,password,created) VALUES(?,?,?)',(name,hash_password(p),time.time()))
   u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
   if link:ts.made(c,link['id'],u['id'])
+  if invite:bi.record(c,invite['id'],u['id'])
   pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
   if not link:pv.store(c,u['id'],data)
   return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None
@@ -242,9 +254,11 @@ def register(c,data,hash_password,ip=''):
  problem=check(c,email,'register',data.get('code'))
  if problem:return None,({'error':problem,'field':'code'},400)
  if link and not ts.claim(c,link['id']):return None,taken
+ if invite and not bi.claim(c,invite['id']):c.rollback();return None,gone
  c.execute('INSERT INTO users(username,password,email,created) VALUES(?,?,?,?)',(name,hash_password(p),email,time.time()))
  u=c.execute('SELECT * FROM users WHERE username=?',(name,)).fetchone()
  if link:ts.made(c,link['id'],u['id'])
+ if invite:bi.record(c,invite['id'],u['id'])
  pv.agreed(c,u['id']);pv.agreed_terms(c,u['id']);_signed_up(c,ip,invited);c.commit()
  if not link:pv.store(c,u['id'],data)
  return c.execute('SELECT * FROM users WHERE id=?',(u['id'],)).fetchone(),None

@@ -102,6 +102,8 @@ def learners(c):
     import vocab_service as vs
     out = []
     import privacy_service as pv
+    # 内测版邀请码 (beta_invites): which accounts signed up with a code
+    invited = {r[0] for r in c.execute('SELECT user_id FROM beta_invite_uses')} if c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='beta_invite_uses'").fetchone() else set()
     for u in c.execute('SELECT id, username, email, admin, disabled, created, age_band, guardian_ok, role, storage_ok, storage_no, terms_ok, terms_version FROM users ORDER BY id DESC'):
         uid = u['id']
         days = act.get(uid, {})
@@ -123,6 +125,7 @@ def learners(c):
             'book': vs.book_title(plan['book']) if plan else None, 'daily_new': plan['daily_new'] if plan else None,
             'cards': (cards.get(uid) or (0, 0))[0], 'book_words': (cards.get(uid) or (0, 0))[1] or 0,
             'reviews_7d': rev7.get(uid, 0), 'ai_7d': ai7.get(uid, 0), 'exams': exams.get(uid, 0), 'feedback': fb.get(uid, 0),
+            'invited': uid in invited,
         })
     return out
 
@@ -138,7 +141,10 @@ FILTERS = {
     'minor': ('未成年', lambda r, td: r['age'] in ('u14', '14-17')),
     'paused': ('没同意数据存放（暂停）', lambda r, td: r['storage'] == 'no'),
     'no_age': ('没填年龄段', lambda r, td: not r['age']),
+    # 内测版 only (learner_list): the accounts made before invite codes, to keep or stop one by one
+    'no_invite': ('没用邀请码注册的', lambda r, td: not r['invited'] and not r['staff'] and not r['teacher']),
 }
+BETA_FILTERS = {'no_invite'}
 SORTS = {
     'recent': lambda r: (r['last_seen'] or 0, r['id']),
     'days': lambda r: (r['days_total'], r['last_seen'] or 0),
@@ -150,16 +156,18 @@ SORTS = {
 def learner_list(c, q='', flt='all', sort='recent', page=1, per=50):
     rows = learners(c)
     td = today()
-    counts = {k: sum(1 for r in rows if f(r, td)) for k, (_, f) in FILTERS.items()}
+    import app
+    shown = {k: v for k, v in FILTERS.items() if app.CHANNEL == 'beta' or k not in BETA_FILTERS}
+    counts = {k: sum(1 for r in rows if f(r, td)) for k, (_, f) in shown.items()}
     q = str(q or '').strip().lower()[:60]
     if q:
         rows = [r for r in rows if q in r['username'].lower() or (q.isdigit() and int(q) == r['id'])]
-    flt = flt if flt in FILTERS else 'all'
-    rows = [r for r in rows if FILTERS[flt][1](r, td)]
+    flt = flt if flt in shown else 'all'
+    rows = [r for r in rows if shown[flt][1](r, td)]
     rows.sort(key=SORTS.get(sort, SORTS['recent']), reverse=True)
     page = max(1, int(page or 1))
     return {'items': rows[(page - 1) * per: page * per], 'total': len(rows), 'page': page, 'per_page': per,
-            'filters': [{'key': k, 'label': v[0], 'count': counts[k]} for k, v in FILTERS.items()]}
+            'filters': [{'key': k, 'label': v[0], 'count': counts[k]} for k, v in shown.items()]}
 
 
 def learner(c, uid):
