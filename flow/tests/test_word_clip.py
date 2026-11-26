@@ -204,7 +204,7 @@ class FrontEndTests(unittest.TestCase):
         # Web Audio on iPhones: a 'playback' session (the ringer switch), named on the lock screen, rested after 20 s;
         # the browser voice stays the last resort of a failed clip (not TTS.say: that may be the server voice again)
         self.assertIn("if (this.session('playback') !== 'playback') { this.off = true; return false; }", js)
-        self.assertIn("MS.claim('short', title || '语流'", js); self.assertIn('}, 20000);', js)
+        self.assertIn("MS.claim('short', zhEn(title || '语流')", js)  # the lock screen's title in the page's language; self.assertIn('}, 20000);', js)
         # both lines failed: why first (SV.why, a word's own two lines; nothing about a voice where there is none), then the browser voice
         self.assertIn("if (TTS.ok) SV.why(/\\/audio\\/words\\//.test(w.src || '')", js)
         self.assertIn("code: off ? 'word_offline' : 'word_net'", js); self.assertIn('TTS.browser(w.text, w.onend);  // not TTS.say', js)

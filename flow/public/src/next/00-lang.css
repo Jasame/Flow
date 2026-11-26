@@ -8,10 +8,6 @@ html[lang=en] .cf-how[open]>summary::after{content:'Hide'}
 html[lang=en] .sp-others summary::after{content:'Show ›'}
 html[lang=en] .sp-others[open] summary::after{content:'Hide'}
 html[lang=en][data-channel=beta] .auth::before{content:'This is the beta: its accounts are separate from flowlang.cn, so sign up here the first time.'}
-.lang-seg{display:inline-grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;padding:3px;border-radius:11px;background:var(--sunk)}
-.lang-seg button{border:0;background:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);min-height:32px}
-.lang-seg button[aria-checked=true]{background:var(--paper);color:var(--ink)}
-.lang-undo{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + var(--sab, 0px));z-index:60;display:flex;align-items:center;gap:10px;
-  max-width:calc(100vw - 32px);padding:8px 8px 8px 14px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:13.5px}
+.lang-seg button{font-size:13px}  /* the look is .vt's (列表 | 卡片, 简 | 详; 30-words.css) */
+.easy-bar.lang-undo{bottom:calc(76px + var(--sab, 0px));z-index:60}  /* .easy-bar's look (30-words.css), above the tabs */
 .lang-undo span+span{opacity:.75}
-.lang-undo .btn{background:var(--bg);color:var(--ink);border:0;white-space:nowrap}

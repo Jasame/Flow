@@ -49,6 +49,7 @@ WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 # Knowledge graph: 44 grammar points in 13 topics (the first 18 from content_v05, 26 more from grammar_more).
 # Which points a level should be building now.
 import grammar_more as GM
+import ui_lang
 import grammar_bank as GB
 TOPICS = GM.TOPIC_ORDER
 LEVEL_NODES = {
@@ -566,11 +567,20 @@ def _done(c, uid):
     return out
 
 
+def _titles(pack):
+    """(title, title_en) as the page shows them: 全英文界面 (ui_lang) puts the English title first and leaves no second line."""
+    en = pack.get('title_en', '')
+    return (en, '') if ui_lang.lang() == 'en' and en else (pack['title'], en)
+
+
 def _card(pack, done=None, extra=None):
     words = len(pack['body'].split())
-    return {'id': pack['id'], 'title': pack['title'], 'title_en': pack.get('title_en', ''), 'level': cefr(pack), 'theme': pack['theme'],
+    title, title_en = _titles(pack)
+    first = sentences(pack['body'])[0]
+    return {'id': pack['id'], 'title': title, 'title_en': title_en, 'level': cefr(pack), 'theme': pack['theme'],
             'theme_label': THEMES.get(pack['theme'], ''), 'genre': pack.get('genre', ''), 'words': words, 'minutes': max(3, round(words / 30) + 4),
-            'preview': pack.get('summary_zh') or sentences(pack['body'])[0][:140], 'preview_en': sentences(pack['body'])[0][:160],
+            # the preview: the Chinese summary, or in English mode the text's first sentence
+            'preview': ui_lang.L(pack.get('summary_zh') or first[:140], first[:160]), 'preview_en': first[:160],
             'daily': bool(pack.get('daily_day')), 'featured': featured(pack), 'grammar': pack.get('grammar', []),
             'brief': not featured(pack) and not pack.get('daily_day') and not pack.get('imported'),  # 简版: the older, shorter texts
             'ai': not pack.get('imported'),  # 「AI 生成」 on the card: everything Flow wrote is (featured, 简版, 热点); an imported article is the learner's
@@ -1139,7 +1149,8 @@ def series_list(c, uid):
     for sid, eps in _series_packs(c).items():
         s = eps[0]['series']
         nxt = next((p for p in eps if not _read(done.get(p['id'], set()))), None)
-        out.append({'id': sid, 'title': s['title'], 'title_en': s.get('title_en', ''), 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
+        title, title_en = _titles(s)
+        out.append({'id': sid, 'title': title, 'title_en': title_en, 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
                     'done': sum(1 for p in eps if _read(done.get(p['id'], set()))), 'next': nxt['id'] if nxt else None,
                     'next_part': nxt['series'].get('part') if nxt else None})
     return out
@@ -1153,7 +1164,8 @@ def series(c, uid, sid):
     s = eps[0]['series']
     cards = [_card(p, done.get(p['id']), {'part': p['series'].get('part'), 'read': _read(done.get(p['id'], set()))}) for p in eps]
     nxt = next((x for x in cards if not x['read']), None)
-    return {'id': sid, 'title': s['title'], 'title_en': s.get('title_en', ''), 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
+    title, title_en = _titles(s)
+    return {'id': sid, 'title': title, 'title_en': title_en, 'blurb': s.get('blurb', ''), 'level': cefr(eps[0]), 'of': len(eps),
             'episodes': cards, 'next': nxt['id'] if nxt else None, 'done': sum(1 for x in cards if x['read'])}, 200
 
 
@@ -1231,7 +1243,8 @@ def material(c, uid, pid, level=None, offline=False):
     for n in found[:2]:
         st = states.get(n, {}).get('status', 'untouched')
         notes.append({'node': n, 'title': meta[n]['title'], 'quote': _found(p)[n][0], 'explanation': GM.BY_ID[n]['note'], 'status': st, 'label': STATUS_LABEL[st]})
-    return {'id': p['id'], 'title': p['title'], 'title_en': p.get('title_en', ''), 'summary_zh': p.get('summary_zh', ''),
+    title, title_en = _titles(p)
+    return {'id': p['id'], 'title': title, 'title_en': title_en, 'summary_zh': p.get('summary_zh', ''),
             'level': cefr(p), 'theme': p['theme'], 'theme_label': THEMES.get(p['theme'], ''), 'genre': p.get('genre', ''),
             'source': p.get('source', ''), 'daily_day': p.get('daily_day'), 'featured': featured(p),
             'sentences': sentences(text), 'original_level': cefr(p), 'original': sentences(body) if variant else None,

@@ -11,8 +11,9 @@
   function langSwitchHTML() {
     if (!uiLangOpen()) return '';
     const cur = uiLang();
-    return /* i18n: keep (each half in its own language) */ `<div class="lang-seg" role="radiogroup" aria-label="界面语言 Language" translate="no">${[['zh', '中文', 'zh-CN'], ['en', 'English', 'en']].map(([v, l, lg]) =>
-      `<button type="button" role="radio" data-lang="${v}" lang="${lg}" aria-checked="${v === cur}">${l}</button>`).join('')}</div>`;
+    // the look of 列表 | 卡片 and 简 | 详 (.vt, 30-words.css; B9)
+    return /* i18n: keep (each half in its own language) */ `<div class="vt lang-seg" role="radiogroup" aria-label="界面语言 Language" translate="no">${[['zh', '中文', 'zh-CN'], ['en', 'English', 'en']].map(([v, l, lg]) =>
+      `<button type="button" role="radio" data-lang="${v}" lang="${lg}" class="${v === cur ? 'on' : ''}" aria-checked="${v === cur}">${l}</button>`).join('')}</div>`;
   }
   function langSwitchWire(root) {
     (root || document).querySelectorAll('.lang-seg [data-lang]').forEach(b => b.onclick = () => {
@@ -77,9 +78,9 @@
     if (!(Date.now() - u.at < 30000) || !uiLangOpen()) return;
     const en = uiLang() === 'en';
     const el = document.createElement('div');
-    el.className = 'lang-undo'; el.setAttribute('role', 'status'); el.setAttribute('translate', 'no');
+    el.className = 'easy-bar lang-undo'; el.setAttribute('role', 'status'); el.setAttribute('translate', 'no');  // the look of 复习's 太简单 · 撤销
     el.innerHTML = /* i18n: keep */ (en ? '<span lang="en">Now in English</span><span lang="zh-CN">已换成英文</span>' : '<span lang="zh-CN">已换成中文</span><span lang="en">Now in Chinese</span>')
-      + /* i18n: keep */ `<button type="button" class="btn small">${en ? '<span lang="en">Undo</span> · <span lang="zh-CN">撤销</span>' : '<span lang="zh-CN">撤销</span> · <span lang="en">Undo</span>'}</button>`;
+      + /* i18n: keep */ `<button type="button" class="link small">${en ? '<span lang="en">Undo</span> · <span lang="zh-CN">撤销</span>' : '<span lang="zh-CN">撤销</span> · <span lang="en">Undo</span>'}</button>`;
     el.querySelector('button').onclick = () => { el.remove(); setLang(u.from, true); };
     document.body.appendChild(el);
     setTimeout(() => el.remove(), LANG_UNDO_MS);

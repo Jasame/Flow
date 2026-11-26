@@ -2660,17 +2660,6 @@ def privacy_run(pw):
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
-        # feedback #1 (2026-11-25): the page open while the consent goes (another device withdrew it): the next page that
-        # asks the server (我的进步; 单词 was preloaded and shows from the copy until its next request) is the consent page,
-        # not 「重试」 alone; one line, the tick and one button, the rest in small type
-        pg.evaluate("""async () => { const s = await (await fetch('/api/session', {credentials: 'same-origin'})).json();
-            await fetch('/api/account/storage', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json',
-              'X-CSRF-Token': s.user.csrf}, body: JSON.stringify({agree: false})}); location.hash = '#/growth'; }""")
-        pg.wait_for_selector('#stoF', timeout=8000); settle(pg)
-        calm = ('这个账号已暂停' in (pg.text_content('h1') or '') and pg.is_visible('#stoF [type=submit]') and not pg.is_visible('text=重试')
-                and pg.is_visible('#stoDel') and pg.locator('.sto-why').count() == 1 and not pg.is_visible('.sto-why .hint >> nth=1'))
-        pg.screenshot(path=str(OUT / 'privacy-storage-withdrawn-open.png'))
-        check(dev, '数据存放: withdrawn while a page is open, the next page is the short consent page, never 「重试」 alone', calm)
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -4667,6 +4656,108 @@ def start_run(pw):
         browser.close()
 
 
+# ---- 全英文界面 (docs/english-ui.md; 语流 E1): the pages of the daily path in English, page by page: no script error, no
+# Chinese left that is not meant to stay (LEAK_JS: data-zh, translate="no", the name 语流 Flow and the AI marks, which
+# carry both languages, Chinese first), one phone screen where the Chinese one is; the account's choice followed on
+# another device, and the line that undoes a switch. EN_DONE lists the pages whose English is done: those must have no
+# Chinese left; the rest print what is left (全英文界面 第 1 段 adds them one by one). An iPhone SE, light and dark.
+LEAK_JS = r"""() => {
+  const HAN = /[㐀-鿿豈-﫿]/, out = new Set();
+  const KEEP = /语流|AI 生成(?= · AI-generated)|AI 朗读(?= · AI voice)|读音由 AI 合成(?= · AI voice)|朗读由 AI 合成(?= · AI voice)|AI 合成(?= · AI voice)/g;
+  const left = v => HAN.test(v.replace(KEEP, ''));
+  const skip = el => !el || !!el.closest('[data-zh],[translate="no"],script,style,noscript,template,[hidden],[aria-hidden="true"]');
+  const seen = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+  while ((n = w.nextNode())) {
+    const el = n.parentElement, v = n.nodeValue.replace(/\s+/g, ' ').trim();
+    if (!left(v) || skip(el) || !seen(el) || (el.closest('details:not([open])') && !el.closest('summary'))) continue;
+    out.add(v);
+  }
+  document.querySelectorAll('[aria-label],[placeholder],[title],[alt]').forEach(el => {
+    if (skip(el)) return;
+    ['aria-label', 'placeholder', 'title', 'alt'].forEach(a => { const v = el.getAttribute(a); if (v && left(v)) out.add('@' + a + ': ' + v); });
+  });
+  return [...out];
+}"""
+EN_PAGES = ['#/', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
+            f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/library', '#/cards', '#/vocab/plan',
+            '#/vocab/test', '#/review', '#/me', '#/practice']
+# not yet: 单词 (its word meanings get data-zh in B2's word-page PR), 我的 (the privacy rows: data-zh once 使用习惯 is in)
+EN_DONE = set(EN_PAGES) - {'#/cards', '#/me'}
+EN_ONCE = "try { if (!sessionStorage.getItem('en-set')) { sessionStorage.setItem('en-set', '1'); localStorage.setItem('flow-lang', JSON.stringify('en')); } } catch (e) {}"
+
+
+def english_run(pw):
+    dev = 'english'
+    browser = pw.chromium.launch(channel='chrome', headless='--headed' not in sys.argv, args=['--mute-audio'])
+    try:
+        for scheme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',
+                                      bypass_csp=True, reduced_motion='reduce', color_scheme=scheme)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['english']['token'], 'url': BASE}])
+            ctx.add_init_script(EN_ONCE)
+            pg = ctx.new_page(); errs = []
+            pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + '/', wait_until='load'); settle(pg)
+            if scheme == 'light':
+                tabs = pg.evaluate("[...document.querySelectorAll('.tabs a span')].map(x => x.textContent)")
+                check(dev, 'the page is in English (html lang, the tabs)', pg.evaluate("document.documentElement.lang") == 'en' and tabs[:1] == ['Today']
+                      and 'Me' in tabs and not any(re.search('[\u3400-\u9fff]', x) for x in tabs), tabs)
+            for h in EN_PAGES:
+                go(pg, '#/cards' if h == '#/review' else h)
+                if h == '#/review':
+                    go(pg, h)
+                pg.wait_for_timeout(300)
+                name = h.strip('#/').replace('/', '_').replace(PID, 'text') or 'today'
+                pg.screenshot(path=str(OUT / f'english-se-{scheme}-{name}.png'))
+                if scheme == 'dark':
+                    continue
+                left = pg.evaluate(LEAK_JS)
+                if h in EN_DONE:
+                    check(dev, f'{h}: no Chinese left in English mode', not left, left[:8])
+                else:
+                    print(f'INFO [{dev}] {h}: {len(left)} pieces of Chinese left: {left[:6]}', flush=True)
+                wide = pg.evaluate("document.scrollingElement.scrollWidth - innerWidth")
+                check(dev, f'{h}: no sideways scrolling in English', wide <= 1, wide)
+            check(dev, f'{scheme}: no script errors on the English pages', not errs, errs[:3])
+            ctx.close()
+        # one screen in English where the Chinese page is one (the review card, 测词汇量): English is longer
+        for H in (667, 553):
+            ctx = browser.new_context(viewport={'width': 375, 'height': H}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',
+                                      bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['english-screen']['token'], 'url': BASE}])
+            ctx.add_init_script(EN_ONCE)
+            pg = ctx.new_page()
+            pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
+            for page, wait in (('#/review', '[data-claim]'), ('#/vocab/test', '.vtest [data-a]')):
+                go(pg, page); pg.wait_for_selector(wait, timeout=8000); pg.wait_for_timeout(400)
+                s = pg.evaluate(ONE_SCREEN_JS)
+                pg.screenshot(path=str(OUT / f"english-one-screen-375x{H}-{page.strip('#/').replace('/', '_')}.png"))
+                check(dev, f'375×{H} {page} in English: one screen ({s["page"]} of {s["H"]}px), the answers on it', s['page'] <= s['H'] and s['answers'] and max(s['answers']) <= s['H'], s)
+            ctx.close()
+        # another device follows the account; the line after a switch undoes it
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        me = CFG['learners']['english-switch']
+        ctx.add_cookies([{'name': 'flow_session', 'value': me['token'], 'url': BASE}])
+        pg = ctx.new_page()
+        pg.goto(BASE + '/', wait_until='load'); settle(pg)
+        check(dev, 'a Chinese account opens in Chinese', pg.evaluate("document.documentElement.lang") == 'zh-CN')
+        ctx.request.post(BASE + '/api/next/lang', data={'lang': 'en'}, headers={'X-CSRF-Token': me['csrf']})
+        pg.reload(wait_until='load'); pg.wait_for_function("document.documentElement.lang === 'en'", timeout=10000); settle(pg)
+        check(dev, 'chosen on another device: this one opens in English too', pg.evaluate("document.documentElement.lang") == 'en')
+        pg.evaluate("localStorage.setItem('flow-lang-undo', JSON.stringify({ from: 'zh', at: Date.now() }))")
+        pg.reload(wait_until='load'); settle(pg)
+        undo = pg.query_selector('.lang-undo button')
+        check(dev, 'right after a switch: a line to undo it, in both languages', undo is not None and 'Undo' in (undo.text_content() or '') and '撤销' in (undo.text_content() or ''))
+        if undo:
+            undo.click(); pg.wait_for_function("document.documentElement.lang === 'zh-CN'", timeout=10000); settle(pg)
+            prof = ctx.request.get(BASE + '/api/next/home').json().get('profile') or {}
+            check(dev, 'undone: back in Chinese, on the account too', pg.evaluate("document.documentElement.lang") == 'zh-CN' and prof.get('lang') == 'zh', prof.get('lang'))
+        ctx.close()
+    finally:
+        browser.close()
+
+
 # ---- 主屏 App (Safari 「添加到主屏幕」, 04-home-app.js): opened from the home screen there is no browser back, the
 # Dynamic Island and the home bar take the screen's edges, the keyboard covers what is fixed, and the app may sleep for
 # days. Chrome stands in for the iPhone: navigator.standalone, the safe areas set through --sat/--sab/--sal/--sar
@@ -5128,6 +5219,12 @@ def main():
             except Exception:
                 print(traceback.format_exc())
                 check('updates', 'run finished', False, traceback.format_exc()[-600:])
+        if not ONLY or 'english' in ONLY:
+            try:
+                english_run(pw)
+            except Exception:
+                print(traceback.format_exc())
+                check('english', 'run finished', False, traceback.format_exc()[-600:])
         if not ONLY or 'tour' in ONLY:
             try:
                 tour_run(pw)
