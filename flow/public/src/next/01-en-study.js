@@ -111,7 +111,7 @@
     '正在改写…': 'Rewriting…', '已打开改写版': 'Rewrite opened', '改写好了': 'Rewrite ready',
 
     // 23-study-check.js: Check questions
-    '这篇还没有理解题。': 'No Check questions for this text yet.', '✦ 让 AI 出几道理解题': '✦ Have AI write Check questions',
+    '这篇还没有理解题。': 'No questions for this text yet.', '✦ 让 AI 出几道理解题': '✦ Have AI write questions',
     '同时挑出值得学的表达，写一段中文导读（用 1 次 AI）。': 'It also picks expressions worth learning and writes a Chinese summary (uses 1 AI request).',
     '去用出来 →': 'Go to Use it →', '登录后可以让 AI 出题。': 'Sign in to have AI write questions.',
     '正在出题…': 'Writing questions…', '题目出好了': 'Questions ready',
@@ -214,5 +214,5 @@
     '已读 {n} / {n} 集': 'Read {1} of {2}', '继续第 {n} 集': 'Continue with part {1}', '读完了': 'All read',
     '共 {n} 集': '{1} {1|part|parts}', '从第 {n} 集开始': 'Start with part {1}', '继续：第 {n} 集': 'Continue: part {1}',
     '六集都读完了。可以回到任意一集，再听一遍或者重写输出任务。': 'You have read all six parts. Go back to any part to listen again or redo the Use it tasks.',
-    '每集约 300 词，C1 难度，原创连载。每集都有听、读、理解和输出四步，读完理解题就算读过这一集。': 'Each part is about 300 words at C1, an original series. Each has the four steps Listen, Read, Check and Use it; finish the Check questions and the part counts as read.',
+    '每集约 300 词，C1 难度，原创连载。每集都有听、读、理解和输出四步，读完理解题就算读过这一集。': 'Each part is about 300 words at C1, an original series. Each has the four steps Listen, Read, Check and Use it; finish the questions and the part counts as read.',
   });

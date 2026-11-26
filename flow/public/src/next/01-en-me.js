@@ -164,7 +164,7 @@
     '到期的单词和短语，一张张过': 'Due words and phrases, one card at a time', '最容易混的词放在一起练': 'Practice the words most often confused',
     '换词书、改每天学多少': 'Change your word book or daily amount', '{n} 分钟估一估你认识多少词': 'Estimate your vocabulary in {1} min',
     '考试和测评': 'Exams and tests', '中考高考、四六级、考研、专四专八、雅思，限时做': 'Timed sets: Zhongkao, Gaokao, CET-4/6, Kaoyan, TEM-4/8, IELTS',
-    '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes and patterns',
+    '{n} 题定出你的语法起点': '{1} questions to find your grammar level', '错题和句型': 'Mistakes & patterns',
     '{x}离你的目标最远，先练它': '{1} is furthest from your goal. Practice it first', '去练{x}': 'Practice {1}',
     '{x}，有 {n} 项到期': '{1}, {2} due',
   });

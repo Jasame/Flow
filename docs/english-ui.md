@@ -54,7 +54,8 @@ above, the Chinese stays under it, small); exam explanations (考试练习的解
 top: "The guide is in Chinese for now.").
 
 **AI marks** in English mode carry both languages, Chinese first: 「AI 生成 · AI-generated」, 「AI 朗读 · AI voice」,
-「朗读由 AI 合成 · AI voice」. Where that is too long, the Chinese alone.
+「朗读由 AI 合成 · AI voice」. Where that is too long, the Chinese alone. The small tag in a card's info line (`aiTag()`) is the
+Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines carry both.
 
 ## Style
 
@@ -102,7 +103,7 @@ top: "The guide is in Chinese for now.").
 | 词书 | Word book | |
 | 查词 | Look up | |
 | 测词汇量 | Vocabulary test | |
-| 错题本 | Mistakes | |
+| 错题本 · 错题和句型 | Mistake log · Mistakes & patterns | |
 | 讲解 | Explanation (noun) · Explain (button) | |
 | 看中文 | Show Chinese | under each AI explanation |
 | 例句 | Example | |

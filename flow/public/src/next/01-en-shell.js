@@ -39,7 +39,7 @@
     '能力': 'Skills', '班级': 'Class', '老师': 'Teacher', '设置': 'Settings', '使用习惯': 'Preferences', '帮助': 'Help',
     '学习目标': 'Goal', '水平': 'Level', '提醒': 'Reminders', '操作指南': 'Guide', '更新记录': "What's new", '问题反馈': 'Feedback',
     '复习': 'Review', '收藏': 'Save', '已收藏': 'Saved', '新词': 'New words', '背词计划': 'Word plan', '词书': 'Word book',
-    '测词汇量': 'Vocabulary test', '错题本': 'Mistakes', '例句': 'Example', '表达': 'Expression', '翻译': 'Translate', '语法': 'Grammar',
+    '测词汇量': 'Vocabulary test', '错题本': 'Mistake log', '例句': 'Example', '表达': 'Expression', '翻译': 'Translate', '语法': 'Grammar',
     '精选': 'Featured', '全部材料': 'All texts', '我的文章': 'My texts', '轻松读': 'Easy reading', '学一篇': 'Study a text',
     '能力雷达': 'Skills radar', '知识图谱': 'Grammar map', '语法起点小测': 'Grammar placement quiz', '词汇辨析': 'Word pairs',
     '口语路线': 'Speaking path', '发音入门': 'Pronunciation basics', '考试练习': 'Exam practice', '我的进步': 'My progress',

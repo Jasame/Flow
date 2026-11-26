@@ -37,7 +37,7 @@
     '先不看原文听一遍': 'Listen once without the text first',
     '低一级（{x}），先找回状态': 'One level down ({1}) to get back into it',
     '只听一遍，或只读一段': 'Listen once, or read one paragraph', '听一遍，再读一遍': 'Listen once, then read it',
-    '听、读、做理解题': 'Listen, read, answer the Check questions',
+    '听、读、做理解题': 'Listen, read, answer the questions',
     '再读一篇': 'Read one more', '听两句、答一句': 'Two lines, one reply', '听完用一句话回答': 'Listen, then reply in one sentence',
     '容易混的音，听辨 + 跟读': 'Sounds that get mixed up: hear the difference, then shadow',
     '复述今天这篇': "Retell today's text", '用自己的话讲一遍，AI 看你讲到了哪些要点': 'Say it in your own words; the AI checks which points you covered',
@@ -75,7 +75,7 @@
     // 「{skill}是现在最弱的一项，接下来几天{what}。」: the what parts read inside that sentence
     '{x}是现在最弱的一项，接下来几天{x}。': '{1} is your weakest skill now. For the next few days, {2}.',
     '每天复述一篇或和 AI 对话一轮': 'retell a text or do one dialogue with the AI each day', '写一段短文让 AI 批改': 'write a short paragraph for the AI to mark',
-    '每天听写三句': 'do dictation, 3 lines a day', '先读懂再做理解题': 'understand the text before the Check questions', '多练这一项': 'practice it more',
+    '每天听写三句': 'do dictation, 3 lines a day', '先读懂再做理解题': 'understand the text before the questions', '多练这一项': 'practice it more',
     '这 7 天还没学：每天 10 分钟，先从今天这篇开始。': "No study these 7 days. Try 10 min a day, starting with today's text.",
 
     // vocab_service.py: word books (背词计划), their groups, word roots, examples, the vocabulary test (the exam chips are in 01-en-shell.js)
