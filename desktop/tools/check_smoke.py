@@ -53,6 +53,17 @@ def problems(d, os_name):
             out.append(f"FlowApp.notify.pending() does not list it: {p.get('pendingFromPage')!r}")
         if n.get('test_notification') != 'shown':
             out.append(f"test notification: {n.get('test_notification')!r}")
+        # 切换账号 (account.changed): the last account's reminders go, planned and shown
+        after = n.get('after_account_changed')
+        if not isinstance(after, dict):
+            out.append(f'no after_account_changed in the report: {after!r}')
+        elif after.get('pending'):
+            out.append(f"after account.changed the system still has reminders planned: {after['pending']}")
+        if os_name == 'windows':  # Linux keeps no list of what it showed
+            if not n.get('shown'):
+                out.append(f"the test notification is not in the notification centre: {n.get('shown')!r}")
+            if isinstance(after, dict) and after.get('shown'):
+                out.append(f"after account.changed the notification centre still has: {after['shown']!r}")
     if not n.get('media_controls'):
         out.append('the system media controls did not start')
     if 'AI 朗读' not in (n.get('media_last_artist') or ''):
