@@ -14,6 +14,7 @@ The two lines (data['lines']) must be two neighbouring sentences of the text or 
 """
 import datetime, hashlib, json, re, time
 
+import ai_lang  # 全英文界面: on an English page the note is in English (ai_lang.py)
 import next_service as nx
 from lab_service import Shape, mtext
 
@@ -26,6 +27,7 @@ LEVEL_NOTE = {'A2': '入门水平：用最常见的词和短句。', 'B1': '中�
               'C1': '高级水平：措辞可以更地道、更精确。'}
 SAFE = '不问真实姓名、住址、学校、电话这类个人信息；不涉及政治、宗教、时事、暴力、疾病和家庭隐私。'
 NOTHING_HEARD = '没听清你说的，可以再说一遍，或者打字回答。'
+NOTHING_HEARD_EN = "I didn't catch that. Say it again, or type your answer."
 
 
 def schema(c):
@@ -148,11 +150,11 @@ def ask(c, uid, data):
 
 def check_messages(lines, question, answer, level, spoken):
     said = ('学习者说的话（语音转写，可能有转写误差，不要因为转写里的小错扣分）' if spoken else '学习者写的回答')
-    return [{'role': 'system', 'content': '你是耐心的英语口语老师，看一位中国学习者的一句回答。只输出 JSON。'}, {'role': 'user', 'content':
+    return [{'role': 'system', 'content': '你是耐心的英语口语老师，看一位中国学习者的一句回答。只输出 JSON。' + ai_lang.tail()}, {'role': 'user', 'content':
         f'学习者是 {level}，{LEVEL_NOTE.get(level, LEVEL_NOTE["B1"])}\n短文里的两句：\n1. {lines[0]}\n2. {lines[1]}\n'
         f'问题：{question}\n{said}：{answer}\n\n'
         '- met：回答回应了这个问题、别人能听懂他的意思，就是 "met"；语法小错不影响。答非所问、太短说不清、或者只是照抄原文，才是 "not_yet"；\n'
-        '- note：中文一句，不超过 40 个字。met 时说他说清楚了什么；not_yet 时说差在哪、下一次可以怎么说。不说「很好」这类空话；\n'
+        '- note：' + ai_lang.word() + '一句，不超过 40 个字。met 时说他说清楚了什么；not_yet 时说差在哪、下一次可以怎么说。不说「很好」这类空话；\n'
         '- better：一句更自然的英文，保留他想说的意思（not_yet 时给一句示范回答），不超过 25 个词；用 [[ ]] 标出一个值得学的表达，'
         '最好来自上面两句，整句只标一处；\n'
         '- save：[[ ]] 里的那个表达，原样照写；\n'
@@ -164,15 +166,20 @@ def convert_check(raw, assisted=None):
     if not isinstance(raw, dict):
         raise Shape('json_shape')
     if raw.get('nothing_heard') is True:
-        return {'met': 'not_yet', 'note': NOTHING_HEARD, 'better': '', 'save': '', 'heard_nothing': True, 'assisted': assisted}
+        return {'met': 'not_yet', 'note': NOTHING_HEARD_EN if ai_lang.en() else NOTHING_HEARD, 'better': '', 'save': '', 'heard_nothing': True, 'assisted': assisted}
     m = raw.get('met')
     m = {'met': 'met', 'not_yet': 'not_yet', 'not yet': 'not_yet', 'notyet': 'not_yet', True: 'met', False: 'not_yet'}.get(
         m.strip().lower() if isinstance(m, str) else m)
     if not m:
         raise Shape('met_missing')
-    note = mtext(raw.get('note'), 1, 80, 'note_empty')
-    if not CJK.search(note):
-        raise Shape('note_shape')
+    if ai_lang.en():  # an English page's note: in English, a few words at least (40 字 ≈ 20 words)
+        note = mtext(raw.get('note'), 1, 200, 'note_empty')
+        if CJK.search(note) or len(nx.WORD.findall(note)) < 3:
+            raise Shape('note_shape')
+    else:
+        note = mtext(raw.get('note'), 1, 80, 'note_empty')
+        if not CJK.search(note):
+            raise Shape('note_shape')
     better = mtext(raw.get('better'), 3, 300, 'better_empty')
     if CJK.search(better):
         raise Shape('better_shape')

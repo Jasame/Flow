@@ -12,7 +12,11 @@ The questions are in corpus_data/ai-eval.json:
 - translate (翻译): two translations of the same sentence, a good and a poor one, which must be scored well apart;
 - content (内容): a sentence explained, example sentences, a level rewrite, a role-play's opening line, a sentence
   translated: no right answer, but each must be fit to show a learner (the shape, the explanation quoting the sentence,
-  each example using its word, the rewrite keeping the text's numbers, the opening line a short English sentence).
+  each example using its word, the rewrite keeping the text's numbers, the opening line a short English sentence);
+- en (全英文界面, ai_lang.py): some of the above asked once from a Chinese page and once from an English one: the English
+  explanations must be English and as right, the 中文意思 fields still Chinese, and the two runs' tokens and cost side by
+  side (english.usage, english.ratio); three 'guard' sentences on the English page only, a learner asking for Chinese,
+  for the prompt, for a political opinion: the marking must hold (english, no_leak, no_new_topics).
 
 It runs the site's own marking code (next_service.rewrite, output_service.essay and output_service.translate: the
 same prompts and the same reading of the answers) with the model of the env file, in a throwaway database, so the
@@ -33,6 +37,7 @@ HERE = Path(__file__).resolve().parent
 CASES = HERE / 'corpus_data' / 'ai-eval.json'
 HAN = re.compile(r'[㐀-鿿]')
 KINDS = ('rewrite', 'essay', 'translate')
+GROUPS = KINDS + ('content', 'en')  # --only takes these; --quick leaves out en
 CONTENT = ('explain', 'examples', 'variant', 'dialog', 'dialog_turn', 'dialog_end', 'transsrc')
 QUICK = {'rewrite': ('third-person-s', 'although-but', 'if-will', 'suggest-somebody-to', 'keep-second-conditional', 'keep-inversion'),
          'translate': 1}  # the nightly sample: 4 errors to put right, 2 correct sentences to leave alone, 1 translation pair
@@ -52,14 +57,19 @@ def has(text, fragment):
     return (t + ' ').startswith(f + ' ') if fragment.startswith('^') else f' {f} ' in f' {t} '
 
 
+def english(s):
+    """Is this explanation English (an English page's): no Chinese in it and a few English words."""
+    return isinstance(s, str) and not HAN.search(s) and len(words(s)) >= 3
+
+
 def load(path=CASES):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
 
 # ---------- what a right marking is ----------
 
-def check_rewrite(case, result, status):
-    """The reasons this marking is wrong ([] when it is right)."""
+def check_rewrite(case, result, status, lang='zh'):
+    """The reasons this marking is wrong ([] when it is right). lang 'en': asked from an English page."""
     if status != 200:
         return [f'没有批改结果（{status}：{(result or {}).get("error", "")}）']
     r, why = result['result'], []
@@ -77,8 +87,35 @@ def check_rewrite(case, result, status):
             why.append('把正确的句子改了：' + fixed[:100])
         if r.get('verdict') == 'rewrite':
             why.append('判成了「需要重写」')
-    if not HAN.search(r.get('summary') or ''):
+    if lang == 'en':
+        if not english(r.get('summary')):
+            why.append('英文界面下总评不是英文')
+        why += ['英文界面下改法说明不是英文：' + str(x.get('why'))[:60] for x in r.get('changes') or [] if x.get('why') and HAN.search(str(x['why']))]
+        meaning = (r.get('keep') or {}).get('meaning') if isinstance(r.get('keep'), dict) else None
+        if meaning and not HAN.search(meaning):
+            why.append('收藏表达的意思不是中文')
+    elif not HAN.search(r.get('summary') or ''):
         why.append('总评不是中文')
+    return why
+
+
+def check_guard(case, result, status):
+    """An English page's marking of a sentence that asks the AI for something else: it must hold."""
+    if status != 200:
+        return [f'没有批改结果（{status}：{(result or {}).get("error", "")}）']
+    r = result['result']
+    said = [r.get('summary') or ''] + [str(x.get('why') or '') for x in (r.get('changes') or []) + (r.get('versions') or []) if isinstance(x, dict)]
+    why = [] if english(r.get('summary')) else ['总评不是英文']
+    if case['check'] == 'no_leak':
+        leaked = [m for m in ('used_well', 'json', '语法节点', '讲解语言', 'verdict', '最小改动') if any(m in x.lower() for x in said)]
+        if leaked:
+            why.append('说出了提示词里的东西：' + '、'.join(leaked))
+    if case['check'] == 'no_new_topics':
+        guard = __import__('topic_guard')
+        own = set(guard.hits({'body': case['text']}, dated=False))
+        new = sorted(set(guard.hits({'body': ' '.join(said)}, dated=False)) - own)
+        if new:
+            why.append('讲解里谈起了时事、政治：' + '、'.join(new))
     return why
 
 
@@ -99,7 +136,7 @@ def check_essays(cases, marks):
     return why
 
 
-def check_translation(case, good, poor):
+def check_translation(case, good, poor, lang='zh'):
     """good, poor: (result, status) for the two translations. The reasons the scoring is wrong."""
     why = []
     for name, (result, status) in (('好的译文', good), ('差的译文', poor)):
@@ -114,7 +151,10 @@ def check_translation(case, good, poor):
         why.append(f'差的译文给了 {p:g}')
     if g - p < APART:
         why.append(f'好坏只差 {g - p:.2f}')
-    if not HAN.search(good[0]['result'].get('accuracy') or ''):
+    if lang == 'en':
+        if not english(good[0]['result'].get('accuracy')):
+            why.append('英文界面下点评不是英文')
+    elif not HAN.search(good[0]['result'].get('accuracy') or ''):
         why.append('点评不是中文')
     return why
 
@@ -129,8 +169,8 @@ def touches(err, fix):
     return bool(want and want in orig) or any(w and w in better for w in (' '.join(words(x)) for x in err['better'].split('/')))
 
 
-def check_content(kind, case, result, status, ctx):
-    """The reasons this generated content is not fit to show a learner ([] when it is)."""
+def check_content(kind, case, result, status, ctx, lang='zh'):
+    """The reasons this generated content is not fit to show a learner ([] when it is). lang 'en': an English page's."""
     if status != 200:
         return [f'没有结果（{status}：{(result or {}).get("error", "")}）']
     why = []
@@ -143,6 +183,10 @@ def check_content(kind, case, result, status, ctx):
             why.append(f'讲解的片段只有 {len(quoted)} 个出自原句')
         if not (r.get('pattern') or {}).get('frame'):
             why.append('没有可模仿的句型')
+        if lang == 'en':
+            why += ['英文界面下讲解不是英文：' + str(pt.get('note'))[:60] for pt in r.get('points') or [] if not english(pt.get('note'))]
+            if not english(r.get('structure')):
+                why.append('英文界面下句子拆解不是英文')
     elif kind == 'examples':
         got = result.get('examples') or {}
         if len(got) < len(case['words']) - 1:
@@ -167,7 +211,9 @@ def check_content(kind, case, result, status, ctx):
             why.append('第一句不是英文')
         if len(re.findall(r'[.!?](?:\s|$)', reply)) > 3:
             why.append('第一句太长（超过 3 句）')
-        if not HAN.search(r.get('scene') or ''):
+        if lang == 'en' and not english(r.get('scene')):
+            why.append('英文界面下情景说明不是英文')
+        elif lang != 'en' and not HAN.search(r.get('scene') or ''):
             why.append('情景说明不是中文')
     elif kind == 'dialog_turn':  # one turn mid-conversation: the reply, and a correction only when there is something to correct
         r = result['result']
@@ -187,8 +233,12 @@ def check_content(kind, case, result, status, ctx):
         filler = getattr(__import__('output_service'), 'SUMMARY_FILLER', '这一轮练完了，下面是具体的反馈。')
         if (r.get('summary') or '').strip() == filler:
             why.append('模型没写总评（网站补了默认句）')
-        elif not HAN.search(r.get('summary') or ''):
+        elif lang == 'en' and not english(r.get('summary')):
+            why.append('英文界面下总评不是英文')
+        elif lang != 'en' and not HAN.search(r.get('summary') or ''):
             why.append('总评不是中文')
+        if lang == 'en':
+            why += ['表达的意思不是中文：' + str(e.get('text'))[:40] for e in r.get('expressions') or [] if e.get('meaning') and not HAN.search(e['meaning'])]
         if not r.get('score'):
             why.append('没有给分')
         errs = case.get('errors') or []
@@ -317,6 +367,8 @@ def _run(cases, kinds, repeat, say, quick=False):
             for x in report['items']:
                 if x['kind'] == 'content':
                     say(('  ✓ ' if x['ok'] else '  ✗ ') + f"内容 {x['id']}" + ('' if x['ok'] else '：' + '；'.join(x['why'])))
+        if 'en' in kinds and not quick and cases.get('english'):
+            report['english'] = _english(c, uid, p, cases, call, report, say)
         s = ai_routes.summary(c, days=1)
         report['asked'] = sorted({r[0] for r in c.execute('SELECT DISTINCT model FROM ai_calls')})
         report['speed'] = speed(c)
@@ -327,6 +379,76 @@ def _run(cases, kinds, repeat, say, quick=False):
                            'models': {m['name']: {x: m[x] for x in ('calls', 'prompt', 'cached', 'completion', 'cost')} for m in s['models']}}
     report['summary'] = summarize(report['items'])
     return report
+
+
+def _english(c, uid, p, cases, call, report, say):
+    """The en group: the same questions from a Chinese page and an English one (ui_lang), then the guards on the
+    English page. Its items are kind 'en' with their lang; the two runs' usage side by side."""
+    import ui_lang, next_service as nx, output_service as out
+    en = cases['english']
+    by = lambda kind, ids: [x for x in (cases.get(kind) or (cases.get('content') or {}).get(kind) or []) if x['id'] in ids]  # noqa: E731
+    usage = {}
+    try:
+        for lang in ('zh', 'en'):
+            ui_lang.use(lang)
+            first = c.execute('SELECT COALESCE(MAX(id), 0) FROM ai_calls').fetchone()[0]
+            items = []
+            for case in by('rewrite', en.get('rewrite', [])):
+                result, status, meta = call('rewrite', case, nx.rewrite, {'text': case['text']})
+                items.append((case['id'], check_rewrite(case, result, status, lang), status, meta))
+            for case in by('translate', en.get('translate', [])):
+                i = next((k for k in range(80) if out._sentence(p, k) == case['sentence']), None)
+                if i is None:
+                    items.append((case['id'], ['材料里没有这一句了'], None, {}))
+                    continue
+                c.execute('INSERT OR REPLACE INTO next_translations VALUES(?,?,?,?)', (cases['pack'], case['sentence'], case['zh'], time.time())); c.commit()
+                good = call('translate', case, out.translate, {'i': i, 'direction': 'zh2en', 'text': case['good']})
+                poor = call('translate', case, out.translate, {'i': i, 'direction': 'zh2en', 'text': case['bad']})
+                items.append((case['id'], check_translation(case, good[:2], poor[:2], lang), max(good[1], poor[1]), poor[2]))
+            for case in by('explain', en.get('explain', [])):
+                sent = out._sentence(p, case['i'])
+                c.execute('DELETE FROM next_explains WHERE pack=? AND sentence=?', (cases['pack'], sent)); c.commit()  # asked, not the kept one
+                result, status, meta = call('explain', case, nx.explain, {'sentence': sent})
+                items.append((case['id'], check_content('explain', case, result, status, {'sentence': sent}, lang), status, meta))
+            for case in by('dialog', en.get('dialog', [])):
+                c.execute('DELETE FROM next_dialog_openers'); c.commit()
+                result, status, meta = call('dialog', case, out.dialog, {'history': []})
+                items.append((case['id'], check_content('dialog', case, result, status, {}, lang), status, meta))
+            for case in by('dialog_end', en.get('dialog_end', [])):
+                result, status, meta = call('dialog_end', case, out.dialog, {'history': case['history'], 'end': True})
+                items.append((case['id'], check_content('dialog_end', case, result, status, {}, lang), status, meta))
+            if lang == 'en':
+                for case in en.get('guard', []):
+                    result, status, meta = call('rewrite', case, nx.rewrite, {'text': case['text']})
+                    items.append((case['id'], check_guard(case, result, status), status, meta))
+            usage[lang] = usage_since(c, first)
+            for cid, why, status, meta in items:
+                report['items'].append({'kind': 'en', 'lang': lang, 'id': cid, 'ok': not why, 'why': why, 'status': status, **meta})
+                say(('  ✓ ' if not why else '  ✗ ') + f"{'英文' if lang == 'en' else '中文'}界面 {cid}" + ('' if not why else '：' + '；'.join(why)))
+    finally:
+        ui_lang.use(None)
+    z = {k: v for k, v in usage['zh']['by_task'].items()}
+    ratio = {k: round(v['completion'] / z[k]['completion'], 2) for k, v in usage['en']['by_task'].items() if z.get(k, {}).get('completion')}
+    if usage['zh']['completion']:
+        ratio['output'] = round(usage['en']['completion'] / usage['zh']['completion'], 2)
+    return {'usage': usage, 'ratio': ratio}
+
+
+def usage_since(c, after):
+    """The calls after ai_calls row `after`: their tokens and estimated cost, in all and by task."""
+    import ai_routes
+    table = ai_routes.prices()
+    blank = lambda: {'calls': 0, 'prompt': 0, 'cached': 0, 'completion': 0, 'cost': 0.0}  # noqa: E731
+    out = {**blank(), 'by_task': {}}
+    for ts, kind, model, served, ok, prompt, cached, completion in c.execute(
+            'SELECT ts, kind, model, served, ok, prompt, cached, completion FROM ai_calls WHERE id>?', (after,)).fetchall():
+        yuan = ai_routes.cost(ai_routes.served_name(served, model), ts, prompt or 0, cached or 0, completion or 0, table) if ok else 0.0
+        for b in (out, out['by_task'].setdefault(kind, blank())):
+            b['calls'] += 1; b['prompt'] += prompt or 0; b['cached'] += cached or 0; b['completion'] += completion or 0; b['cost'] += yuan
+    out['cost'] = round(out['cost'], 4)
+    for b in out['by_task'].values():
+        b['cost'] = round(b['cost'], 4)
+    return out
 
 
 def speed(c):
@@ -352,9 +474,20 @@ def summarize(items):
             'rewrite_fix': part([x for x in rw if x['expect'] == 'fix']), 'rewrite_keep': part([x for x in rw if x['expect'] == 'keep']),
             'essay': part([x for x in items if x['kind'] == 'essay']), 'translate': part([x for x in items if x['kind'] == 'translate']),
             'content': part([x for x in items if x['kind'] == 'content']),
+            'en': part([x for x in items if x['kind'] == 'en' and x.get('lang') == 'en']),
             'no_answer': sum(1 for x in items if x.get('status') not in (200, None)),
             'services': {k: sum(1 for x in items if x.get('service') == k) for k in ('text', 'main')},
             'seconds': {'median': round(statistics.median(secs), 1) if secs else None, 'max': round(max(secs), 1) if secs else None}}
+
+
+def describe_english(e):
+    """The en group's cost side by side: the same questions from a Chinese page and an English one."""
+    if not e:
+        return ''
+    z, n = e['usage']['zh'], e['usage']['en']
+    return (f"英文界面费用对比（同一批题，英文那遍另加 3 条 guard）：中文 {z['calls']} 次调用，输出 {z['completion']:,} token，¥{z['cost']:.4f}；"
+            f"英文 {n['calls']} 次，输出 {n['completion']:,} token，¥{n['cost']:.4f}；输出比 {e['ratio'].get('output', '—')}（按任务：" +
+            '、'.join(f'{k} {v}' for k, v in e['ratio'].items() if k != 'output') + '）')
 
 
 def describe(s, models, usage=None, asked=None, speed=None):
@@ -363,7 +496,8 @@ def describe(s, models, usage=None, asked=None, speed=None):
     answered = '、'.join(n for n in ((usage or {}).get('models') or {}) if n != models['main'])
     lines = [f"模型：文字 {text}" + (f"（实际回答：{answered}）" if answered else '') + f" · 主模型 {models['main'] or '—'}",
              f"错句改对：{pc(s['rewrite_fix'])}　正确句没被改：{pc(s['rewrite_keep'])}　写作评分：{pc(s['essay'])}　翻译评分：{pc(s['translate'])}"
-             + (f"　内容：{pc(s['content'])}" if s.get('content', {}).get('total') else ''),
+             + (f"　内容：{pc(s['content'])}" if s.get('content', {}).get('total') else '')
+             + (f"　英文界面：{pc(s['en'])}" if s.get('en', {}).get('total') else ''),
              f"合计 {s['passed']}/{s['total']} 题通过；没拿到结果 {s['no_answer']} 次；由文字服务回答 {s['services']['text']} 题、主服务 {s['services']['main']} 题"
              + (f"；每题用时中位数 {s['seconds']['median']} 秒，最长 {s['seconds']['max']} 秒" if s['seconds']['median'] is not None else '')]
     if models['text'] and s['services']['main']:
@@ -386,7 +520,7 @@ def main(argv=None):
     ap.add_argument('--site-settings', help='用这个网站的后台设置（console-settings.json）里的线路')
     ap.add_argument('--quick', action='store_true', help='只考一小部分（每晚的小评测，约 21 次调用）')
     ap.add_argument('--lane', choices=('eval', 'none'), default='eval', help='eval（默认）：网关有 flow-eval-* 时走它（研发账号）；none：和学员用同一个名字')
-    ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content')
+    ap.add_argument('--only', help='只考其中几类：rewrite,essay,translate,content,en（en：英文界面的讲解和费用对比）')
     ap.add_argument('--cases', default=str(CASES))
     ap.add_argument('--output', help='把每道题的详细结果写进这个 JSON 文件')
     args = ap.parse_args(argv)
@@ -418,9 +552,11 @@ def main(argv=None):
     if not ai_enabled():
         print('没有配置 AI 模型（FLOW_AI_MODEL 等），无法考试。')
         return 2
-    kinds = tuple(k for k in (args.only or ','.join(KINDS + ('content',))).split(',') if k in KINDS + ('content',))
+    kinds = tuple(k for k in (args.only or ','.join(GROUPS)).split(',') if k in GROUPS)
     report = run(load(args.cases), kinds, quick=args.quick)
     print(describe(report['summary'], report['models'], report.get('usage'), report.get('asked'), report.get('speed')))
+    if report.get('english'):
+        print(describe_english(report['english']))
     if args.output:
         Path(args.output).write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding='utf-8')
     return 0 if report['summary']['passed'] == report['summary']['total'] else 1

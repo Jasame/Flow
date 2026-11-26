@@ -12,6 +12,7 @@ fn main() {
             "notify_off",
             "notify_hold",
             "notify_pending",
+            "notify_account",
             "smoke_report",
         ]),
     ))

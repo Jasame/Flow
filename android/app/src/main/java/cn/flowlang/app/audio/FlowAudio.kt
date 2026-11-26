@@ -242,6 +242,15 @@ object FlowAudio {
         return snapshot(true)
     }
 
+    /**
+     * Another account now (account.changed), or 不同意 / 撤回同意: reading stops and every text's place on this phone goes,
+     * since they were the last account's. Stopped first: a stopped text writes no place any more.
+     */
+    fun forget() {
+        stop("other")
+        if (::progress.isInitialized) progress.clearAll()
+    }
+
     /** Previous / next sentence (the page, the lock screen, the headphones). */
     fun step(d: Int, why: String = "user"): JSONObject {
         val j = job ?: return snapshot(true)

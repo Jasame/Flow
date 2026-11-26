@@ -134,6 +134,19 @@ final class Reminders {
             : .scheduled("每天 \(input.hour):00 用通知提醒你复习（那天有词要复习才提醒）。\(off)")
     }
 
+    /// Another account (account.changed: switched, added, signed out, deleted): the last account's reminders go now,
+    /// pending and already shown, with what was known of it; a refresh under way is its too and is not used. The
+    /// device's own settings stay (the app's reminders on or off, the day's plan reminder). The caller then refreshes.
+    func forgetAccount() async {
+        generation += 1
+        lastFetch = nil
+        known = .fresh
+        input = ReminderPlan.signedOut(input)  // nobody's words until the site says whose
+        save()
+        center.removeAllDeliveredNotifications()
+        await schedule()
+    }
+
     /// Ask the site for the counts and the reminder, then put the next two weeks on the phone.
     @discardableResult
     func refresh(force: Bool = false) async -> Outcome {

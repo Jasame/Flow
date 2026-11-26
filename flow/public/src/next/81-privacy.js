@@ -74,16 +74,15 @@
   // The wording is privacy_service.STORAGE_VERSION: change it, change that version too (语流 23 reviewed this one).
   const STORAGE_TEXT = '我同意语流在香港的服务器上存放和处理我的账号和学习数据';
   const STORAGE_WHY = '语流的网站和数据库都在香港的服务器上运行。你的账号、学习记录、写的作文和练习的文字、问题反馈都存在那里。你说的录音不保存，但批改时会经过香港的服务器转给 AI。这些数据由语流的运营者处理，只用来给你提供学习服务。香港在中国内地以外，所以单独问你。';
-  const STORAGE_RIGHTS = '你可以随时在「我的 → 账号」里导出数据、注销账号或撤回同意；有问题请用「我的 → 问题反馈」，或写信到 i@jasa.hk。';
+  const STORAGE_RIGHTS = '你可以随时在「我的 → 账号和隐私」里导出数据、注销账号或撤回同意；有问题请用「我的 → 帮助 → 问题反馈」，或写信到 i@jasa.hk。';
   // A tick is ticked by its box or its words, at once; only a document's name opens it (docOver, over the page: the form
   // underneath keeps what was typed and ticked). The box takes a 44px tap (.tickbox); the names are not .link, so 99-tap.css
   // puts no wider tap area of theirs over the box (the user, 2026-11-25: 「一般都是直接勾选」).
   const tickbox = name => `<span class="tickbox"><input type="checkbox" name="${name}"></span>`;
   const docLink = (href, id, text) => `<a class="doc-link" href="${href}" data-doc="${id}">${text}</a>`;
-  function storageField(folded) {
-    const why = `${STORAGE_WHY}不满 14 岁的，要家长（或监护人）也同意。${STORAGE_RIGHTS}${docLink(PRIVACY, 'privacy', '看隐私说明')}`;
+  function storageField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('storage')}<span>${STORAGE_TEXT}</span></label>
-      ${folded ? `<details class="sto-why"><summary class="hint">为什么单独问这个</summary><span class="hint">${why}</span></details>` : `<span class="hint">${why}</span>`}</div>`;
+      <span class="hint">${STORAGE_WHY}不满 14 岁的，要家长（或监护人）也同意。${STORAGE_RIGHTS}${docLink(PRIVACY, 'privacy', '看隐私说明')}</span></div>`;
   }
   async function storageAnswer(agree) {
     const r = await api('/api/account/storage', { agree });
@@ -96,11 +95,11 @@
   // One tick for both (the owner chose D2's plan B, 2026-11-26): it opens with the separate consent to the storage in Hong
   // Kong, in bold, then the two texts it needs; one grey line under it says why and how to withdraw. Never ticked
   // beforehand; both answers are still kept apart (privacy_service: storage and terms, each with its time), and the one
-  // for Hong Kong is still withdrawn on its own (我的 → 账号 → 数据存放). 不满 14 岁: the guardian keeps a tick of its own.
+  // for Hong Kong is still withdrawn on its own (我的 → 账号和隐私 → 数据存放). 不满 14 岁: the guardian keeps a tick of its own.
   const CONSENT_LEAD = '我单独同意语流把我的账号和学习数据存放在香港的服务器上';
   function consentField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('consent')}<span><b>${CONSENT_LEAD}</b>，并已阅读同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}。</span></label>
-      <span class="hint">账号本身就存在那里，不同意就注册不了；以后可以在「我的 → 账号 → 数据存放」撤回。</span></div>`;
+      <span class="hint">账号本身就存在那里，不同意就注册不了；以后可以在「我的 → 账号和隐私 → 数据存放」撤回。</span></div>`;
   }
   function termsField() {
     return `<div class="storagefs"><label class="checkline">${tickbox('terms')}<span>我已阅读并同意${docLink(TERMS, 'terms', '《用户协议》')}和${docLink(PRIVACY, 'privacy', '《隐私和数据》')}</span></label></div>`;
@@ -154,19 +153,16 @@
   async function storageView() {
     const paused = S.user.storage === 'no', needStorage = S.user.storage !== 'ok', needTerms = S.user.terms !== 'ok';
     const termsOnly = needTerms && !needStorage;
-    const quiet = `<a class="doc-link" href="/api/next/export/records.json" download>导出我的数据</a> · <button class="doc-link" id="stoDel" type="button">注销账号</button> · <button class="doc-link" id="stoOut" type="button">退出登录</button>`;
-    // 视觉压力小 (A0, feedback #1): one line saying why learning waits, the tick and one button, the rest in small type;
-    // the long note on the storage folds under 「为什么单独问这个」 (unchanged, one tap away)
-    const until = S.user.storage_until ? `${esc(S.user.storage_until)} 以前` : '30 天内';
     view.innerHTML = `<div class="stack storage-page"><div><span class="kicker">${termsOnly ? '用户协议和隐私说明' : '数据存放'}</span><h1 class="h1">${paused ? '这个账号已暂停' : '补一个同意'}</h1></div>
-      <p>${paused ? `你还没有同意把账号和学习数据存放在香港的服务器上，所以学习先停着。数据都还在，${until}同意就能接着学。`
-        : termsOnly ? '我们更新了《用户协议》和《隐私和数据》，勾选同意后继续。' : '语流的账号和学习数据都存在香港的服务器上，在中国内地以外，所以单独问你一次。'}</p>
-      <form class="card flat stack-s" id="stoF" novalidate>${needTerms && needStorage ? consentField() : needTerms ? termsField() : ''}${needStorage && !needTerms ? storageField(true) : ''}
+      ${paused ? `<div class="card flat stack-s"><p>你没有同意（或者撤回了同意）在香港的服务器上存放和处理你的数据，所以语流暂停了这个账号的学习：不会再给你发邮件，班级的数字里也不算你。</p>
+        <p>你的数据还在，没有删除。30 天内重新同意，就能接着学${S.user.storage_until ? `（${esc(S.user.storage_until)} 以前）` : ''}；30 天后还没有重新同意，语流会删除这个账号和数据，备份里的副本 14 天内清除。</p></div>` : ''}
+      <form class="card flat stack-s" id="stoF" novalidate>${paused ? '<b>想继续用这个账号</b>' : termsOnly ? '<p>我们更新了《用户协议》和《隐私和数据》，勾选同意后继续。</p>' : `<p>${STORAGE_WHY}</p>`}${needTerms && needStorage ? consentField() : needTerms ? termsField() : ''}${needStorage && !needTerms ? storageField() : ''}
         <button class="btn primary" type="submit">${paused ? '同意，继续学习' : termsOnly ? '继续' : '同意并继续'}</button><p class="err" id="stoErr" role="alert"></p></form>
-      ${paused ? '<p class="tiny muted">暂停期间不发邮件，班级的数字里也不算你；30 天后还没有同意，语流会删除这个账号和数据，备份里的副本 14 天内清除。</p>'
-        : termsOnly ? '' : '<p class="tiny muted">不同意的话，这个账号会暂停、不能学习；30 天内可以回来同意或导出数据，30 天后删除这个账号和数据。</p>'}
-      <p class="tiny muted sto-quiet">${termsOnly || paused ? '不想同意：' : `<button class="doc-link" id="stoNo" type="button">不同意</button> · `}${quiet}</p>
-      ${termsOnly || paused ? '' : '<p class="tiny muted">退出登录后，也可以不登录先看看语流：那时的进度只存在这台设备上。</p>'}</div>`;
+      ${termsOnly ? `<p class="tiny muted sto-quiet">不想同意：<a class="doc-link" href="/api/next/export/records.json" download>导出我的数据</a> · <button class="doc-link" id="stoDel" type="button">注销账号</button> · <button class="doc-link" id="stoOut" type="button">退出登录</button></p>`
+        : `<div class="card flat stack-s">${paused ? '<b>不想继续</b>' : '<b>不同意存放在香港的话</b><p class="small muted">这个账号会暂停，不能学习。30 天内可以回来同意或导出数据；30 天后，语流会删除这个账号和数据。</p>'}
+        <div class="row wrap">${paused ? '' : '<button class="btn" id="stoNo" type="button">不同意</button>'}<a class="btn ghost" href="/api/next/export/records.json" download>导出我的数据</a>
+          <button class="btn ghost" id="stoDel" type="button">注销账号</button><button class="btn ghost" id="stoOut" type="button">退出登录</button></div>
+        <p class="tiny muted">退出登录后，也可以不登录先看看语流：那时的进度只存在这台设备上。</p></div>`}</div>`;
     const f = document.getElementById('stoF'), err = document.getElementById('stoErr');
     f.onsubmit = async e => {
       e.preventDefault(); err.textContent = '';
@@ -227,7 +223,7 @@
   // to the 隐私说明 and has no buttons of its own any more.
   const personalizeOn = () => !(S.home && S.home.profile && S.home.profile.personalize === false);
   function personalizeRow() {
-    return `<label class="grow gswitch" for="mePersSw"><span class="t">按我的学习记录推荐</span><input type="checkbox" class="sw-in" id="mePersSw" role="switch"${personalizeOn() ? ' checked' : ''} aria-describedby="mePersFoot"><span class="sw" aria-hidden="true"></span></label>`;
+    return `<label class="grow gswitch gi" for="mePersSw">${fiTile('compass')}<span class="t">按我的学习记录推荐</span><input type="checkbox" class="sw-in" id="mePersSw" role="switch"${personalizeOn() ? ' checked' : ''} aria-describedby="mePersFoot"><span class="sw" aria-hidden="true"></span></label>`;
   }
   const PERSONALIZE_FOOT = '<span id="mePersFoot">关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。</span><button class="link tiny" type="button" id="mePersInfo">了解更多</button>';
   function personalizeWire() {
@@ -251,7 +247,7 @@
       <a class="link small" href="#/guide/personalize" data-doc="personalize">用到了哪些记录（隐私说明）</a>
       <button class="btn ghost" data-close type="button">完成</button></div>`);
   }
-  // 我的 → 账号 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
+  // 我的 → 账号和隐私 → 数据存放: what was agreed, and 撤回同意 (the account is paused at once).
   function storageSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">数据存放</h2>
       <p class="small">你已经同意语流在香港的服务器上存放和处理你的账号和学习数据。${STORAGE_WHY}</p>

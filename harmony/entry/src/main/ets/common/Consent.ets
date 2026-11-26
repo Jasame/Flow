@@ -99,10 +99,10 @@ export class Consent {
   static readonly BODY: string = '语流是一个英语自学工具。开始之前，请读一读《用户协议》和《隐私和数据》。简单说：\n\n' +
     '• 收的都是学英语用得上的信息：账号（用户名、邮箱、年龄段）、学习记录、你写的作文和翻译、你主动发的问题反馈。完整清单见《隐私和数据》。\n' +
     '• 你写的作文、翻译和说的录音，批改时会交给阿里云百炼上的 AI；录音不保存。\n' +
-    '• 账号和学习数据存放在香港的服务器上，注册时还会单独问你。\n' +
+    '• 账号和学习数据存放在香港的服务器上，注册时还会请你单独同意这一项。\n' +
     '• 不满 14 岁的，要先告诉家长（或监护人）并得到同意。\n' +
     '• App 没有接第三方 SDK，不做跟踪。麦克风和通知都是第一次用到时才问。\n' +
-    '• 运营者：语流的运营者（公司注册完成后会写上公司名称）。联系我们：「我的 → 问题反馈」，或写信到 i@jasa.hk。';
+    '• 运营者：语流的运营者（公司注册完成后会写上公司名称）。联系我们：「我的 → 帮助 → 问题反馈」，或写信到 i@jasa.hk。';
   static readonly LISTS_LINE: string = '• 收了哪些信息、交给了谁，分别见《个人信息收集清单》和《第三方信息共享清单》。';
   static readonly CLOSE: string = '点「同意」，表示你已阅读并同意《用户协议》和《隐私和数据》。';
   static readonly TAIL_FIRST: string = '不同意也可以进入基本模式：不登录，进度只存在这台手机上。';
@@ -116,7 +116,7 @@ export class Consent {
   static readonly WITHDRAW_TITLE: string = '撤回同意';
   static readonly WITHDRAW_BODY: string = '撤回以后，这台手机上的语流会：\n• 退出登录，清掉这台手机上的登录信息、缓存、朗读进度和提醒；\n' +
     '• 回到第一次打开时的样子，再问你一次。\n\n账号里的学习记录还在服务器上，再同意、再登录就能接着学。' +
-    '账号上的同意（「数据存放在香港」和《用户协议》）在网页的「我的 → 账号」里管理。';
+    '账号上的同意（「数据存放在香港」和《用户协议》）在网页的「我的 → 账号和隐私」里管理。';
 
   /** The question's text: why (a feature asked for it in 基本模式), the body, the lists when there, the close and tail. */
   static question(why: string, first: boolean, lists: boolean): string {

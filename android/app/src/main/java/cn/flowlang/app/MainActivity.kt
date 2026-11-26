@@ -228,7 +228,21 @@ class MainActivity : ComponentActivity() {
         WebStorage.getInstance().deleteAllData()
         web.clearCache(true)
         Reminders.forget(this)
-        getSharedPreferences("flow-progress", MODE_PRIVATE).edit().clear().apply()  // audio/ProgressStore.kt
+        FlowAudio.forget()
+    }
+
+    /**
+     * account.changed from the page (切换账号, 添加账号, 退出登录, 注销账号; docs/native-bridge.md §5): reading stops and the last
+     * account's reading places go, its reminders come off and the current account's go on (once agreed), and the new login
+     * is written to disk at once, so a swipe away right after keeps it. The app keeps no user name of its own.
+     * → {ok, scheduled}
+     */
+    suspend fun accountChanged(): org.json.JSONObject {
+        FlowAudio.forget()
+        if (Recorder.busy) Recorder.cancel()
+        CookieManager.getInstance().flush()
+        Reminders.accountChanged(this, fetch = privacy == Consent.State.AGREED)
+        return org.json.JSONObject().put("ok", true).put("scheduled", Reminders.scheduled(this).size)
     }
 
     private fun dip(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics).toInt()
