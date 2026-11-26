@@ -178,4 +178,6 @@
     '上一张': 'Previous', '下一张': 'Next', '今日，{n} 张卡片，左右翻': 'Today, {1} cards: swipe left or right', '第 {n} 张，共 {n} 张，{x}': 'Card {1} of {2}: {3}',
     '调整顺序': 'Reorder', '编辑': 'Edit', '上移': 'Move up', '下移': 'Move down',
     '按住一块拖动。排在最前面的，打开今日先看到。': 'Press and drag a block. The first one is what you see first on Today.',
+    // #/today/edit (调整顺序) and the card names
+    '这周': 'This week', '今日的顺序': 'Order on Today', '{x}，第 {n} 个，共 {n} 个': '{1}, {2} of {3}',
   });
