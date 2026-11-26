@@ -109,7 +109,7 @@ class ClassicArchivedTests(Servers):
         import hashlib, re
         body = self.call(self.site, '/about', raw=True)[1].decode()
         sec = body[body.index('id="download"'):body.index('<!-- ============ who')]
-        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'ios'])
+        self.assertEqual(re.findall(r'data-app="([\w-]+)"', sec), ['web', 'android', 'windows', 'mac', 'linux', 'harmony', 'ios'])
         self.assertEqual(re.findall(r'data-dl="([\w-]+)"', sec),  # iPhone and iPad: 开发中, no button
                          ['android', 'windows', 'mac', 'linux-appimage', 'linux-deb'])
         self.assertEqual(re.findall(r'aria-disabled="true">([^<]*)</a>', sec),
@@ -133,6 +133,28 @@ class ClassicArchivedTests(Servers):
             for path in ('/download/', '/download/notes.txt', '/download/.flow.apk', '/download/..%2fapp.py',
                          '/download/sub/flow.apk', '/download/flow-9.apk', '/download/' + 'a' * 101 + '.apk'):
                 self.assertEqual(self.call(self.site, path, raw=True)[0], 404, path)
+
+    def test_the_harmony_card_shows_each_site_its_own_part(self):
+        """鸿蒙 (/about#download), the owner 2026-11-26: 语流 says the app is in 内测 and how to ask to join (问题反馈), with no
+        AppTest link anywhere in the page; the 内测版 has the two install steps and the AppTest link from
+        FLOW_HARMONY_TEST_URL (https on huawei.com only), else 即将开放. Neither site gets the other's part, even hidden."""
+        def card(channel, url=''):
+            with patch.object(app, 'CHANNEL', channel), patch.dict(os.environ, {'FLOW_HARMONY_TEST_URL': url}):
+                body = self.call(self.site, '/about', raw=True)[1].decode()
+            self.assertNotIn('<!--channel', body); self.assertNotIn('__HARMONY_TEST__', body)
+            return body[body.index('data-app="harmony"'):body.index('data-app="ios"')]
+        link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=1&invitationCode=ab'
+        prod = card('prod', link)
+        self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
+        for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
+            self.assertNotIn(word, prod)
+        beta = card('beta')
+        self.assertIn('AppTest', beta); self.assertNotIn('申请鸿蒙内测', beta)
+        self.assertIn('data-harmony="" data-tap="about-harmony-join" aria-disabled="true">即将开放</a>', beta)
+        self.assertIn('data-harmony="https://appgallery.huawei.com/link/invite-test-wap?taskId=1&amp;invitationCode=ab"', card('beta', link))
+        for bad in ('http://appgallery.huawei.com/x', 'https://huawei.com.example.com/x', 'https://example.com/huawei.com',
+                    'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)'):
+            self.assertIn('data-harmony=""', card('beta', bad), bad)
 
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into

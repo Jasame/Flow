@@ -158,10 +158,26 @@ def shell_file(name):
   m=json.loads(body);m.update(name='语流 Flow 内测版',short_name='语流内测')
   for i in m.get('icons',[])+[x for c in m.get('shortcuts',[]) for x in c.get('icons',[])]:i['src']=i['src'].replace('.png','-beta.png')
   return json.dumps(m,ensure_ascii=False,indent=1).encode()
- if name=='about.html':return beta_icons(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode()))
+ if name=='about.html':return beta_icons(about_parts(body.replace(b'__ABOUT__',asset_version(ABOUT_ASSETS).encode()).replace(b'__CHANNEL__',CHANNEL.encode()).replace(b'__FILM__',about_film().encode())))
  if name not in ('next.html','sw.js'):return body
  body=body.replace(b'__ASSET__',asset_version().encode()).replace(b'__CHANNEL__',CHANNEL.encode())
  return beta_icons(body) if name=='next.html' else body
+def about_parts(page):
+ """认识语流 is one page for both sites; a part between <!--channel:beta--> and <!--/channel:beta--> goes to the 内测版 only
+ and one in <!--channel:prod--> to 语流 only, the other site never gets it (not even hidden). So far the 鸿蒙 card:
+ 语流 says the app is in 内测 and how to ask to join; the 内测版 has the AppTest link (the owner, 2026-11-26)."""
+ other=b'prod' if CHANNEL=='beta' else b'beta'
+ page=__import__('re').sub(rb'<!--channel:'+other+rb'-->.*?<!--/channel:'+other+rb'-->\n?',b'',page,flags=__import__('re').S)
+ page=__import__('re').sub(rb'<!--/?channel:(?:beta|prod)-->\n?',b'',page)
+ return page.replace(b'__HARMONY_TEST__',harmony_test_url().encode())
+def harmony_test_url():
+ """The public link of the 鸿蒙 内测 in Huawei's AppTest, from FLOW_HARMONY_TEST_URL, on the 内测版 only: an https link on
+ huawei.com (or its hicloud.com), else nothing and the button keeps 即将开放. Set in the 内测版's flow.env by A1."""
+ u=os.getenv('FLOW_HARMONY_TEST_URL','').strip()
+ if CHANNEL!='beta' or not u or len(u)>500 or any(c in u for c in ' "\'<>\\'):return ''
+ h=(urlsplit(u).hostname or '').lower()
+ ok=urlsplit(u).scheme=='https' and any(h==d or h.endswith('.'+d) for d in ('huawei.com','hicloud.com'))
+ return u.replace('&','&amp;') if ok else ''
 def beta_icons(page):
  """On the 内测版: the home-screen icon and the tab's icon (the inline SVG's fill) in its orange; 语流's page as it is."""
  if CHANNEL!='beta':return page

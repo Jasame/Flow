@@ -244,6 +244,7 @@ flow/public/about.css
 flow/public/about.html
 flow/public/about.js
 flow/public/about/app-android.jpg
+flow/public/about/app-harmony.jpg
 flow/public/about/app-linux.jpg
 flow/public/about/app-mac.jpg
 flow/public/about/app-windows.jpg
