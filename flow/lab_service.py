@@ -147,7 +147,7 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
   if old['status']=='pending' and old['updated']>now-TTL:c.rollback();return {'error':'正在处理，请稍候再刷新记录'},409
  if not ai_enabled():c.rollback();return {'error':'AI 暂未开启，请先使用内置材料训练'},503
  if c.execute("SELECT 1 FROM lab_jobs WHERE user_id=? AND status='pending' AND updated>? AND request_id!=?",(uid,now-TTL,rid)).fetchone() or c.execute("SELECT 1 FROM chat_turns WHERE user_id=? AND status='pending' AND updated>?",(uid,now-TTL)).fetchone():c.rollback();return {'error':'已有 AI 请求正在处理，请稍候'},409
- problem=reserve(c,uid)
+ problem=reserve(c,uid,kind)
  if problem:c.rollback();return refusal(problem,c,uid),429
  if old:c.execute("UPDATE lab_jobs SET status='pending',error='',updated=? WHERE id=?",(now,old['id']))
  else:c.execute("INSERT INTO lab_jobs(user_id,request_id,kind,pack,skill,fingerprint,status,created,updated) VALUES(?,?,?,?,?,?,'pending',?,?)",(uid,rid,kind,pack,skill,fp,now,now))
@@ -184,7 +184,7 @@ def run_job(c,uid,rid,kind,pack,skill,spec,invoke,convert,mark_replay=False):
    elif exc.code==429:status=429;error='AI 服务这会儿太忙，请稍后再试；草稿还在。'
    elif exc.code==503:status=503;error='AI 服务暂时繁忙，请稍后重试或先练习内置材料。'
   c.execute("UPDATE lab_jobs SET status='failed',error=?,updated=? WHERE user_id=? AND request_id=? AND lease=?",(error,time.time(),uid,rid,lease))
-  if refund:c.execute('UPDATE ai_usage SET count=MAX(0,count-1) WHERE user_id=? AND day=?',(uid,time.strftime('%Y-%m-%d',time.gmtime())))  # no answer, no charge
+  if refund:__import__('ai_quota').give_back(c,uid,kind)  # no answer, no charge (the total and the task's part)
   c.commit()
   return {'error':error,'request_id':rid,'remaining':remaining(c,uid)},status
 

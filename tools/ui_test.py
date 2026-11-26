@@ -3441,6 +3441,49 @@ def progress_run(pw):
         check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
               first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
         ctx.close()
+        # 听两句、答一句 (r29 第 2 项, the 5-minute 表达日): two sentences of the text to hear, a question the AI wrote (marked
+        # AI 生成, one grey line for the voice), 说出来 the one big button; 给我一点提示 marks the answer as helped. Typed here:
+        # met keeps the phrase in the word book with 撤销 and offers 再说一次 / 下一步; not yet gives 再说一次 and 先跳过 only.
+        for theme in ('light', 'dark'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, device_scale_factor=2, color_scheme=theme,
+                                      locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []
+            pg.on('pageerror', lambda e: errors.append(str(e)))
+            pg.goto(BASE + f'/#/two/{PID}', wait_until='networkidle'); settle(pg)
+            pg.wait_for_function("() => { const q = document.getElementById('twQen'); return q && !q.querySelector('.spin') && q.textContent.trim(); }", timeout=8000)
+            ask = pg.evaluate("""() => ({ q: document.getElementById('twQen').textContent, zh: document.getElementById('twQzh').textContent,
+              ai: !!document.querySelector('#twQ .ai-mark'), voice: document.querySelectorAll('#view .ai-voice-note').length,
+              big: [...document.querySelectorAll('#view .btn.primary')].filter(b => !b.hidden).map(b => b.textContent.trim()),
+              hint: document.getElementById('twHint').hidden, wide: document.documentElement.scrollWidth - innerWidth })""")
+            check(dev, f'{theme}: 听两句、答一句 asks the AI\'s question in English and Chinese, marked AI 生成, one voice line, 说出来 the one big button',
+                  ask['q'].endswith('?') and ask['zh'] and ask['ai'] and ask['voice'] == 1 and ask['big'] == ['说出来'] and ask['hint'] and ask['wide'] <= 0, ask)
+            pg.screenshot(path=str(OUT / f'progress-two-ask-{theme}.png'))
+            pg.click('#twHelp'); pg.click('#twType'); pg.fill('#twText', "Sorry, I can't on Saturday. Can we do Sunday?")
+            with pg.expect_response(lambda r: '/api/next/two/check' in r.url) as resp:
+                pg.click('#twSend')
+            sent = json.loads(resp.value.request.post_data or '{}')
+            pg.wait_for_selector('#twAgain', timeout=8000); pg.wait_for_selector('#twUndo', timeout=8000)
+            met = pg.evaluate("""() => ({ h1: document.querySelector('#view h1').textContent, b: (document.querySelector('.two-fb b') || {}).textContent,
+              saved: document.getElementById('twSaved').textContent, next: !!document.querySelector('a[data-tap="two-next"]'),
+              hidden: ['#twAns', '#twQ'].every(s => document.querySelector(s).hidden) })""")
+            check(dev, f'{theme}: a helped, typed answer goes as assisted; met says so, bolds the phrase, keeps it in the word book with 撤销, offers 下一步',
+                  sent.get('assisted') is True and met['h1'] == '说到了' and met['b'] == "doesn't work for me" and '看了提示' in met['saved'] and '已存进单词本' in met['saved']
+                  and met['next'] and met['hidden'], (sent.get('assisted'), met))
+            pg.screenshot(path=str(OUT / f'progress-two-met-{theme}.png'))
+            pg.click('#twUndo'); pg.wait_for_function("() => !document.getElementById('twUndo')", timeout=8000)
+            cards = pg.evaluate("fetch('/api/next/cards?q=&page=1&f=').then(r => r.json())")
+            check(dev, f'{theme}: 撤销 takes the phrase out of the word book again', not any(x.get('text') == "doesn't work for me" for x in cards.get('items', [])), len(cards.get('items', [])))
+            pg.click('#twAgain'); pg.wait_for_function("() => { const q = document.getElementById('twQen'); return q && !q.querySelector('.spin') && q.textContent.trim(); }", timeout=8000)
+            pg.click('#twType'); pg.fill('#twText', 'On Saturday I will go to the library.'); pg.click('#twSend')
+            pg.wait_for_selector('.two-skip', timeout=8000)
+            no = pg.evaluate("""() => ({ h1: document.querySelector('#view h1').textContent, again: !!document.getElementById('twAgain'),
+              next: !!document.querySelector('a[data-tap="two-next"]'), undo: !!document.getElementById('twUndo'), saved: document.getElementById('twSaved').textContent })""")
+            check(dev, f'{theme}: not yet: 意思还没到, only 再说一次 and 先跳过，明天再练, nothing put in the word book, no hint seen this time',
+                  no['h1'] == '意思还没到' and no['again'] and not no['next'] and not no['undo'] and no['saved'] == '没看提示，自己说的', no)
+            pg.screenshot(path=str(OUT / f'progress-two-notyet-{theme}.png'))
+            check(dev, f'{theme}: 听两句、答一句 has no script errors', not errors, errors)
+            ctx.close()
     finally:
         browser.close()
 

@@ -1,5 +1,18 @@
   /* ---------- boot ---------- */
+  // 从提醒邮件点进来 (r29): a mail's link carries ?from=remind&k=review|once|weekly. Counted per day and kind only
+  // (/api/next/tap: no account, D2), then taken off the address so a link passed on or bookmarked does not carry it.
+  function remindOpen() {
+    const q = new URLSearchParams(location.search);
+    if (q.get('from') !== 'remind') return;
+    const keys = { review: 'remind-review', once: 'remind-once', weekly: 'remind-weekly' };  // flow_admin.TAP_LABEL
+    const key = Object.prototype.hasOwnProperty.call(keys, q.get('k')) ? keys[q.get('k')] : 'remind-other';
+    try { navigator.sendBeacon('/api/next/tap', JSON.stringify({ k: key })); } catch (x) { /* not counted */ }
+    q.delete('from'); q.delete('k');
+    const rest = q.toString();
+    try { history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash); } catch (x) { /* the address stays */ }
+  }
   (async function boot() {
+    remindOpen();
     wechatBar();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
     // The copy of the last 今日 kept on the phone (05-data.js): the page is drawn from it at once, then from the

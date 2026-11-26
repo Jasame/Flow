@@ -4,6 +4,7 @@
     const r = await api('/api/next/report');
     const arrow = s => s.now == null ? '—' : `${Math.round(s.now * 100)}%${s.before != null ? (s.now > s.before + 0.02 ? ' ↑' : s.now < s.before - 0.02 ? ' ↓' : '') : ''}`;
     view.innerHTML = `<h1 class="h1">周报</h1><span class="muted small">${esc(r.from)} – ${esc(r.to)} · 最近 7 天</span>
+      ${weekPairHTML(r.progress)}
       <div class="stat-grid section"><div class="card flat stat"><b>${r.days}</b><span class="tiny muted">学习天数</span></div><div class="card flat stat"><b>${r.minutes}</b><span class="tiny muted">分钟（估算）</span></div>
         <div class="card flat stat"><b>${r.materials}</b><span class="tiny muted">学完的材料</span></div><div class="card flat stat"><b>${r.outputs}</b><span class="tiny muted">输出练习</span></div>
         <div class="card flat stat"><b>${r.learned}</b><span class="tiny muted">新学的词</span></div><div class="card flat stat"><b>${r.mastered}</b><span class="tiny muted">进入长期记忆</span></div></div>
@@ -16,6 +17,51 @@
       <div class="section row"><button class="btn primary" id="share" data-tap="share-week">分享这 7 天的学习</button><a class="btn" href="#/radar">能力雷达</a></div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     document.getElementById('share').onclick = () => shareSheet([{ label: '这 7 天', draw: () => shareImage(r) }], '分享这 7 天的学习');
+    const w = r.progress && r.progress.waiting, tryBtn = document.getElementById('wpTry');
+    if (w && tryBtn) tryBtn.onclick = () => { S.tryNode = { pack: w.pack, title: w.title, fixed: wpPut(w.sentence, w.from, w.to) }; };
+  }
+  /* ---------- 这周的一次进步 (r29 第 3 项, the user's pick 2026-11-26) ----------
+     One grammar point: the sentence the AI corrected before and one the learner wrote right since (dates, which
+     practice, with or without a hint); with none yet, the last correction and 现在用它写一句 (仿写 on that text, the point
+     named on the page: tryHintHTML); then 还要接着练, only points that keep coming back, only when the records may pick. */
+  function wpPut(s, from, to) {  // s with its first `from` (any case) put right
+    const i = from ? s.toLowerCase().indexOf(from.toLowerCase()) : -1;
+    return i < 0 ? s : s.slice(0, i) + to + s.slice(i + from.length);
+  }
+  function wpFixed(b) {  // the sentence as written, the part changed struck out and the correction after it (words both share stay plain)
+    const s = b.sentence || '', f = b.from || '', i = f ? s.toLowerCase().indexOf(f.toLowerCase()) : -1;
+    if (i < 0) return `${esc(s)}<br>${f ? `<s>${esc(f)}</s> → ` : '→ '}<ins>${esc(b.to)}</ins>`;
+    const fw = s.slice(i, i + f.length).split(' '), tw = (b.to || '').split(' ');
+    let a = 0;
+    while (a < fw.length - 1 && a < tw.length - 1 && fw[a].toLowerCase() === tw[a].toLowerCase()) a++;
+    return `${esc(s.slice(0, i))}${esc(fw.slice(0, a).join(' '))}${a ? ' ' : ''}<s>${esc(fw.slice(a).join(' '))}</s> <ins>${esc(tw.slice(a).join(' '))}</ins>${esc(s.slice(i + f.length))}`;
+  }
+  function wpMark(s, part) {  // the corrected form where the learner used it
+    const i = part ? s.toLowerCase().indexOf(part.toLowerCase()) : -1;
+    return i < 0 ? esc(s) : `${esc(s.slice(0, i))}<b>${esc(s.slice(i, i + part.length))}</b>${esc(s.slice(i + part.length))}`;
+  }
+  function weekPairHTML(g) {
+    if (!g) return '';
+    const p = g.pair, w = g.waiting, rec = g.recurring;
+    const help = { 1: '看了提示', 0: '没看提示，自己写的' }, how = { 1: '看了提示后', 0: '自己' };
+    const line = xs => xs.filter(Boolean).map(esc).join(' · ');
+    const top = p ? `<div class="card flat wp stack-s"><b class="wp-t">${esc(p.title)}</b>
+        <span class="small muted">${line([p.before.date, p.before.label, 'AI 帮你改过'])}</span><p class="wp-s" lang="en">${wpFixed(p.before)}</p>
+        <span class="small muted">${line([p.after.date, p.after.label, help[p.after.assisted]])}</span><p class="wp-s" lang="en">${wpMark(p.after.sentence, p.before.to)}</p>
+        <p class="small wp-end">之前要 AI 改，这周${how[p.after.assisted] || ''}用对了一次。</p></div>`
+      : w ? `<div class="card flat wp stack-s"><b class="wp-t">这周还看不出来</b>
+        <p class="small">${esc(w.date)}的${esc(w.label)}里，「${esc(w.title)}」要 AI 帮你改。这周还没有再用到它，看不出有没有进步。</p>
+        <span class="small muted">那时写的</span><p class="wp-s" lang="en">${wpFixed(w)}</p>
+        <p class="small wp-end">下次写到「${esc(w.title)}」的时候，再试一次。</p>
+        ${w.pack ? `<a class="btn block" id="wpTry" href="#/m/${encodeURIComponent(w.pack)}/output" data-tap="week-try">现在用它写一句 →</a>` : ''}</div>`
+      : `<div class="card flat wp stack-s"><b class="wp-t">这周还看不出来</b><p class="small">写作、翻译或仿写被 AI 改过以后，下次你自己写对了，这里会放一组前后对照。</p></div>`;
+    const more = rec ? `<div class="card flat stack-s"><b>还要接着练</b>${rec.length ? rec.map(x => `<p class="small wp-rec">${esc(x.title)}：两周里在 ${x.outputs} 次不同的练习里出现过，明天的语法复习先练它。</p>`).join('')
+      : '<p class="small wp-rec">这周没有反复出现的问题。</p>'}<span class="tiny muted">偶尔出一次的小错，当场提示过就算了，不放在这里。</span></div>` : '';
+    return `<section class="section stack-s" aria-labelledby="wpH"><h2 class="h2" id="wpH">这周的一次进步</h2>${top}${more}</section>`;
+  }
+  function tryHintHTML(pid) {  // 仿写 opened from 现在用它写一句: the point to try, and the sentence as the AI put it right then
+    const t = S.tryNode;
+    return t && t.pack === pid ? `<div class="small try-node">这次试着用上「${esc(t.title)}」。那时 AI 帮你改成：<span lang="en">${esc(t.fixed)}</span></div>` : '';
   }
   function weekMoreHTML(r) {
     const e = r.easy || {}, sp = r.speaking || {}, ra = r.radar || { moves: [] };
