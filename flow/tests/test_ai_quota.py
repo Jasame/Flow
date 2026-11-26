@@ -172,6 +172,23 @@ class QuotaTests(unittest.TestCase):
         self.assertNotIn(-1, [r['user_id'] for r in q.report(self.c, now=now)])
         self.assertIn('「我的 → 问题反馈」', q.PAUSED)
 
+    def test_read_aloud_characters_go_after_90_days_with_the_account_and_into_the_export(self):  # B6, D2
+        import account_data
+        now = time.time()
+        old, kept = (time.strftime('%Y-%m-%d', time.gmtime(now - d * 86400)) for d in (95, 30))
+        self.c.executemany('INSERT INTO tts_usage(day, who, chars, files) VALUES(?,?,?,?)',
+                           [(old, 1, 300, 2), (old, 0, 500, 3), (old, -1, 900, 9), (kept, 1, 120, 1), (kept, 0, 120, 1), (kept, 2, 40, 1)])
+        self.c.execute('INSERT INTO tts_import(day, who, chars) VALUES(?,?,?)', (old, 1, 200)); self.c.commit()
+        q.prune(self.c, now)
+        self.assertEqual([tuple(r) for r in self.c.execute('SELECT who, chars FROM tts_usage WHERE day=? ORDER BY who', (old,))], [(-1, 900), (0, 500)])
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM tts_import').fetchone()[0], 0)
+        out = json.loads(account_data.records(self.c, {'id': 1}).decode('utf-8'))
+        self.assertEqual([r['chars'] for r in out['tables']['tts_usage']], [120])  # the learner's own row, 30 days back
+        self.assertIn('tts_usage', out['目录'])
+        account_data.forget(self.c, 2)
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM tts_usage WHERE who=2').fetchone()[0], 0)
+        self.assertEqual(self.c.execute('SELECT COUNT(*) FROM tts_usage WHERE who=0').fetchone()[0], 2)  # the site's rows stay
+
     def test_the_consoles_see_each_persons_use(self):
         self.use(1, 4); self.use(2, 1, 'chat')
         q.set(self.c, 3, 'owner', '观察', limit=2); self.c.commit()  # an account with an override is listed even unused
