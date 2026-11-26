@@ -3,16 +3,21 @@
   // Screen readers read the page in Chinese (lang="zh-CN"); English on it (a text, a question, a word, an example)
   // gets lang="en" as it appears, so it is read with an English voice. An element is marked when all of its text is
   // English; one that mixes both is left as it is (VoiceOver and TalkBack still switch for the Latin letters).
+  // In English mode (00-i18n.js) the other way round: the page is lang="en" and Chinese on it (a meaning, a translation)
+  // gets lang="zh-CN" (and data-lz, taken off again if the text is put into English later).
   const HAN = /[\u3400-\u9fff\uf900-\ufaff]/, LATIN2 = /[A-Za-z]{2}/;  // Chinese characters (not the full-width punctuation)
   function markEnglish(root) {
+    const en = uiLang() === 'en', want = en ? HAN : LATIN2, other = en ? LATIN2 : HAN;
     const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), seen = new Set(); let n;
     while ((n = w.nextNode())) {
       const el = n.parentElement;
-      if (!el || seen.has(el) || !LATIN2.test(n.nodeValue)) continue;
+      if (!el || seen.has(el) || !want.test(n.nodeValue)) continue;
       seen.add(el);
       const own = el.closest('[lang]');
       if (own && own !== document.documentElement) continue;  // it says its language already
-      if (!HAN.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) el.lang = 'en';
+      if (!other.test(el.textContent) && !/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(el.tagName)) {
+        if (en) { el.lang = 'zh-CN'; el.setAttribute('data-lz', ''); } else el.lang = 'en';
+      }
     }
   }
   const EN_NEW = new Set(); let enFrame = 0;
@@ -104,6 +109,7 @@
     if (changed) snapHome();
     if (S.home.profile && S.home.profile.voice) { S.voice = S.home.profile.voice; save('flow-next-voice', S.voice); }
     if (S.user && S.home.profile) accentFromAccount(S.home.profile);  // 主题色 kept with the account (07-accent.js)
+    if (S.user && S.home.profile) langFromAccount(S.home.profile);  // and 界面语言 (07-lang.js)
     setDueBadge();
     return changed;
   }

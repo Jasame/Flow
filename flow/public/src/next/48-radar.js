@@ -1,20 +1,28 @@
   /* ---------- ability radar: six skills against the learner's own goals, and what moved ---------- */
   const DIM_TEST = { vocab: '#/vocab/test', grammar: '#/placement', reading: '#/radar/test/reading', listening: '#/radar/test/listening', speaking: '#/radar/test/speaking', writing: '#/radar/test/writing' };
   const CONF = { high: '测评', medium: '估计', low: '粗略估计' };
-  function radarSVG(dims, prev) {
-    const W = 320, C = 160, R = 112, n = dims.length;
-    const pt = (k, v) => { const a = -Math.PI / 2 + k * 2 * Math.PI / n, r = R * Math.max(0, Math.min(100, v)) / 100; return [C + r * Math.cos(a), C + r * Math.sin(a)]; };
-    const poly = vals => vals.map((v, k) => pt(k, v).map(x => x.toFixed(1)).join(',')).join(' ');
-    const rings = [25, 50, 75].map(v => `<polygon class="rg" points="${poly(dims.map(() => v))}"/>`).join('');
-    const axes = dims.map((d, k) => { const [x, y] = pt(k, 100); return `<line class="ax" x1="${C}" y1="${C}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`; }).join('');
-    const labels = dims.map((d, k) => { const [x, y] = pt(k, 128); const anchor = Math.abs(x - C) < 8 ? 'middle' : x > C ? 'start' : 'end';
-      return `<text class="lb" x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="${anchor}">${esc(d.label)}<tspan class="sc" dx="4">${d.score == null ? '?' : d.score}</tspan></text>`; }).join('');
-    const cur = dims.map(d => d.score == null ? 0 : d.score);
-    const dots = dims.map((d, k) => { const [x, y] = pt(k, cur[k]); return `<circle class="dt${d.score == null ? ' none' : ''}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${d.score == null ? 3 : 4.5}"/>`; }).join('');
-    return `<svg class="radar" viewBox="-40 0 400 ${W}" role="img" aria-label="能力雷达：${dims.map(d => d.label + (d.score == null ? '暂无数据' : ' ' + d.score + ' 分')).join('，')}">
-      ${rings}${axes}<polygon class="goal" points="${poly(dims.map(() => 100))}"/>
-      ${prev ? `<polygon class="prev" points="${poly(dims.map(d => prev[d.id] == null ? 0 : prev[d.id]))}"/>` : ''}
-      <g class="cur"><polygon class="area" points="${poly(cur)}"/>${dots}</g>${labels}</svg>`;
+  // The radar as one part (B9, 2026-11-26; the user: 没测过雷达图就显示 0，点雷达图上面的字就可以对这个模块进行测试): the web is
+  // three soft fills, no hairlines; the learner's shape is in the theme colour; the six names around it are links, and a tap on a name
+  // starts that skill's check (DIM_TEST). Nothing measured yet: a dot at the centre (all 0) and every name says 去测.
+  // A skill with no score last time keeps today's place in the dashed outline (no spike to the centre).
+  // opts.prev: last time's scores by id, drawn as a dashed outline. The names sit by percentages, so the part scales with its box.
+  function radarChart(dims, opts) {
+    const o = opts || {}, W = 320, H = 300, CX = 160, CY = 150, R = 92, n = dims.length;
+    const at = (k, r) => { const a = -Math.PI / 2 + k * 2 * Math.PI / n; return [CX + r * Math.cos(a), CY + r * Math.sin(a)]; };
+    const ring = r => dims.map((d, k) => at(k, r).map(x => x.toFixed(1)).join(',')).join(' ');
+    const shape = vals => vals.map((v, k) => at(k, R * Math.max(0, Math.min(100, v == null ? 0 : v)) / 100).map(x => x.toFixed(1)).join(',')).join(' ');
+    const any = dims.some(d => d.score != null);
+    // a dot on each skill that has a score: with one or two of the six, the shape alone is only a spoke
+    const dots = dims.map((d, k) => { if (d.score == null) return ''; const q = at(k, R * Math.max(0, Math.min(100, d.score)) / 100); return `<circle class="dt" cx="${q[0].toFixed(1)}" cy="${q[1].toFixed(1)}" r="3.2"/>`; }).join('');
+    // where each name sits is in 89-radar.css (.rdr-ax.k0 … .k5): the page's rules allow no style attribute in markup
+    const names = dims.map((d, k) => {
+      const has = d.score != null, say = !has ? '还没测，点一下去测' : d.assessed ? d.score + ' 分，点一下' + (d.due ? '再测' : '重测') : '按平时练习估计 ' + d.score + ' 分，点一下去测';
+      return `<a class="rdr-ax k${k}" href="${DIM_TEST[d.id]}" data-tap="radar-name" aria-label="${esc(d.label)}，${say}">${esc(d.label)}<small${has ? '' : ' class="go"'}>${has ? d.score : '去测'}</small></a>`;
+    }).join('');
+    return `<div class="rdr" role="group" aria-label="能力雷达：${dims.map(d => d.label + (d.score == null ? '还没测' : ' ' + d.score + ' 分')).join('，')}">
+      <svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><polygon class="w1" points="${ring(R)}"/><polygon class="w2" points="${ring(R * 2 / 3)}"/><polygon class="w1" points="${ring(R / 3)}"/>
+      ${o.prev ? `<polygon class="prev" points="${shape(dims.map(d => o.prev[d.id] == null ? d.score : o.prev[d.id]))}"/>` : ''}
+      <g class="cur">${any ? `<polygon class="area" points="${shape(dims.map(d => d.score))}"/>${dots}` : `<circle class="zero" cx="${CX}" cy="${CY}" r="4"/>`}</g></svg>${names}</div>`;
   }
   function spark(vals) {
     const xs = vals.filter(v => v != null); if (xs.length < 2) return '';
@@ -26,19 +34,26 @@
     const r = await api('/api/next/radar');
     const prev = r.before ? (r.history.find(h => h.created === r.before) || {}).scores : null;
     const known = r.dims.filter(d => d.score != null);
-    view.innerHTML = `<div class="stack"><div><h1 class="h1">能力雷达</h1><p class="muted small">离目标还差多少。${esc(r.note)}</p></div>
+    // One screen first (the user: 一个屏幕能展示的内容就展示掉): the title, the radar with its six names, the one green
+    // button. What the page also had (goals, each skill's detail, the estimate from practice) comes below, nothing dropped.
+    // 测过 means a check was done (d.assessed); a score can also be an estimate from practice, and the line in the card says so
+    const tested = r.dims.filter(d => d.assessed).length, left = r.dims.length - tested, guessed = known.some(d => !d.assessed);
+    const head = !tested ? '还没测过' : left ? `测过 ${tested} 项，还差 ${left} 项` : r.due.length ? `有 ${r.due.length} 项该重测了` : '六项都测过了';
+    const goText = !tested ? '六项都测一遍' : left ? `测剩下的 ${left} 项` : '再测一次';
+    view.innerHTML = `<div class="stack radar-page"><div><h1 class="h1">能力雷达</h1><p class="muted small" id="radarHead">${head} · 点一项的名字，测这一项</p></div>
+      <section class="card flat radar-card">${radarChart(r.dims, { prev })}
+        <p class="tiny muted radar-key">外圈是你定的目标${guessed ? '，没测的先按平时练习估计' : ''}${prev ? '，虚线是上次' : ''}</p></section>
+      <a class="btn primary block radar-go" id="radarGo" href="#/radar/test" data-tap="radar-go">${goText}</a>
+      <p class="tiny muted radar-note">每项 3–8 分钟，可以分几次测。</p>
       ${r.goals_chosen ? '' : `<a class="card flat place-cta" href="#/radar/goals"><b>先定一个目标</b><span class="small muted">每一项想到什么水平？现在先按比你的水平高一级来算，可以随时改。</span></a>`}
-      <div class="radar-box">${radarSVG(r.dims, prev)}
-        <div class="radar-legend tiny"><span class="lg goal">目标（100 分）</span>${prev ? '<span class="lg prev">上次</span>' : ''}<span class="lg cur">现在</span></div></div>
-      ${known.length < r.dims.length ? `<p class="small">${r.dims.length - known.length} 项还没有足够的数据。做一次测评，雷达图就完整了。</p>` : ''}
-      <div class="row"><a class="btn primary" href="#/radar/test">${r.due.length ? `做测评（${r.due.length} 项该测了）` : '再测一次'}</a><a class="btn" href="#/radar/goals">调整目标</a></div>
-      <section class="stack-s section">${r.dims.map((d, k) => { const delta = d.score != null && d.prev_score != null ? d.score - d.prev_score : null;
+      <section class="card flat radar-each"><div class="row between"><h2>每一项</h2><a class="radar-goals" href="#/radar/goals" data-tap="radar-goals">调整目标 ›</a></div>${r.dims.map((d, k) => { const delta = d.score != null && d.prev_score != null ? d.score - d.prev_score : null;
         return `<div class="rdim pop-in" data-k="${k}"><div class="row between"><b>${esc(d.label)}</b><span class="tiny muted">目标 ${esc(d.goal)}</span></div>
           ${d.score == null ? `<div class="small muted">还没有数据 · <a class="link" href="${DIM_TEST[d.id]}">测一测</a></div>` : `
           <div class="rbar"><span class="vbar"><i data-w="${d.score}"></i></span><b class="num">${d.score}</b>${delta ? `<span class="${delta > 0 ? 'up' : 'down'}">${delta > 0 ? '+' : ''}${delta}</span>` : ''}${spark(r.history.map(h => h.scores[d.id]))}</div>
           <div class="tiny muted">现在约 ${esc(d.level)} · ${CONF[d.confidence] || ''}${d.assessed ? '（' + new Date(d.assessed * 1000).toLocaleDateString('zh-CN') + ' 测评）' : '（来自平时练习）'}
-            · <a class="link" href="${DIM_TEST[d.id]}">${d.due ? '该测了' : '重测'}</a>${r.gap === d.id ? ` · <a class="link" href="${d.href}">差距最大：${esc(d.tip)}</a>` : ''}</div>`}</div>`; }).join('')}</section>
-      ${r.gap ? `<p class="small cheer">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}
+            · <a class="link" href="${DIM_TEST[d.id]}">${!d.assessed ? '去测' : d.due ? '该测了' : '重测'}</a>${r.gap === d.id ? `<a class="link rgap" href="${d.href}">差距最大：${esc(d.tip)}</a>` : ''}</div>`}</div>`; }).join('')}
+        ${r.gap ? `<p class="small muted radar-gap">${esc(r.dims.find(d => d.id === r.gap).label)}离目标最远，每天的计划会多安排这方面的练习。</p>` : ''}</section>
+      <p class="muted small radar-about">${esc(r.note)}</p>
       <details class="card flat fold" id="abFold"><summary><b>按平时练习估计</b><span class="tiny muted">近 45 天 · 8 项，含翻译和发音</span></summary><div id="abSlot"><p class="muted small"><span class="spin"></span></p></div></details></div>`;
     view.querySelectorAll('.pop-in').forEach(el => el.style.setProperty('--d', Number(el.dataset.k) * 60 + 'ms'));
     // What used to be the 能力画像 card on 我的: loaded when it is opened.
@@ -52,7 +67,7 @@
         requestAnimationFrame(() => requestAnimationFrame(() => slot.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
       }).catch(e => { const slot = document.getElementById('abSlot'); if (slot) slot.innerHTML = `<p class="muted small">${esc(e.message)}</p>`; delete fold.dataset.done; });
     });
-    requestAnimationFrame(() => requestAnimationFrame(() => { view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }); const g = view.querySelector('.radar .cur'); if (g) g.classList.add('on'); }));
+    requestAnimationFrame(() => requestAnimationFrame(() => { view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; }); const g = view.querySelector('.rdr .cur'); if (g) g.classList.add('on'); }));
   }
   async function radarGoals() {
     if (!S.user) return needLogin('登录后可以设定目标。');

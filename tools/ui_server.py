@@ -174,6 +174,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'zones': ('B1', 'work', ['work']),  # 点卡片作答 (review_side_run): as 'side'
             'modes': ('B1', 'work', ['work']),  # 复习卡 简洁 / 详细 (review_side_run): borrow to review, lend new, no word book
             'split': ('B1', 'work', ['work']),  # 单词 and 其他复习 apart (review_side_run): two words, a grammar mistake and a pattern due
+            'xtra': ('B1', 'work', ['work']),  # AI 搭配和近义、易混词 on the 详细 back (review_side_run): lucky and deadline due, nothing else
             'sprint': ('B1', 'exam', ['campus']),  # 考试冲刺: 四级 in 19 days, four practice sets done (sprint_run; the guide's exam pictures)
             'home-app': ('B1', 'work', ['work', 'science']),  # 主屏 App (home_app_run): the iPhone home-screen app
             'fresh': ('', '', []), 'fresh2': ('', '', []),  # 选方向和目标: accounts with no settings yet (start_run)
@@ -293,6 +294,12 @@ with app.db() as c:
             c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,stability,difficulty,last,reps) "
                       "VALUES(?,?,?,?,'','phrase',?,?,'review','saved',1,5,?,2)", (uid, 'as soon as', 'as soon as', '句型｜例：Call me as soon as you land.', now - 20 * 86400, now - 3600, now - 3 * 86400))
             __import__('skills_service').add_mistake(c, uid, 'fix', 'went', 'fix:' + nx._norm('they go > they went'), '过去发生的事用过去式', 'Yesterday they go to the park.', 'writing')
+        if name == 'xtra':  # only words whose back has the AI block (seeded below), so the first card has it; no word book
+            c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
+            now, d = time.time(), nx.dictionary()
+            for w in ('lucky', 'deadline'):
+                c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source,rank,stability,difficulty,last,reps) "
+                          "VALUES(?,?,?,?,'','word',?,?,'review','book',?,1,5,?,2)", (uid, w, w, d[w]['meaning'][:300], now - 20 * 86400, now - 3600, d[w]['rank'], now - 3 * 86400))
         if name == 'nowords':  # a new account's word page: no cards, no word book
             c.execute('DELETE FROM next_cards WHERE user_id=?', (uid,)); c.execute('DELETE FROM next_vocab_plans WHERE user_id=?', (uid,))
         if name == 'pile':  # 60 word reviews due, more than 3 x the 10 new words a day: no new words today (ux audit 1.1, 11)
@@ -367,9 +374,12 @@ with app.db() as c:
     word_extras.schema(c)
     for norm, items in {
         'lucky': [('colloc', 'lucky break', '好运；转机', ''), ('colloc', 'a lucky guess', '蒙对', ''), ('colloc', 'lucky enough to', '有幸能……', ''),
+                  ('colloc', 'lucky charm', '护身符', ''),
                   ('near', 'fortunate', '幸运的', '更正式，多用于书面')],
-        'commute': [('colloc', 'commute to work', '通勤上班', ''), ('colloc', 'a long commute', '很长的通勤路程', ''), ('near', 'travel to work', '去上班', '更口语')],
+        'commute': [('colloc', 'commute to work', '通勤上班', ''), ('colloc', 'a long commute', '很长的通勤路程', ''), ('colloc', 'a daily commute', '每天的通勤', ''),
+                    ('colloc', 'commute by train', '坐火车通勤', ''), ('near', 'travel to work', '去上班', '更口语')],
         'deadline': [('colloc', 'meet a deadline', '按期完成', ''), ('colloc', 'miss a deadline', '错过截止时间', ''), ('colloc', 'a tight deadline', '紧迫的期限', ''),
+                     ('colloc', 'set a deadline', '定下期限', ''),
                      ('near', 'due date', '到期日', '多指作业、账单')],
         'decision': [('colloc', 'make a decision', '做决定', ''), ('colloc', 'a tough decision', '艰难的决定', ''), ('near', 'choice', '选择', '更口语，指选中的那一个')],
     }.items():

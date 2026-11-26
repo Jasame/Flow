@@ -329,7 +329,7 @@
     return `<section class="xtra-wrap" aria-label="常用搭配和近义、易混词（AI 生成）"><p class="xtra-ai">常用搭配和近义、易混词 · AI 生成，仅供参考</p>
       ${part(col.slice(0, SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(0, SHOW.near), 'near', '近义和易混词')}
       ${more ? `<details class="xtra-more"><summary>更多 ${more} 条</summary>${part(col.slice(SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(SHOW.near), 'near', '近义和易混词')}</details>` : ''}
-      <p class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button> · <a class="link small" href="#/guide/ai-service">AI 服务说明</a></p></section>`;
+      <div class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button><a class="link small" href="#/guide/ai-service">AI 服务说明</a></div></section>`;
   }
   function bindExtras(root, c) {
     const b = root.querySelector('.xbad-open'); if (b) b.onclick = e => { e.stopPropagation(); extraBad(c, root); };
@@ -341,7 +341,7 @@
       <div class="xpicks" role="radiogroup" aria-labelledby="sheetTitle">${xs.map(x => `<label class="xpick"><input type="radio" name="xpick" value="${x.id}"><span><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</span></label>`).join('')}</div>
       <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说（不用写你的名字）"></textarea></label>
       <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
-      <div class="row"><button class="btn primary" id="xGo" type="button" disabled>提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
+      <button class="btn primary xgo" id="xGo" type="button" disabled>提交</button><button class="link small xcancel" data-close type="button">取消</button></div>`, card => {
       const go = card.querySelector('#xGo');
       card.querySelectorAll('[name=xpick]').forEach(r => { r.onchange = () => { go.disabled = false; }; });
       go.onclick = async () => {

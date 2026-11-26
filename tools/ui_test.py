@@ -638,7 +638,7 @@ def run_device(pw, dev, opts):
     # ---- ability radar: set goals, take the reading check, the radar draws the skill against the goal
     go(pg, '#/radar/goals')
     pg.click('[data-all="B2"]'); pg.wait_for_timeout(150); pg.click('[data-d="speaking"][data-l="B1"]'); pg.wait_for_timeout(150)
-    pg.click('#gSave'); pg.wait_for_selector('.radar', timeout=8000); pg.wait_for_timeout(300)
+    pg.click('#gSave'); pg.wait_for_selector('.rdr', timeout=8000); pg.wait_for_timeout(300)
     go(pg, '#/radar/test/reading')
     check(dev, 'radar: the reading passage\'s title carries 「AI 生成」', pg.evaluate("!!document.querySelector('#view h2 .ai-mark')"))
     for _ in range(3):
@@ -670,8 +670,26 @@ def run_device(pw, dev, opts):
         after = pg.evaluate("() => ({ qs: !document.getElementById('aQs').hidden, plays: document.getElementById('aPlays').textContent, btn: document.getElementById('aPlay').textContent, off: document.getElementById('aPlay').disabled })")
         check(dev, 'radar: ✕ on the player counts as one play: the questions show, 再听一遍 left', after['qs'] and after['plays'] == '已听 1 / 2 遍' and '再听一遍' in after['btn'] and not after['off'], after)
     go(pg, '#/radar'); pg.wait_for_timeout(900)
-    rd = pg.evaluate("() => ({axes: document.querySelectorAll('.radar .ax').length, dots: document.querySelectorAll('.radar .dt:not(.none)').length, shown: document.querySelector('.radar .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length})")
-    check(dev, 'radar: six axes, the measured skill drawn against the goal', rd['axes'] == 6 and rd['dots'] >= 1 and rd['shown'] and rd['rows'] == 6, rd)
+    # the radar as one part (48-radar.js radarChart): six names around it, each a link to that skill's check; a skill with
+    # no score says 去测, one with a score shows it and has a dot; one green button, on the first screen above the tab bar
+    rd = pg.evaluate("""() => { const names = [...document.querySelectorAll('.rdr-ax')], go = document.getElementById('radarGo'), tabs = document.querySelector('nav.tabs');
+      const box = e => e.getBoundingClientRect(), shown = e => !!e && getComputedStyle(e).display !== 'none' && box(e).height > 0;
+      const green = getComputedStyle(go).backgroundColor;
+      return { hrefs: names.map(a => a.getAttribute('href')), small: names.map(a => a.querySelector('small').textContent), tap: names.map(a => Math.round(Math.min(box(a).width, box(a).height))),
+        dots: document.querySelectorAll('.rdr .dt').length, shown: document.querySelector('.rdr .cur').classList.contains('on'), rows: document.querySelectorAll('.rdim').length,
+        go: go.textContent, goBottom: Math.round(box(go).bottom), floor: shown(tabs) && getComputedStyle(tabs).position === 'fixed' && box(tabs).top > innerHeight / 2 ? Math.round(box(tabs).top) : innerHeight,
+        greens: [...document.querySelectorAll('#view a, #view button')].filter(e => shown(e) && getComputedStyle(e).backgroundColor === green).length,
+        wide: document.documentElement.scrollWidth > innerWidth }; }""")
+    tests = ['#/radar/test/listening', '#/radar/test/reading', '#/vocab/test', '#/placement', '#/radar/test/speaking', '#/radar/test/writing']
+    check(dev, 'radar: six names around the radar, each a link to its own check, 去测 or the score under it, 44px to tap',
+          rd['hrefs'] == tests and all(re.fullmatch(r'去测|\d{1,3}', t) for t in rd['small']) and min(rd['tap'] or [0]) >= 44, rd)
+    check(dev, 'radar: the measured skill is drawn (a dot on it), six rows under it', rd['dots'] >= 1 and rd['dots'] == sum(t != '去测' for t in rd['small']) and rd['shown'] and rd['rows'] == 6, rd)
+    # an upright phone shows the title, the radar and the button without scrolling (a phone on its side and wider screens are not held to it)
+    first = rd['goBottom'] <= rd['floor'] if dev in ('phone', 'phone-360') else True
+    check(dev, 'radar: one green button, on the first screen above the tab bar, nothing wider than the screen', rd['greens'] == 1 and first and not rd['wide'], rd)
+    pg.click('.rdr-ax.k1'); pg.wait_for_timeout(500)
+    check(dev, 'radar: a tap on 「阅读」 on the radar opens the reading check', pg.evaluate('location.hash') == '#/radar/test/reading', pg.evaluate('location.hash'))
+    go(pg, '#/radar'); pg.wait_for_timeout(600)
     pg.evaluate("document.getElementById('abFold').open = true"); pg.wait_for_selector('#abFold .ab', timeout=5000)
     check(dev, 'radar: the folded estimate from practice lists 8 skills (was 能力画像 on 我的)', pg.evaluate("() => document.querySelectorAll('#abFold .ab').length") == 8)
     go(pg, '#/radar/test/writing')
@@ -4001,6 +4019,41 @@ def review_side_run(pw):
         check(dev, 'phone, left: swipe left again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         check(dev, 'no script errors (phone)', not errs, errs[:3])
         ctx.close()
+        # 搭配和近义、易混词 on the 详细 back (B9, 2026-11-26): 「更多 N 条」 and the line under the block are 44 px to a finger,
+        # one way in at each end; a tap at their edge opens them and never answers the card (taps on the back answer)
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_init_script("try { for (const k of ['flow-tap-guide','flow-tap-guide-back','flow-next-swipe-tip']) localStorage.setItem(k,'1'); "
+                            "localStorage.setItem('flow-card-view-review','detailed'); localStorage.setItem('flow-card-view-new','detailed'); } catch (e) {}")
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['xtra']['token'], 'url': BASE}])
+        pg = ctx.new_page(); posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and r.url.endswith('/api/next/review') else None)
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(800)
+        for _ in range(10):  # to a card whose back has the block (ui_server seeds lucky's, commute's, deadline's, decision's)
+            pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=8000); pg.wait_for_timeout(800)
+            if pg.query_selector('#view .open-card .xtra-more'):
+                break
+            pg.click('.ractions [data-rate="good"]'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(800)
+        posts.clear()
+        pg.evaluate("document.querySelector('.xtra-wrap').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
+        box = pg.evaluate("""() => Object.fromEntries([['more', '.xtra-more>summary'], ['bad', '.xbad-open'], ['svc', '.xtra-foot a']].map(([k, sel]) => {
+          const e = document.querySelector(sel); if (!e) return [k, null]; const r = e.getBoundingClientRect(); return [k, [r.left, r.top, r.width, r.height, r.right]]; }))""")
+        ends = pg.evaluate("(() => { const f = document.querySelector('.xtra-foot').getBoundingClientRect(), a = document.querySelector('.xbad-open').getBoundingClientRect(), b = document.querySelector('.xtra-foot a').getBoundingClientRect(); return [Math.round(a.left - f.left), Math.round(f.right - b.right)]; })()")
+        b = box['bad']; pg.touchscreen.tap(b[0] + b[2] / 2, b[1] + 3); pg.wait_for_timeout(500)  # 3 px inside its top edge
+        sheet = pg.evaluate("(() => { const rows = [...document.querySelectorAll('.xpick')].map(r => Math.round(r.getBoundingClientRect().height)); const go = document.getElementById('xGo'), sh = document.getElementById('sheet');"
+                            " return { open: !!document.querySelector('[name=xpick]'), rows, goFull: go ? Math.round(go.getBoundingClientRect().width) >= Math.round(sh.querySelector('.stack').getBoundingClientRect().width) - 1 : false,"
+                            " typing: document.activeElement && document.activeElement.tagName === 'TEXTAREA' }; })()")
+        if sheet['open']:
+            pg.click('.xcancel'); pg.wait_for_timeout(400)
+        m = box['more']
+        if m:
+            pg.touchscreen.tap(m[0] + 30, m[1] + m[3] - 3); pg.wait_for_timeout(400)  # 3 px inside its bottom edge
+        opened = pg.evaluate("!!document.querySelector('.xtra-more[open]')")
+        still = pg.evaluate("!!document.querySelector('#view .open-card')")
+        check(dev, '搭配和近义、易混词: 更多 and 有不对的？ are 44 px high, at the two ends of the line; a tap at their edge opens them and answers nothing',
+              m and m[3] >= 44 and b[3] >= 44 and box['svc'][3] >= 44 and ends == [0, 0] and sheet['open'] and opened and still and not posts,
+              [box, ends, sheet, opened, still, posts])
+        check(dev, '「哪一条不对？」: each choice 44 px or more, 提交 the full width, nothing to type in until tapped',
+              sheet['rows'] and min(sheet['rows']) >= 44 and sheet['goFull'] and not sheet['typing'], sheet)
+        ctx.close()
     finally:
         browser.close()
 
@@ -4228,8 +4281,9 @@ def shell_run(pw):
                    sideways: document.scrollingElement.scrollWidth > innerWidth }; }""")
         due = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => (h.stats || {}).radar_due)")
         go(pg, '#/me'); me_radar = pg.locator('#view a[href="#/radar"]').count(); ctx.close()
-        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; the dot says how many skills are due; 我的 has no second way in',
-              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due and tb['dot'] and tb['label'] == f'能力，有 {due} 项该测了' and me_radar == 0, (tb, due, me_radar))
+        # the dot only for a skill measured before and due again (B9, 2026-11-26): goals set, nothing measured yet → none
+        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; no dot for skills never measured; 我的 has no second way in',
+              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due == 0 and not tb['dot'] and tb['label'] is None and me_radar == 0, (tb, due, me_radar))
         check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
               min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
         check(dev, 'no page errors', not errs, errs[:3])
@@ -4517,7 +4571,7 @@ HOME_INIT = """(([t, b, s]) => {
     r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); r.setProperty('--sal', s + 'px'); r.setProperty('--sar', s + 'px'); });
 })(%s)"""
 HOME_SUB = ['#/m/{pid}/listen', '#/m/{pid}/read', '#/m/{pid}/output/essay', '#/review', '#/vocab/test', '#/vocab/plan', '#/exam/cet4', '#/exam/cet4/banked',
-            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
+            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
             '#/library', '#/welcome/edit', '#/speak', '#/easy', '#/sounds', '#/placement', '#/mix', '#/words/confuse']
 BACK_JS = """() => { const b = document.getElementById('backBtn'); if (!b || b.hidden || b.offsetParent === null) return null; const r = b.getBoundingClientRect();
   return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), label: b.textContent.trim(),
@@ -4544,18 +4598,25 @@ def home_app_run(pw):
             ctx, pg, errs = context(size)
             pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
             check(dev, f'{size}: the page knows it is a home-screen app', pg.evaluate("document.documentElement.classList.contains('home-app')"))
-            for page in ('#/', f'#/m/{PID}/read'):  # --bar-h, for pages that fill one screen: the bar's real height, back button or not
+            phone = w < 760  # phones have no 「语流 Flow」 bar in the app (2026-11-26): only 返回's, on the pages that have one
+            for page in ('#/', f'#/m/{PID}/read'):  # --bar-h, for pages that fill one screen: what is above the page, back button or not
                 go(pg, page); pg.wait_for_timeout(150)
                 bh = pg.evaluate("[parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')), Math.round(document.getElementById('bar').getBoundingClientRect().height)]")
-                check(dev, f'{size} {page}: --bar-h is the top bar\'s height ({bh[1]}px, the inset included)', bh[0] == bh[1] and bh[1] >= 48 + top, bh)
-            # the four tabs: no back button, the logo below the Dynamic Island, every tab above the home bar
-            for page in ('#/', '#/practice', '#/cards', '#/me'):
+                if phone and page == '#/':
+                    check(dev, f'{size} {page}: no top bar; --bar-h is the status bar\'s room ({top}px)', bh[1] == 0 and bh[0] == top, bh)
+                else:
+                    check(dev, f'{size} {page}: --bar-h is the top bar\'s height ({bh[1]}px, the inset included)', bh[0] == bh[1] and bh[1] >= 48 + top, bh)
+            # the five tabs: no back button; a phone has no bar, the page itself clears the Dynamic Island (a wider screen: the
+            # logo does); every tab above the home bar
+            for page in ('#/', '#/practice', '#/radar', '#/cards', '#/me'):
                 go(pg, page)
                 tabs = pg.evaluate("""() => { const t = [...document.querySelectorAll('.tabs a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect());
-                  const brand = document.querySelector('.bar .brand').getBoundingClientRect();
-                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, brandTop: Math.round(brand.top), back: !document.getElementById('backBtn').hidden }; }""")
-                check(dev, f'{size} {page}: no back button; the logo clears the top inset; the tabs clear the home bar',
-                      not tabs['back'] and tabs['brandTop'] >= top and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
+                  const bar = document.getElementById('bar'), brand = document.querySelector('.bar .brand').getBoundingClientRect(), first = document.querySelector('#view > *');
+                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, bar: bar.offsetParent !== null || getComputedStyle(bar).display !== 'none',
+                           brandTop: Math.round(brand.top), pageTop: first ? Math.round(first.getBoundingClientRect().top + scrollY) : null, back: !document.getElementById('backBtn').hidden }; }""")
+                top_ok = (not tabs['bar'] and tabs['pageTop'] is not None and tabs['pageTop'] >= top) if phone else tabs['brandTop'] >= top
+                check(dev, f'{size} {page}: no back button; ' + ('no top bar, the page clears the top inset' if phone else 'the logo clears the top inset') + '; the tabs clear the home bar',
+                      not tabs['back'] and top_ok and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
             # every other page: a back button in the first screen, below the Dynamic Island, big enough to tap
             pid = PID
             for page in HOME_SUB:
