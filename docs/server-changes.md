@@ -31,6 +31,16 @@
 
 ## 2026-11-26
 
+### 18:03 · 香港：安卓 1.0.5 放进下载目录
+
+- **改了什么**：
+  - 新文件 `/www/wwwroot/flow-downloads/flow-android-1.0.5.apk`（1,147,945 字节，sha256 `b28cd221…c55c8`，code 6，证书和 1.0.4 相同）；
+  - `latest.json` 的 android 改成 1.0.5，notes 用的是语流 C2 写的那句；
+  - 每个平台只留两版：`flow-android-1.0.1.apk` 和 `1.0.2.apk` 挪进了 `/root/claude-ops/backup-downloads/`，没删，那两个下载链接现在是 404。
+- **谁、为什么**：语流 A1，安卓 1.0.5（#467）。用户在 A1 选了「放（推荐）」。
+- **备份**：`/root/claude-ops/backup-latest-json-20261126-180316.json`。
+- **撤回**：把 `latest.json` 的 android 一项按行改回 1.0.4。已经升到 1.0.5 的手机降不回去。
+
 ### 16:40 · 杭州：XMC 工作台首页的语流后台拆成两个入口
 
 - **改了什么**：`/www/wwwroot/xmc.hk/index.html`（XMC 工作台首页）里原来的「语流 Flow 后台」拆成两个：「语流 · 正式版后台」（`/flow/`）和
