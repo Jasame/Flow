@@ -171,13 +171,10 @@ def about_parts(page):
  page=__import__('re').sub(rb'<!--/?channel:(?:beta|prod)-->\n?',b'',page)
  return page.replace(b'__HARMONY_TEST__',harmony_test_url().encode())
 def harmony_test_url():
- """The public link of the 鸿蒙 内测 in Huawei's AppTest, from FLOW_HARMONY_TEST_URL, on the 内测版 only: an https link on
- huawei.com (or its hicloud.com), else nothing and the button keeps 即将开放. Set in the 内测版's flow.env by A1."""
- u=os.getenv('FLOW_HARMONY_TEST_URL','').strip()
- if CHANNEL!='beta' or not u or len(u)>500 or any(c in u for c in ' "\'<>\\'):return ''
- h=(urlsplit(u).hostname or '').lower()
- ok=urlsplit(u).scheme=='https' and any(h==d or h.endswith('.'+d) for d in ('huawei.com','hicloud.com'))
- return u.replace('&','&amp;') if ok else ''
+ """The 鸿蒙 内测 link for 认识语流: on the 内测版 only, from its console (「鸿蒙内测链接」, console_ops.harmony_test_url,
+ checked there: https on huawei.com); empty keeps 即将开放. 语流 never gets it, whatever the settings say."""
+ if CHANNEL!='beta':return ''
+ return __import__('console_ops').harmony_test_url().replace('&','&amp;')
 def beta_icons(page):
  """On the 内测版: the home-screen icon and the tab's icon (the inline SVG's fill) in its orange; 语流's page as it is."""
  if CHANNEL!='beta':return page

@@ -136,25 +136,36 @@ class ClassicArchivedTests(Servers):
 
     def test_the_harmony_card_shows_each_site_its_own_part(self):
         """鸿蒙 (/about#download), the owner 2026-11-26: 语流 says the app is in 内测 and how to ask to join (问题反馈), with no
-        AppTest link anywhere in the page; the 内测版 has the two install steps and the AppTest link from
-        FLOW_HARMONY_TEST_URL (https on huawei.com only), else 即将开放. Neither site gets the other's part, even hidden."""
-        def card(channel, url=''):
-            with patch.object(app, 'CHANNEL', channel), patch.dict(os.environ, {'FLOW_HARMONY_TEST_URL': url}):
-                body = self.call(self.site, '/about', raw=True)[1].decode()
-            self.assertNotIn('<!--channel', body); self.assertNotIn('__HARMONY_TEST__', body)
-            return body[body.index('data-app="harmony"'):body.index('data-app="ios"')]
+        AppTest link anywhere in the page; the 内测版 has the two install steps and the AppTest link saved in its console
+        (「鸿蒙内测链接」, console-settings.json: https on huawei.com only), else 即将开放. Neither site gets the other's
+        part, even hidden; a new link shows at once, no release."""
+        import console_ops
         link = 'https://appgallery.huawei.com/link/invite-test-wap?taskId=1&invitationCode=ab'
-        prod = card('prod', link)
-        self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
-        for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
-            self.assertNotIn(word, prod)
-        beta = card('beta')
-        self.assertIn('AppTest', beta); self.assertNotIn('申请鸿蒙内测', beta)
-        self.assertIn('data-harmony="" data-tap="about-harmony-join" aria-disabled="true">即将开放</a>', beta)
-        self.assertIn('data-harmony="https://appgallery.huawei.com/link/invite-test-wap?taskId=1&amp;invitationCode=ab"', card('beta', link))
-        for bad in ('http://appgallery.huawei.com/x', 'https://huawei.com.example.com/x', 'https://example.com/huawei.com',
-                    'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)'):
-            self.assertIn('data-harmony=""', card('beta', bad), bad)
+        with tempfile.TemporaryDirectory() as d, patch.object(console_ops, 'data_dir', return_value=Path(d)):
+            def card(channel):
+                with patch.object(app, 'CHANNEL', channel):
+                    body = self.call(self.site, '/about', raw=True)[1].decode()
+                self.assertNotIn('<!--channel', body); self.assertNotIn('__HARMONY_TEST__', body)
+                return body[body.index('data-app="harmony"'):body.index('data-app="ios"')]
+            beta = card('beta')
+            self.assertIn('AppTest', beta); self.assertNotIn('申请鸿蒙内测', beta)
+            self.assertIn('data-harmony="" data-tap="about-harmony-join" aria-disabled="true">即将开放</a>', beta)
+            console_ops.set_harmony_test_url(' ' + link + ' ', 'op')
+            self.assertEqual(console_ops.settings()['harmony_test_url'], link)
+            self.assertIn('data-harmony="https://appgallery.huawei.com/link/invite-test-wap?taskId=1&amp;invitationCode=ab"', card('beta'))
+            prod = card('prod')  # 语流, with the link saved: still none of it
+            self.assertIn('申请鸿蒙内测', prod); self.assertIn('href="/#/feedback"', prod)
+            for word in ('AppTest', 'data-harmony', 'huawei.com', '加入内测'):
+                self.assertNotIn(word, prod)
+            for bad in ('http://appgallery.huawei.com/x', 'https://huawei.com.example.com/x', 'https://example.com/huawei.com',
+                        'https://appgallery.huawei.com/x"><script>', 'javascript:alert(1)'):
+                with self.assertRaises(ValueError):
+                    console_ops.set_harmony_test_url(bad, 'op')
+            self.assertEqual(console_ops.harmony_test_url(), link)  # a refused one leaves the saved link as it was
+            console_ops.save_settings({'harmony_test_url': 'https://evil.example.com/x'}, 'op')  # even if the file is edited by hand
+            self.assertIn('data-harmony=""', card('beta'))
+            console_ops.set_harmony_test_url('', 'op')  # emptied: back to 即将开放
+            self.assertNotIn('harmony_test_url', console_ops.settings()); self.assertIn('>即将开放</a>', card('beta'))
 
     def test_the_introduction_page_says_what_the_data_says(self):
         """认识语流 shows the word books with their sizes and a tap-a-word demo with dictionary entries, copied into
