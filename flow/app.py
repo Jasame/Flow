@@ -139,7 +139,7 @@ CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'pro
 # 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
 # of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
 # tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
-AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking','/api/next/two/check')
 TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):

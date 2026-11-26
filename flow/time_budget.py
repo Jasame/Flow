@@ -45,15 +45,22 @@ def tier(minutes):
     return max([t for t in TIERS if t <= m] or [TIERS[0]])
 
 
-def budget(minutes, exam=False):
+# 5 分钟的日子轮着来 (r29, the user's pick 2026-11-26): a words day is TABLE[5]; a use day gives the words' minutes to
+# 听两句、答一句 (output) and keeps today's text heard once.
+USE_DAY = {'read': 2, 'output': 3}
+
+
+def budget(minutes, exam=False, use_day=False):
     """Minutes for each part of a day (0: not in 必做 today), the text's mode and the tier.
-    exam: the learner is preparing for an exam and 考试小练 is there to fill its part."""
+    exam: the learner is preparing for an exam and 考试小练 is there to fill its part.
+    use_day: at 5 minutes, the day of 听两句、答一句 rather than words (skills_service decides which)."""
     t = tier(minutes)
-    row = EXAM[t] if exam and t in EXAM else TABLE[t]
+    row = USE_DAY if use_day and t == 5 else EXAM[t] if exam and t in EXAM else TABLE[t]
     out = {p: row.get(p, 0) for p in PARTS}
     out['tier'] = t
     out['read_mode'] = 'glance' if t == 5 else 'listen-read' if out['exam'] and t == 10 else 'core'
     out['texts'] = 2 if t >= 60 else 1
+    out['use_day'] = bool(use_day and t == 5)
     return out
 
 
