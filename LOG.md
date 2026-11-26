@@ -1282,3 +1282,10 @@
   - #510 返回和切底栏：回到看过的页不再抖一下（开局和考试、操作指南）
 - 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45859534020
+
+### b155 · 2026-11-27 00:45
+- main `07bee73`，构建 `851418a`
+- 新合并的 PR（自 b154 起）：
+  - #519 我的：顶上那行的词数只算单词和表达，累计的数写明「累计」（开局和考试、后台和班级）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45861535448
