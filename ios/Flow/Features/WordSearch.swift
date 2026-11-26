@@ -12,11 +12,16 @@ enum WordSearch {
     nonisolated static let domain = "cn.flowlang.app.cards"
     private static let versionKey = "flow.wordsearch.v"
     private static var busy = false
+    private static var again = false
+    /// bumped whenever the index is emptied (switched off, another account, signed out): a list fetched before that is
+    /// the last account's and is never put in
+    private static var generation = 0
 
     /// The app came to the front, or the switch went on: the index follows the site's list.
     static func refresh(site: SiteClient) async {
         guard Features.on(.wordSearch) else { return }
-        guard !busy, CSSearchableIndex.isIndexingAvailable() else { return }
+        guard CSSearchableIndex.isIndexingAvailable() else { return }
+        if busy { again = true; return }  // one under way: once more after it (another account may have come meanwhile)
         #if BETA
         if UserDefaults.standard.bool(forKey: "FlowWordSearchSample") {  // screenshots and tests: a few words, nobody's
             try? await CSSearchableIndex.default().indexSearchableItems(items(sample))
@@ -24,14 +29,19 @@ enum WordSearch {
         }
         #endif
         busy = true
-        defer { busy = false }
+        let mine = generation
+        defer {
+            busy = false
+            if again { again = false; Task { await refresh(site: site) } }
+        }
         let had = UserDefaults.standard.string(forKey: versionKey)
         do {
             let j = try await site.json("/api/next/cards/index" + (had.map { "?v=" + $0 } ?? ""))
-            guard Features.on(.wordSearch), let v = j["v"] as? String else { return }  // switched off meanwhile
+            guard mine == generation, Features.on(.wordSearch), let v = j["v"] as? String else { return }  // emptied or off meanwhile
             if (j["same"] as? Bool) == true, v == had { return }
             let items = Self.items((j["words"] as? [[String: Any]]) ?? [])
             try await CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain])
+            guard mine == generation else { return }  // checked right before putting in (no wait between): never the last account's
             if !items.isEmpty { try await CSSearchableIndex.default().indexSearchableItems(items) }
             UserDefaults.standard.set(v, forKey: versionKey)
         } catch SiteError.signedOut {
@@ -43,13 +53,34 @@ enum WordSearch {
         }
     }
 
-    /// The switch went off: everything this app put in the phone's search goes.
+    /// The switch went off, another account, signed out: everything this app put in the phone's search goes.
     static func clear() async {
+        generation += 1
         UserDefaults.standard.removeObject(forKey: versionKey)
         try? await CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain])
     }
 
     #if BETA
+    /// tests: how many of this app's entries the phone's search has (Core Spotlight's own query)
+    static func count() async -> Int {
+        await withCheckedContinuation { (c: CheckedContinuation<Int, Never>) in
+            let q = CSSearchQuery(queryString: "domainIdentifier == \"\(domain)\"", queryContext: nil)
+            Self.run(q, c)
+        }
+    }
+
+    nonisolated private static func run(_ q: CSSearchQuery, _ c: CheckedContinuation<Int, Never>) {
+        let n = Counter()
+        q.foundItemsHandler = { n.add($0.count) }
+        q.completionHandler = { _ in c.resume(returning: n.value) }
+        q.start()
+    }
+
+    /// tests: the sample words put in whatever the switch says
+    static func putSample() async {
+        try? await CSSearchableIndex.default().indexSearchableItems(items(sample))
+    }
+
     nonisolated static var sample: [[String: Any]] { [["id": 1, "text": "make up for", "zh": "弥补"],
                                                      ["id": 2, "text": "deliberately", "zh": "从容地；故意地"],
                                                      ["id": 3, "text": "rainbow", "zh": "彩虹"]] }
@@ -82,3 +113,13 @@ enum WordSearch {
         return "#/cards/find/" + enc
     }
 }
+
+#if BETA
+/// found items counted from Core Spotlight's own queue
+nonisolated private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var n = 0
+    var value: Int { lock.lock(); defer { lock.unlock() }; return n }
+    func add(_ k: Int) { lock.lock(); n += k; lock.unlock() }
+}
+#endif
