@@ -149,6 +149,31 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(body['asr_options'], {'language': 'en', 'enable_itn': False})
 
 
+class NoMainModelNameTests(unittest.TestCase):
+    """2026-11-26 (the owner): the main model's name (Gemini) taken off the servers too. With FLOW_MAIN_AI=off and no
+    FLOW_AI_MODEL at all, the site still says AI is there and every text and recording task still answers."""
+    def setUp(self):
+        p = patch.dict(os.environ, ENV); p.start(); self.addCleanup(p.stop)
+        os.environ.pop('FLOW_AI_MODEL')
+
+    def test_ai_is_there_without_the_main_model_name(self):
+        self.assertTrue(cs.ai_configured())
+        with patch.dict(os.environ, {'FLOW_MAIN_AI': 'on'}):
+            self.assertFalse(cs.ai_configured())  # with the main model on, its name is needed, as before
+        with patch.dict(os.environ, {'FLOW_AI_ROUTES': '', 'FLOW_TEXT_AI_MODEL': ''}):
+            self.assertFalse(cs.ai_configured())  # nothing left to answer
+
+    def test_text_and_recordings_still_answer_and_nothing_asks_for_gemini(self):
+        for kind, audio, model in (('next-rewrite', None, 'flow-text-ds-flash'), ('next-dialog', WEBM, 'flow-audio-omni-flash')):
+            urlopen, sent = gateway({model: '{"ok": 1}'})
+            with patch('urllib.request.urlopen', urlopen), ai_routes.task(kind), patch('time.sleep'):
+                cs.request_model(MSGS, audio=audio)
+            self.assertEqual([b['model'] for b in sent], [model])
+
+    def test_a_row_without_a_served_name_is_priced_by_what_was_asked(self):
+        self.assertEqual(ai_routes.served_name('', 'flow-text'), 'flow-text')
+
+
 class DialogTests(unittest.TestCase):
     """A dialogue turn by voice end to end: Omni answers twice with nothing heard (Shape heard_empty), the last try is
     speech recognition then the backup model; a refused service reads as a plain sentence, never an admin's."""

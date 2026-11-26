@@ -509,7 +509,7 @@ def cost(served, ts, prompt, cached, completion, table=None):
 
 def served_name(served, model):
     """The name to price a call by: what answered, else (the Gemini relay names it; a row without one) what was asked."""
-    return served or (os.getenv('FLOW_AI_MODEL', '') if model == default_model() else model)
+    return served or ((os.getenv('FLOW_AI_MODEL', '') or model) if model == default_model() else model)
 
 
 def beijing_day(ts=None):
