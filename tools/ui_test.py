@@ -589,8 +589,15 @@ def run_device(pw, dev, opts):
                 break
             if pg.query_selector('#fixIn'):
                 seen_fix = True
+                # the card before may still be sending its answer: wait for the box to take input (2026-11-26, tablet,
+                # MSI fully loaded: it was filled while still disabled and timed out), then for the answer's buttons
+                pg.wait_for_selector('#fixIn:not([disabled])', timeout=8000)
                 pg.fill('#fixIn', 'would have arrived')
-                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                pg.press('#fixIn', 'Enter')
+                try:
+                    pg.wait_for_selector('#go, #fixMiss', timeout=8000)
+                except Exception:
+                    pass  # the check below says what is missing
                 # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
                 nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
                 check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
@@ -599,6 +606,7 @@ def run_device(pw, dev, opts):
                 seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
                 pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('#spellIn'):
+                pg.wait_for_selector('#spellIn:not([disabled])', timeout=8000)  # as the fix card: the card before may still be sending
                 pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('[data-claim]'):
                 if touch:
@@ -1790,7 +1798,12 @@ def ux_run(pw):
         p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
         p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
         p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
-        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        p8.click('#playAll')
+        for _ in range(50):  # up to 10 s for the switch to AI 朗读 (2026-11-26: a fixed 2.5 s was too short on a busy MSI)
+            p8.wait_for_timeout(200)
+            if tts8 and p8.evaluate("() => ((document.getElementById('playAll') || {}).textContent || '').trim() === '暂停'"):
+                break
+        p8.wait_for_timeout(300)
         eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
         check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
               eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
