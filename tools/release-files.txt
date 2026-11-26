@@ -221,6 +221,7 @@ flow/graph_service.py
 flow/growth_report.py
 flow/growth_service.py
 flow/guest_first.py
+flow/history_service.py
 flow/ielts_speaking.py
 flow/import_service.py
 flow/knowledge_service.py
@@ -386,6 +387,7 @@ flow/tests/test_goal_recommend.py
 flow/tests/test_growth.py
 flow/tests/test_guide.py
 flow/tests/test_harmony_link_console.py
+flow/tests/test_history.py
 flow/tests/test_ielts_speaking.py
 flow/tests/test_inapp_audio.py
 flow/tests/test_lab.py
