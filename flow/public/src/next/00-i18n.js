@@ -68,6 +68,9 @@
       const parts = s.split(' · '), out = parts.map(x => (ZH_CHAR.test(x) ? enLookup(x.trim()) : x));
       if (out.every(x => x != null)) return out.join(' · ');
     }
+    // a heading read with its back mark (「‹使用习惯」, what a screen reader is told on a new page) or an arrow after it
+    const mk = /^([‹›<>←→↗·•✓✦]+\s*)?([\s\S]*?)(\s*[‹›<>←→↗·•✓✦]+)?$/.exec(s);
+    if (mk && (mk[1] || mk[3]) && mk[2] && mk[2] !== s) { const en = enLookup(mk[2]); if (en != null) return (mk[1] || '') + en + (mk[3] || ''); }
     return null;
   }
   // a part a pattern caught: its Chinese looked up too, the spaces and ' · ' around it kept (「 · 新词」 → " · New words")
