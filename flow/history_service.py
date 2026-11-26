@@ -6,7 +6,8 @@ read back from what is already kept. Nothing new is stored.
   answers are the rows before it), and each retelling, essay, translation and rewrite.
 - next_assess and next_exam_results: in the list only. They are results, and are not deleted here.
 
-Deleting a record takes its rows (a dialog's rounds with it), the sentences 周报 kept from it (next_evidence), and, when
+Deleting a record takes its rows (a dialog's rounds with it), the disputes on it and the copy the old dispute route
+kept (teaching_corrections, kind 'feedback'), the sentences 周报 kept from it (next_evidence), and, when
 the learner says so, the mistake cards it made. The scores (next_skill_events) stay: they hold no content, and 进步,
 周报 and the radar read them. Every read and delete is for the signed-in learner's own rows only."""
 import datetime
@@ -444,6 +445,8 @@ def _remove(c, uid, rows, results, mistakes):
         q = ','.join('?' * len(part))
         if _table(c, 'feedback_disputes'):
             c.execute('DELETE FROM feedback_disputes WHERE job IN (%s)' % q, part)  # these ids are the learner's own rows
+        if _table(c, 'teaching_corrections'):  # the old dispute route's copy of the result (ai_quota.prune drops it at 180 days too)
+            c.execute("DELETE FROM teaching_corrections WHERE kind='feedback' AND ref IN (%s)" % q, part)
         c.execute('DELETE FROM lab_jobs WHERE user_id=? AND id IN (%s)' % q, (uid, *part))
     return gone
 

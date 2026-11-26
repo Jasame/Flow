@@ -143,10 +143,15 @@ class HistoryTests(unittest.TestCase):
         rid = self.items()['items'][0]['id']
         self.assertEqual(nx.save_card(self.c, 1, {'text': 'Is it for here or to go?'})[1], 200)
         events = self.c.execute('SELECT COUNT(*) FROM next_skill_events').fetchone()[0]
+        job = int(rid[1:])
+        self.c.execute('INSERT INTO feedback_disputes VALUES(1,?,?,?)', (job, '我觉得没错', time.time()))
+        self.c.execute("INSERT INTO teaching_corrections(user_id,kind,ref,original,correction,created) VALUES(1,'feedback',?,'{}','我觉得没错',?)", (job, time.time()))
+        self.c.commit()
         for data in ({'id': rid}, {'id': rid, 'mistakes': 'yes'}, {'id': rid, 'mistakes': 1}):
             self.assertEqual(hs.delete(self.c, 1, data)[1], 400, data)
         self.assertEqual(hs.delete(self.c, 1, {'id': rid, 'mistakes': True}), ({'ok': True, 'mistakes': 1}, 200))
         self.assertEqual(self.c.execute('SELECT COUNT(*) FROM lab_jobs').fetchone()[0], 0)  # the end, both lines and the opening
+        self.assertEqual([self.c.execute(f'SELECT COUNT(*) FROM {t}').fetchone()[0] for t in ('feedback_disputes', 'teaching_corrections')], [0, 0])
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE source='mistake'").fetchone()[0], 0)
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE source!='mistake'").fetchone()[0], 1)  # 收藏 stays
         self.assertEqual(self.c.execute('SELECT COUNT(*) FROM next_skill_events').fetchone()[0], events)  # the scores stay
