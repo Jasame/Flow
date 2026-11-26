@@ -1,3 +1,3 @@
-9c59349c26881e00edec8a0a1182b0c3c85349a3 0d6151028bb6136580df8328186f4e21d3e5866bdc164b087e640e74875a9edd e2e ref=build-37fb6e4ac7b2 tag=r37 tools=d2b435d89f85153177d99a743a26d0b7c706a216608190d1cb13a18b44801ac4
-# r37 main: Merge pull request #396 from Jasame/e2e-fix-cards-other = build of 37fb6e4ac7b2
+598703cbca7555a40ec331a65a430719c99598c4 fa805fe47b4dcf8f22b55264a9ecba7ae463a66116c158e775f1bdb92077622f e2e ref=build-f0583c5b8ed5 tag=r38 tools=d2b435d89f85153177d99a743a26d0b7c706a216608190d1cb13a18b44801ac4
+# r38 main: Merge pull request #401 from Jasame/updates-r38 = build of f0583c5b8ed5
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
