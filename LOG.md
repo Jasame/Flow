@@ -865,3 +865,14 @@
   - #386 后台学员抽屉：不显示改错卡和学员自己导入的文章标题（后台和班级）
 - 自检：DEPLOYED，装了 9 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45741798493
+
+### b108 · 2026-11-26 10:34
+- main `0e477b6`，构建 `117dacf`
+- 新合并的 PR（自 b107 起）：
+  - #342 隐私和数据：个人信息收集清单、第三方信息共享清单，注销说明锚点（操作指南）
+  - #336 下载安装：安卓 1.0.4 第一次打开先问同意；Linux 缺解码器的说法跟上 #362（操作指南）
+  - #387 复习提醒：按钮带 ?from=remind&k=review|once；记下真发出提醒的日期（last_mailed）（单词）
+  - #388 收藏的词从明天起进复习（操作指南）
+  - #389 每周进度邮件：链接带 ?from=remind&k=weekly；真发出去才记 mailed（今日和计划）
+- 自检：DEPLOYED，装了 8 个文件（0 个新的）；轻量 e2e 156/157，没过：exam: fix cards are in today's review: ，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45743142588
