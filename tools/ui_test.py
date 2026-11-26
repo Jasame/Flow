@@ -515,7 +515,7 @@ def run_device(pw, dev, opts):
     check(dev, 'read: 「点词查词…」 is a first-time tip: shown once above the text, 知道了 puts it away, the account keeps it',
           shown and '点词查词' in text and gone and not again and 'read' in seen.get('seen', []), (text[:30], gone, again, seen))
     if dev == 'phone':
-        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#meTips', timeout=4000); pg.click('#meTips'); pg.wait_for_timeout(500)
+        go(pg, '#/me/help'); pg.click('#meMore'); pg.wait_for_selector('#meTips', timeout=4000); pg.click('#meTips'); pg.wait_for_timeout(500)
         go(pg, f'#/m/{PID}/read'); back = bool(pg.wait_for_selector('#tip-read', timeout=6000))
         check(dev, '我的 → 帮助 → 更多 →「重新显示使用提示」 brings the 读 tip back', back)
         pg.click('#tip-read button'); pg.wait_for_timeout(300); go(pg, f'#/m/{PID}/read')
@@ -725,12 +725,24 @@ def run_device(pw, dev, opts):
     check(dev, 'welcome: 保存 can be brought on screen above the tabs', nb[0] >= 0 and nb[1] <= nb[2], nb)
 
     # ---- account email, exam word lists, import topic
-    go(pg, '#/me'); pg.wait_for_function("() => !document.querySelector('#acctEmail .spin')", timeout=5000)
+    # 我的 (B9's batch 1): 账号和隐私 and 帮助 are folds; on #/me both are shut, #/me/account opens its own (the guide's link)
+    go(pg, '#/me'); pg.reload(); settle(pg); pg.wait_for_timeout(300)  # a fold opened earlier stays open while the page lives
+    shut = pg.evaluate("() => [...document.querySelectorAll('#view details.me-fold')].map(d => [d.dataset.fold, d.open])")
+    check(dev, 'me: 账号和隐私 and 帮助 are two folds, shut until tapped', shut == [['account', False], ['help', False]] and not pg.is_visible('#chPw'), shut)
+    pg.click('#meFold-help summary'); pg.wait_for_timeout(300)
+    check(dev, 'me: a tap on 帮助 opens it in place', pg.is_visible('[data-tap="me-guide"]') and not pg.is_visible('#chPw'))
+    go(pg, '#/me/account'); pg.wait_for_function("() => !document.querySelector('#acctEmail .spin')", timeout=5000)
     check(dev, 'me: email row says whether one is bound', len((pg.text_content('#acctEmail') or '').strip()) > 0, pg.text_content('#acctEmail'))
     # ---- account and security: change the password (the eye shows what was typed; a mismatch is said at once)
     check(dev, 'me: account card offers change password and sign out everywhere', pg.is_visible('#chPw') and pg.is_visible('#outAll'))
-    me = pg.evaluate("() => ({groups: [...document.querySelectorAll('#view .gsec .ghead')].map(h => h.textContent), ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})")
-    check(dev, 'me: rows grouped as 进步, 设置, 账号, 帮助, then 退出登录; no ability card, no way to the classic site', me['groups'] == ['进步', '设置', '账号', '帮助'] and not me['ability'] and me['out'] and not me['classic'], me)
+    me = pg.evaluate("""() => ({groups: [...document.querySelectorAll('#view .me-sec > .me-h')].map(h => h.textContent), tiles: [...document.querySelectorAll('#view .me-tile b')].map(b => b.textContent),
+      folds: [...document.querySelectorAll('#view details.me-fold')].map(d => [d.querySelector('.fold-n').textContent, d.querySelector('.fold-v').textContent, d.open, getComputedStyle(d.querySelector('.fold-n')).color === getComputedStyle(document.querySelector('#meVoice .t')).color]),
+      account: [...document.querySelectorAll('#meFold-account .grow .t')].map(t => t.textContent), icons: [...document.querySelectorAll('.me-list > .grow')].every(r => r.querySelector('.fi-tile')),
+      ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})""")
+    check(dev, 'me: 进步 (three tiles) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助 (still open from the tap), then 退出登录; no ability card, no way to the classic site',
+          me['groups'] == ['进步', '设置'] and me['tiles'] == ['我的进步', '周报', '错题本'] and me['icons'] and not me['ability'] and me['out'] and not me['classic']
+          and me['folds'] == [['账号和隐私', '导出、注销、数据存放', True, True], ['帮助', '指南、隐私说明、反馈', True, True]], me)  # 帮助: opened above, still open
+    check(dev, 'me: 账号和隐私 has its nine rows, 隐私说明 next to 用户协议 (D2)', me['account'] == ['邮箱', '修改密码', '退出所有设备', '年龄段', '数据存放', '用户协议', '隐私说明', '导出我的数据', '注销账号'], me['account'])
     pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
     pg.click('#sheet [data-voice="uk-m"]'); pg.wait_for_timeout(300)
     check(dev, 'me: the voice row opens a sheet, and the row shows the new voice', '英音 · 男' in (pg.text_content('#meVoiceV') or ''), pg.text_content('#meVoiceV'))
@@ -742,7 +754,7 @@ def run_device(pw, dev, opts):
     check(dev, 'change password: a mismatch is marked on the field', pg.get_attribute('#cp [name=again]', 'aria-invalid') == 'true' and '不一样' in (pg.text_content('#cpErr') or ''))
     pg.evaluate("document.querySelector('#sheet [data-close]').click()")
     # ---- 问题反馈: from 我的, a few words and a screenshot (shrunk on the page before it is sent), then 已收到
-    go(pg, '#/me'); pg.click('[data-tap="me-feedback"]'); pg.wait_for_selector('#fbForm', timeout=5000)
+    go(pg, '#/me/help'); pg.click('[data-tap="me-feedback"]'); pg.wait_for_selector('#fbForm', timeout=5000)
     pg.click('#fbForm [data-k="broken"]')
     pg.fill('#fbText', '单词页往下滑，底部按钮跑到了中间')
     pg.set_input_files('#fbFile', files=[{'name': 'shot.png', 'mimeType': 'image/png', 'buffer': png()}])
@@ -1943,7 +1955,7 @@ def learner_run(pw):
         shown = pg.evaluate("document.querySelectorAll('#pane .line .txt.blind').length")
         check(dev, '复听: the text is hidden until 听懂了多少 is answered, then shown; understood mostly, it is not brought back again (r27)', hidden > 0 and shown == 0 and '这篇已经听熟了，以后不再安排复听' in said, (hidden, shown, said[:60]))
         # 导出我的数据: the word book as a table for Excel (UTF-8 with a BOM), from 我的
-        go(pg, '#/me'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
+        go(pg, '#/me/account'); pg.click('#meData'); pg.wait_for_selector('#sheetCard a[href$="cards.csv"]', timeout=4000)
         with pg.expect_download(timeout=8000) as dl:
             pg.click('#sheetCard a[href$="cards.csv"]')
         f = dl.value; body = Path(f.path()).read_bytes()
@@ -2003,7 +2015,7 @@ def learner_run(pw):
         # 注销账号: a wrong password is refused; the right one deletes the account, and this phone forgets it
         ctx = browser.new_context(**phone)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['leaver']['token'], 'url': BASE}])
-        pg = ctx.new_page(); pg.goto(BASE + '/#/me', wait_until='networkidle'); settle(pg)
+        pg = ctx.new_page(); pg.goto(BASE + '/#/me/account', wait_until='networkidle'); settle(pg)
         pg.click('#meDelete'); pg.wait_for_selector('#sheetCard #da', timeout=4000); pg.wait_for_timeout(400)
         pg.screenshot(path=str(OUT / 'learner-delete.png'))
         pg.fill('#da input[name=password]', 'not the password'); pg.click('#da [type=submit]'); pg.wait_for_timeout(700)
@@ -2647,9 +2659,10 @@ def privacy_run(pw):
         val = (pg.text_content('#meAgeV') or '').strip()
         check(dev, '老账号: asked once, Esc and the backdrop do not dismiss it, answered it is not asked again', stays and gone and not again and val == '18 岁及以上',
               (stays, gone, again, val))
-        pg.click('a[href="#/guide/privacy"]'); pg.wait_for_timeout(1200)
+        pg.click('#meFold-account summary'); pg.wait_for_timeout(300)  # 我的 → 账号和隐私 → 隐私说明: three taps from the tab (D2)
+        pg.click('#meFold-account a[href="#/guide/privacy"]'); pg.wait_for_timeout(1200)
         text = pg.text_content('#view') or ''
-        check(dev, '我的 → 隐私说明 opens the chapter', '香港的服务器' in text and '阿里云百炼' in text, text[:60])
+        check(dev, '我的 → 账号和隐私 → 隐私说明 opens the chapter', '香港的服务器' in text and '阿里云百炼' in text, text[:60])
         ctx.close()
         # 不满 14 岁 without the agreement: 仿写 asks for it, then goes on
         ctx = browser.new_context(**phone)
@@ -2885,7 +2898,7 @@ def tour_run(pw):
         ctx, pg = open_('tour', phone)
         check(dev, 'another phone, same account: it does not come back', shown(pg, 2500) is None)
         # 我的 → 帮助 → 更多 → 「再看一遍新手引导」 (390 px; 简洁化: in the 更多 sheet)
-        go(pg, '#/me'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
+        go(pg, '#/me/help'); pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         again = shown(pg)
         check(dev, '390 px: 我的 → 帮助 → 更多 → 「再看一遍新手引导」 opens it on 今日 from step 1',
               bool(again) and pg.evaluate('location.hash') in ('#/', '') and again['title'] == TOUR_LEARNER[0] and again['inside'], again)
@@ -2895,7 +2908,7 @@ def tour_run(pw):
             check(dev, '再看一遍 and 跳过: the card goes, not counted again', pg.query_selector('.tour') is None and resp.value.json().get('counted') is False, resp.value.json())
         ctx.close()
         # a computer, dark, reduced motion
-        ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me', color_scheme='dark', reduced_motion='reduce')
+        ctx, pg = open_('tour', dict(viewport={'width': 1280, 'height': 800}, locale='zh-CN'), '#/me/help', color_scheme='dark', reduced_motion='reduce')
         pg.click('#meMore'); pg.wait_for_selector('#sheetCard #meTour', timeout=4000); pg.click('#meTour')
         st = shown(pg)
         steps = walk(pg, 'desktop-dark', shots=True) if st else []
@@ -3198,7 +3211,7 @@ def about_run(pw):
         ctx = browser.new_context(**DEVICES['phone'], locale='zh-CN')
         pg = ctx.new_page(); pg.goto(BASE + '/#/welcome', wait_until='networkidle'); settle(pg)
         check('about', 'a first visit sees the line to 认识语流 under the starting questions', pg.query_selector('#view a[href="/about"]') is not None)
-        pg.goto(BASE + '/#/me'); settle(pg)
+        pg.goto(BASE + '/#/me/help'); settle(pg)
         pg.click('#meMore'); pg.wait_for_selector('#sheetCard a.grow[href="/about"]', timeout=4000)  # 简洁化: in 帮助 → 更多
         check('about', '我的 → 帮助 → 更多 has 认识语流', pg.query_selector('#sheetCard a.grow[href="/about"]') is not None)
         pg.evaluate("document.querySelector('#sheet [data-close]').click()")
@@ -3479,12 +3492,15 @@ def progress_run(pw):
                 pg.evaluate("document.getElementById('finCard').scrollIntoView({ block: 'center' })"); pg.wait_for_timeout(200)
                 pg.screenshot(path=str(OUT / f'progress-finish-{size}-{theme}.png'))
                 if theme == 'light':
-                    go(pg, '#/me'); pg.wait_for_selector('#meMail', timeout=6000)
-                    row = pg.inner_text('#meMail')
-                    pg.click('#meMail'); pg.wait_for_timeout(250)
+                    # 提醒和每周邮件 (B9's batch 1: 每天提醒 and 每周进度邮件 one row): the mail's state on the row, a tap the two
+                    go(pg, '#/me'); pg.wait_for_selector('#meRemind', timeout=6000); pg.wait_for_timeout(300)
+                    row = pg.inner_text('#meRemind')
+                    pg.click('#meRemind'); pg.wait_for_selector('#sheetCard #rmMail', timeout=4000)
+                    two = pg.evaluate("[...document.querySelectorAll('#sheetCard .grow .t')].map(t => t.textContent)")
+                    pg.click('#sheetCard #rmMail'); pg.wait_for_timeout(250)
                     title = pg.evaluate("(document.getElementById('sheetTitle') || {}).textContent")
                     pg.keyboard.press('Escape')
-                    check(dev, f'{tag}: 我的 → 每周进度邮件 says how it stands and opens its switch', '每周进度邮件' in row and '绑定邮箱' in row and title == '每周进度邮件', (row, title))
+                    check(dev, f'{tag}: 我的 → 提醒和每周邮件 says how the mail stands and opens 每天提醒 and 每周进度邮件, the second its switch', '提醒和每周邮件' in row and '绑定邮箱' in row and two == ['每天提醒', '每周进度邮件'] and title == '每周进度邮件', (row, two, title))
                 check(dev, f'{tag}: no page errors', not errors, errors[:3])
                 ctx.close()
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True)
@@ -3717,7 +3733,7 @@ def review_side_run(pw):
             pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
             pg.goto(BASE + '/#/me', wait_until='load'); settle(pg); pg.wait_for_timeout(300)
             row = pg.evaluate("() => { const r = document.getElementById('meApp'); if (!r) return null; const t = r.querySelector('.t').getBoundingClientRect(), v = r.querySelector('.v').getBoundingClientRect(); "
-                              "return { text: r.innerText.replace(/\\s+/g, ' ').trim(), group: r.closest('.gsec').getAttribute('aria-label'), one: Math.abs(t.top - v.top) < 6 && r.getBoundingClientRect().height <= 64 }; }")
+                              "return { text: r.innerText.replace(/\\s+/g, ' ').trim(), group: r.closest('.me-sec').getAttribute('aria-label'), one: Math.abs(t.top - v.top) < 6 && r.getBoundingClientRect().height <= 64 }; }")
             if row:
                 pg.click('#meApp'); pg.wait_for_timeout(200); row['calls'] = pg.evaluate('window.__calls || []')
             rows[name] = [row, errs[:2]]
@@ -4935,7 +4951,7 @@ def home_app_run(pw):
             seen[label] = pg.evaluate(LINE)
             pg.evaluate("document.querySelector('#sheet:not([hidden]) [data-close]')?.click()")
             go(pg, '#/me'); pg.wait_for_timeout(300)
-            seen[label]['me'] = pg.evaluate("""() => ({ section: [...document.querySelectorAll('.gsec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]'),
+            seen[label]['me'] = pg.evaluate("""() => ({ section: [...document.querySelectorAll('.me-sec h2')].some(h => h.textContent === '内测版'), main: !!document.querySelector('[data-tap=me-beta-main]'), feedback: !!document.querySelector('[data-tap=me-beta-feedback]'),
               changes: [...document.querySelectorAll('#meBetaNew li')].map(li => (li.classList.contains('beta-changed') ? '!' : '') + li.textContent.trim()), go: (document.querySelector('#meBetaNew a') || {}).hash || null })""")
             pg.evaluate("document.querySelector('#betaBar .bb-x').click()"); pg.wait_for_timeout(200)
             pg.reload(wait_until='load'); settle(pg); pg.wait_for_timeout(800)  # 我的 keeps asking (no network idle)
