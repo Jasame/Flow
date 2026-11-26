@@ -1,0 +1,35 @@
+/* ---------- 我的进步 (47-growth.js; B9, 2026-11-26) ----------
+   One sentence for the month, seven figures a row each, the three nearest milestones, the way to 周报.
+   The theme colour: what grew (the line under the days), the bars, the small texts that can be tapped. */
+.grow-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:4px}
+.grow-mon{display:inline-flex;align-items:center;background:var(--sunk);border-radius:12px}
+.grow-mon a,.grow-mon .off{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;color:var(--ink2);text-decoration:none}
+.grow-mon .off{color:var(--line2)}
+.grow-mon b{padding:0 2px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.card.flat.gtile.grow-hero{display:block;padding:18px;border-radius:20px;background:var(--paper)}
+.grow-hero p{margin:0}
+.grow-hero h2{margin:4px 0 4px;font-size:28px;font-weight:600;line-height:1.25}
+.grow-hero .up{color:var(--green-ink);font-weight:600}
+.grow-rows{padding:4px 16px}
+.gtile.grow-row{display:flex;align-items:center;gap:12px;min-height:50px;padding:0;border-radius:0;background:none}
+.grow-row .t{flex:1;min-width:0;font-size:15.5px}
+.grow-row b{flex:none;font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.grow-row .d{flex:none;width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.grow-miles{padding:16px 18px 6px}
+.grow-miles h2{margin:0;font-size:17px;font-weight:600}
+.grow-miles .miles{gap:0;margin-top:2px}
+.grow-miles .mile{display:grid;grid-template-columns:minmax(0,1fr);gap:9px;padding:11px 0 9px}
+.grow-miles .mile .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.grow-miles .mile b{font-size:15.5px;font-weight:400;min-width:0}
+.grow-miles .mile .r .tiny{flex:none;font-variant-numeric:tabular-nums}
+.grow-miles .mile .mi{display:inline-grid;width:20px;height:20px;margin-right:8px;font-size:12px;vertical-align:1px;background:var(--fill);color:var(--on-fill)}
+.grow-miles .mile .vbar{height:4px;border-radius:2px;background:var(--line2);min-width:0}
+.grow-all>summary{display:flex;justify-content:center;align-items:center;gap:6px;min-height:44px;list-style:none;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--green-ink)}
+.grow-all>summary::-webkit-details-marker{display:none}
+.grow-all>summary svg{transition:transform .22s var(--ease)}
+.grow-all[open]>summary svg{transform:rotate(180deg)}
+.grow-link{display:flex;align-items:center;gap:10px;min-height:50px;padding:0 16px 0 14px;border-radius:14px;background:var(--sunk);text-decoration:none;color:var(--ink)}
+.grow-link b{flex:1;font-size:15.5px;font-weight:400}
+.grow-link .go{font-size:13.5px;font-weight:600;color:var(--green-ink)}
+.grow-note{margin:0;text-align:center}
+@media (prefers-reduced-motion:reduce){.grow-all>summary svg{transition:none}}

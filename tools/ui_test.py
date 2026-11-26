@@ -651,8 +651,23 @@ def run_device(pw, dev, opts):
 
     # ---- my progress: this month, last month, milestones
     go(pg, '#/growth')
-    gw = pg.evaluate("() => ({tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length})")
+    gw = pg.evaluate("""() => { const vis = e => e.getBoundingClientRect().height > 0, all = document.querySelector('.grow-all');
+      return { tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length, rows: document.querySelectorAll('.grow-row').length,
+               icons: document.querySelectorAll('.grow-row .fi').length, hero: (document.querySelector('.grow-hero h2') || {}).textContent, near: [...document.querySelectorAll('.mile')].filter(vis).length,
+               fold: !!all && !all.open, prev: !!document.querySelector('.grow-mon a[aria-label="上个月"]'), next: !!document.querySelector('.grow-mon a[aria-label="下个月"]'),
+               report: (document.querySelector('.grow-link') || {}).getAttribute ? document.querySelector('.grow-link').getAttribute('href') : null, wide: document.documentElement.scrollWidth > innerWidth }; }""")
     check(dev, 'my progress: eight figures and the milestones', gw['tiles'] == 8 and gw['miles'] >= 10, gw)
+    # one sentence for the month, seven rows with an icon each, the three nearest milestones (the rest folded), the month
+    # changed with the arrows (no next month from this one), the way to 周报
+    check(dev, 'my progress: the month in one sentence, seven rows, three milestones in sight with the rest folded',
+          gw['rows'] == 7 and gw['icons'] == 7 and ('天' in (gw['hero'] or '') or gw['hero'] == '还没有记录') and gw['near'] <= 3 and gw['fold'] and gw['prev'] and not gw['next']
+          and gw['report'] == '#/report' and not gw['wide'], gw)
+    pg.click('.grow-all > summary'); pg.wait_for_timeout(300)
+    opened = pg.evaluate("() => [...document.querySelectorAll('.mile')].filter(e => e.getBoundingClientRect().height > 0).length")
+    pg.click('.grow-mon a[aria-label="上个月"]'); pg.wait_for_timeout(600)
+    back = pg.evaluate("() => ({ next: !!document.querySelector('.grow-mon a[aria-label=\"下个月\"]'), home: !!document.querySelector('.grow-top a[href=\"#/growth\"]'), tiles: document.querySelectorAll('.gtile').length })")
+    check(dev, 'my progress: 全部 opens the other milestones in place; last month has a way forward and back to this month',
+          opened == gw['miles'] and back == {'next': True, 'home': True, 'tiles': 8}, (opened, back))
 
     # ---- ability radar: set goals, take the reading check, the radar draws the skill against the goal
     go(pg, '#/radar/goals')
