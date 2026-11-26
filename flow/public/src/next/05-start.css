@@ -43,7 +43,10 @@ body.onboarding{padding-bottom:var(--sab)}
 .wg-targets .opt .d{font-size:12px;line-height:1.35;color:var(--ink2)}
 /* 推荐 is a corner badge, not a third line: four tiles in a row stay one height on a 375 px phone (B8 audit, 2026-11-25) */
 .wg-targets .rec{position:absolute;top:-8px;right:-4px;font-size:11px;font-weight:700;color:var(--on-fill);background:var(--fill);border-radius:99px;padding:0 6px;line-height:1.6;pointer-events:none}
-.wg .opt[aria-checked=true] .d{color:var(--green-ink)}
+.wg .opt[aria-checked=true] .d,.wg .opt[aria-pressed=true] .d{color:var(--green-ink)}
+/* 主要: the first of more than one goal; grey, not green (green is the page's one button) */
+.wg-goals .opt{position:relative}
+.wg-goals .main{position:absolute;top:-8px;right:-4px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:99px;padding:0 6px;line-height:1.6;pointer-events:none}
 .wg input[type=date]{width:100%;max-width:280px;min-height:46px;padding:8px 12px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-size:16px}
 .wg-go{margin-top:8px}
 /* 注册账号 | 已有账号？登录: two equal buttons under 开始学习 */

@@ -21,6 +21,7 @@ LEVELS = {
     'C1': {'label': '高级', 'pack': 'B2', 'hard_rank': 9000, 'sample': 'The findings, while hardly conclusive, cast considerable doubt on the assumptions underpinning the policy.',
            'desc': '接近流利，想打磨措辞、语气和风格'},
 }
+MAX_GOALS = 3  # 学英语为了什么: up to three, the first the main one
 GOALS = {'daily': '日常交流', 'work': '工作沟通', 'exam': '考试', 'abroad': '留学和海外生活', 'media': '看懂影视、新闻', 'interest': '兴趣'}
 THEMES = {'campus': '校园学习', 'travel': '旅行生活', 'life': '日常生活', 'work': '职场沟通', 'culture': '文化交流', 'science': '科学素养'}
 # What each 学习目的 reads first (r28 第 5 段, audit 7.1): the SPEC v5.1 purposes tags that suit it (the same map as
@@ -105,6 +106,10 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute("ALTER TABLE next_profiles ADD COLUMN today_view TEXT NOT NULL DEFAULT 'list'")
     if 'today_order' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 今日's order, a JSON list of TODAY_KEYS
         c.execute('ALTER TABLE next_profiles ADD COLUMN today_order TEXT')
+    if 'goals' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
+        # 学英语为了什么, more than one (the user, 2026-11-26): a JSON list, the first the main goal (always = goal, which every
+        # reader of the profile keeps using); NULL for an account from before, read as [goal]
+        c.execute('ALTER TABLE next_profiles ADD COLUMN goals TEXT')
     if 'lang' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 界面语言, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN lang TEXT NOT NULL DEFAULT 'zh'")
     if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
@@ -389,7 +394,8 @@ def profile(c, uid):
     r = c.execute('SELECT * FROM next_profiles WHERE user_id=?', (uid,)).fetchone()
     if not r:
         return None
-    return {'level': r['level'], 'goal': r['goal'], 'themes': json.loads(r['themes']), 'minutes': r['minutes'],
+    return {'level': r['level'], 'goal': r['goal'], 'goals': _goals(r['goals'] if 'goals' in r.keys() else None, r['goal']),
+            'themes': json.loads(r['themes']), 'minutes': r['minutes'],
             'voice': r['voice'] if r['voice'] in VOICES else 'us-f', 'weekly_goal': r['weekly_goal'] if 'weekly_goal' in r.keys() else 4,
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
             'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
@@ -398,6 +404,16 @@ def profile(c, uid):
             'today_order': _today_order(r['today_order'] if 'today_order' in r.keys() else None),
             'lang': r['lang'] if 'lang' in r.keys() and r['lang'] in LANGS else 'zh',
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
+
+
+def _goals(raw, goal):
+    """The learner's goals, the main one (goal) first; an account from before more than one could be chosen: [goal]."""
+    try:
+        kept = json.loads(raw) if raw else []
+    except ValueError:
+        kept = []
+    rest = [g for g in kept if isinstance(g, str) and g in GOALS and g != goal] if isinstance(kept, list) else []
+    return ([goal] if goal in GOALS else []) + list(dict.fromkeys(rest))[:MAX_GOALS - 1]
 
 
 def follows_records(prof):
@@ -444,7 +460,12 @@ def save_profile(c, uid, data):
         level, source = below(target), 'guess'
     else:
         return {'error': '请选择水平'}, 400
-    goal = data.get('goal') if data.get('goal') in GOALS else old.get('goal') or 'daily'
+    # 学英语为了什么: up to MAX_GOALS, the first the main one. Sent as goals (选方向和目标 since 2026-11-26) or, by an older
+    # page, as goal alone: then the others chosen before stay behind it.
+    picked = [g for g in data.get('goals') or [] if g in GOALS] if isinstance(data.get('goals'), list) else []
+    picked = list(dict.fromkeys(picked))[:MAX_GOALS]
+    goal = picked[0] if picked else data.get('goal') if data.get('goal') in GOALS else old.get('goal') or 'daily'
+    goals = picked or [goal] + [g for g in old.get('goals') or [] if g != goal][:MAX_GOALS - 1]
     themes = [t for t in (data.get('themes') or []) if t in THEMES][:6] if 'themes' in data else old.get('themes') or []
     minutes = data.get('minutes') if data.get('minutes') in MINUTES else old.get('minutes') or 10
     voice = data.get('voice') if data.get('voice') in VOICES else old.get('voice', 'us-f')
@@ -452,14 +473,14 @@ def save_profile(c, uid, data):
     if 'exam' in data and data.get('exam') and data.get('exam') not in sp.available():
         return {'error': '没有这个考试'}, 400
     now = time.time()
-    c.execute('''INSERT INTO next_profiles(user_id, level, goal, themes, minutes, created, updated, voice, target, level_source) VALUES(?,?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, themes=excluded.themes,
+    c.execute('''INSERT INTO next_profiles(user_id, level, goal, goals, themes, minutes, created, updated, voice, target, level_source) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(user_id) DO UPDATE SET level=excluded.level, goal=excluded.goal, goals=excluded.goals, themes=excluded.themes,
       minutes=excluded.minutes, updated=excluded.updated, voice=excluded.voice, target=excluded.target, level_source=excluded.level_source''',
-              (uid, level, goal, json.dumps(themes), minutes, now, now, voice, target, source))
+              (uid, level, goal, json.dumps(goals), json.dumps(themes), minutes, now, now, voice, target, source))
     # 每周目标 (r28 第 6 段): 选方向和目标 asks how many days a week (2–7); a new learner who leaves it gets 5 days when
     # preparing for an exam, 4 otherwise. A change keeps the weeks before at the goal they had (progress_service).
     wg = data.get('weekly_goal')
-    wg = wg if type(wg) is int and 2 <= wg <= 7 else None if old else 5 if goal == 'exam' else 4
+    wg = wg if type(wg) is int and 2 <= wg <= 7 else None if old else 5 if 'exam' in goals else 4
     if wg and wg != (old.get('weekly_goal') or 4):
         if old:
             __import__('progress_service').goal_changed(c, uid, old.get('weekly_goal') or 4, wg)
