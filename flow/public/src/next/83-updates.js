@@ -27,6 +27,7 @@
   // release shows once. A phone new to 语流 just notes it: nothing has changed for it.
   function updateCardDue(h) {
     const u = h.update; if (!u || !u.highlights || !u.highlights.length) return false;
+    if (uiLang() === 'en') return false;  // 全英文界面: what changed is written in Chinese only, so the card waits (更新记录 still has it)
     const seen = load('flow-update-seen');
     if (seen === u.id) return false;
     const st = h.stats, studied = !!st && (st.materials_done > 0 || st.cards > 0 || (st.week || []).some(d => d.active));

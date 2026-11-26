@@ -194,7 +194,7 @@
       if (t !== TTS.token) return;  // stopped, or something else spoke, while the sentence was being made
       this.note('');
       if (!u) { this.why(err); TTS.browser(text, onend, o.onword); return; }
-      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: o.title || '语流' });
+      CLIP.play(u, 0, 1e6, text, () => { this.active = false; if (onend) onend(); }, null, { url: u, from: 0, to: Infinity, title: o.title ? zhEn(o.title) : zhEn('语流', 'Flow') });  // the lock screen: in the page's language
       this.active = true; TTS.token = t;  // CLIP.play stops the browser voice (a new token); keep this one current
     },
   };
@@ -324,7 +324,7 @@
     name() {
       const id = (this.key.split('/')[1] || '').split('@')[0]; let m = null;
       try { m = MAT[id]; } catch (e) { /* the study page's cache (20-study.js) */ }
-      MS.claim('nar', '语流 · ' + ((m && m.title) || '朗读'), {
+      MS.claim('nar', zhEn('语流 · ' + ((m && m.title) || '朗读')), {
         play: () => this.resume(), pause: () => this.audio.pause(), stop: () => { this.stop(); MINI.end(); },
         previoustrack: this.stopAt == null ? () => this.step(-1) : null, nexttrack: this.stopAt == null ? () => this.step(1) : null });
     },
@@ -392,7 +392,7 @@
       this.owner = owner; const ms = navigator.mediaSession; if (!ms) return;
       // 「AI 朗读」 on the lock screen, the notification shade and a desktop's media controls too (they draw from this, not
       // the page; 《标识办法》): every voice 语流 plays is synthesized (Kokoro, CosyVoice). The same as the desktop app's #199
-      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: '语流 Flow · AI 朗读' }) : null; } catch (e) { /* ignore */ }
+      try { ms.metadata = window.MediaMetadata ? new MediaMetadata({ title, artist: zhEn('语流 Flow · AI 朗读', '语流 Flow · AI voice') }) : null; } catch (e) { /* ignore */ }
       this.ACTIONS.forEach(k => { try { ms.setActionHandler(k, (handlers && handlers[k]) || null); } catch (e) { /* not supported */ } });
       this.state('playing');
     },
@@ -495,7 +495,7 @@
       const t = own ? 0 : ++this.token;
       clearTimeout(this.idle);
       if (c.state !== 'running') c.resume().catch(() => {});
-      MS.claim('short', title || '语流', { pause: () => this.halt(), stop: () => this.halt() });
+      MS.claim('short', zhEn(title || '语流'), { pause: () => this.halt(), stop: () => this.halt() });
       this.buffer(url).then(buf => {
         if (!own && t !== this.token) return;
         const s = c.createBufferSource(); s.buffer = buf; s.playbackRate.value = rate || 1; s.connect(c.destination);
@@ -577,7 +577,7 @@
       const au = c.audio || {}, ac = au[this.accent()] ? this.accent() : au.us ? 'us' : au.uk ? 'uk' : null;
       if (!ac || !AAC) { if (ac) noAac(); TTS.say(c.text); return; }  // no recording, or none this device can play
       const w = au[ac], sprite = `/audio/words/${ac}/${w[0]}.mp4`, clip = this.wordSrc(c);
-      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: '语流 · 单词' });
+      if (WORD_CLIPS) this.play(clip, 0, Infinity, c.text, null, [sprite, w[1], w[2]], { url: clip, from: clipLead() - 0.02, to: clipLead() + w[2] - w[1] + 0.04, title: zhEn('语流 · 单词', 'Flow · Words') });
       else this.play(sprite, w[1], w[2], c.text);
     },
     // the file word(c) plays: the word's own clip on an iPhone or iPad, its sprite elsewhere (prefetched by the review)
@@ -595,14 +595,14 @@
         if (!this.metas[key]) this.metas[key] = await mediaJSON(`/audio/${S.voice}/${encodeURIComponent(ex.pack)}.json?v=${ex.audio}`);
         const s = this.metas[key].sentences[ex.i]; if (!s) throw new Error('no sentence');
         const base = `/audio/${S.voice}/${encodeURIComponent(ex.pack)}`, e = s.e + 0.05, cut = `${base}.aac?v=${ex.audio}&s=${s.s}&e=${e}&l=${clipLead()}`;
-        const wa = { url: cut, from: clipLead() - 0.02, to: clipLead() + e - s.s + 0.02, title: '语流 · 例句' };
+        const wa = { url: cut, from: clipLead() - 0.02, to: clipLead() + e - s.s + 0.02, title: zhEn('语流 · 例句', 'Flow · Example') };
         if (WORD_CLIPS) this.play(cut, 0, Infinity, ex.text, onend, [`${base}.mp4?v=${ex.audio}`, s.s, e], wa);
         else this.play(`${base}.mp4?v=${ex.audio}`, s.s, e, ex.text, onend);
       } catch (e) { TTS.say(ex.text, onend); }
     },
     // the learner's own recording (a blob: URL), after or beside the original: it does not stop what plays
     mine(url, onend) {
-      if (AUDIO.play(url, 0, Infinity, 1, onend, () => this.mineElement(url, onend), '语流 · 我的录音', true)) return;
+      if (AUDIO.play(url, 0, Infinity, 1, onend, () => this.mineElement(url, onend), zhEn('语流 · 我的录音', 'Flow · My recording'), true)) return;
       this.mineElement(url, onend);
     },
     mineElement(url, onend) { const a = new Audio(url); if (onend) a.onended = () => onend(); a.play().catch(() => { if (onend) onend(); }); },

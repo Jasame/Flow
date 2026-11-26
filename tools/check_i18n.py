@@ -179,7 +179,7 @@ def server_errors():
                 s = m.group(3)
                 if not HAN.search(s):
                     continue
-                key = re.sub(r'\{[^{}]*\}', '{n}', s) if m.group(1) else s
+                key = re.sub(r'\{[^{}]*\}', '{n}', s) if m.group(1) else re.sub(r'%\.?\d*[df]', '{n}', s)  # f-string or % formatting
                 rows.append({'file': f.name, 'line': ln, 'text': key, 'en': canon(key) in have, 'dynamic': bool(m.group(1))})
     return rows
 
