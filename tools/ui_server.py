@@ -196,6 +196,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             'veteran': ('B1', 'work', ['work']),  # 班级试用问卷 (trial_survey_run): in the class for 25 days  # 年龄段 (privacy_run): none yet; 不满 14 岁 without a guardian's agreement
             # 全英文界面 (english_run): the pages in English; one screen in English (as 'screen'); a Chinese account switched from elsewhere
             'english': ('B1', 'work', ['work', 'science']), 'english-screen': ('B1', 'work', ['work']), 'english-switch': ('B1', 'work', ['work']),
+            'english-fresh': ('', '', []),  # 全英文界面: a new account's first page (选方向和目标), in English (english_run)
             'tour': ('B1', 'work', ['work', 'science']), 'tour-teacher': ('B1', 'work', ['work'])}  # 新手引导 (tour_run): theirs still to see
 out = {}
 with app.db() as c:

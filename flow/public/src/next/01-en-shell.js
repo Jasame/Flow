@@ -197,4 +197,8 @@
     '简单日常': 'Simple everyday', '读懂一般文章': 'Read most texts', '自如讨论': 'Discuss with ease', '接近母语': 'Near native',
     '校园学习': 'Campus', '旅行生活': 'Travel', '日常生活': 'Daily life', '职场沟通': 'Workplace', '文化交流': 'Culture', '科学素养': 'Science',
     'A2 入门': 'A2 Elementary', 'B1 中级': 'B1 Intermediate', 'B2 中高级': 'B2 Upper intermediate', 'C1 高级': 'C1 Advanced',
+    // 09-start.js / 08-intro.js: picking goals (several, the first one the main goal)
+    '可以多选，最多 {n} 个，第一个选的算主要目标；之后在「我的」里随时能改。': 'Pick up to {1}. The first one is your main goal; you can change them in Me any time.',
+    '可以多选，最多 {n} 个，第一个选的算主要目标。': 'Pick up to {1}. The first one is your main goal.',
+    '主要目标': 'Main goal', '主要': 'Main', '学英语为了什么，可以多选': 'Why you are learning English: pick one or more',
   });
