@@ -7,9 +7,9 @@
     '更新于 {n}-{n}-{n}': 'Updated {1}-{2}-{3}',
 
     // 81-switch.js and its rows (切换账号: 我的 → 账号和隐私, the name's 「切换 ›」, 添加账号 in the sign-in box)
-    '切换账号': 'Switch account', '切换 ›': 'Switch ›', '这台设备 {n} 个账号': '{1} accounts on this device', '添加另一个账号': 'Add another account',
+    '切换账号': 'Switch account', '切换 ›': 'Switch ›', '这台设备 {n} 个账号': '{1} {1|account|accounts} on this device', '添加另一个账号': 'Add another account',
     '已切换到 {x}': 'Switched to {1}', '读不到这台设备上的账号，请稍后再试': "Couldn't read the accounts on this device. Please try again later.",
-    '学生': 'Student', '正在用': 'In use', '{x}：更多': '{1}: more', '选一个账号继续': 'Pick an account to continue',
+    '学生': 'Student', '正在用': 'In use', '{x}：更多': 'More for {1}', '选一个账号继续': 'Pick an account to continue',
     '这台设备最多记住 {n} 个账号，先移除一个。': 'This device remembers up to {1} accounts. Remove one first.',
     '员工账号不进切换账号：添加别的账号时，这个员工账号会先退出。': 'Staff accounts are not kept for switching: adding another account signs this staff account out first.',
     '不切换，先这样': 'Not now', '添加账号': 'Add account',
