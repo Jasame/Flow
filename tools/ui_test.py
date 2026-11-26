@@ -1333,6 +1333,32 @@ def ios_audio_run(pw):
         check(dev, "where 'playback' is refused, words play their <audio> clip (no Web Audio, so the ringer switch cannot mute them)",
               not wa['starts'] and 'playback' in wa['types'] and any(clip_url in u for u in asked), (wa, asked[-3:]))
         ctx.close()
+        # 语速 1.5× (the owner, 2026-11-26: at 1.5× a tapped word came out fast too): a word plays at 1×, on Web Audio and
+        # on its <audio> clip, in 读 and in 精听; 播放全文 before and after it reads at 1.5×
+        sped = "[...document.querySelectorAll('audio')].find(a => !a.paused && a.currentTime > 0)"
+        rates = "(() => { window.__rates = []; const p = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__rates.push([this.getAttribute('src') || '', this.playbackRate]); return p.apply(this, arguments); }; })()"
+        word_rates = "(window.__rates || []).filter(x => x[0].includes('/audio/words/')).map(x => x[1])"
+        for query in ('', '?audio=element'):
+            ctx, pg, errs, asked = page(query, narration=True)
+            pg.evaluate("localStorage.setItem('flow-next-rate', '1.5')"); pg.reload(wait_until='load'); settle(pg, '#reader'); pg.wait_for_timeout(400)
+            pg.evaluate(rates); n = len(pg.evaluate('window.__wa.starts'))
+            tap_word(pg)
+            read = [x['rate'] for x in pg.evaluate('window.__wa.starts')[n:]] + pg.evaluate(word_rates)
+            pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
+            pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
+            bar = pg.text_content('.mini-player .speed-set') or ''
+            pg.click('#playAll'); pg.wait_for_function(f"!!{sped}", timeout=8000); before = pg.evaluate(f"{sped}.playbackRate")
+            pg.evaluate(rates); n = len(pg.evaluate('window.__wa.starts'))
+            pg.click('#view .line .txt [data-w="drains"]'); pg.wait_for_selector('#sheetCard .word', timeout=5000); pg.wait_for_timeout(600)
+            heard = [x['rate'] for x in pg.evaluate('window.__wa.starts')[n:]] + pg.evaluate(word_rates)
+            pg.evaluate("document.querySelector('#sheet [data-close]').click()"); pg.wait_for_timeout(300)
+            pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))"); pg.wait_for_timeout(300)
+            pg.click('#playAll'); pg.wait_for_function(f"!!{sped}", timeout=8000); after = pg.evaluate(f"{sped}.playbackRate")
+            check(dev, f"语速 1.5×{' (标准)' if query else ''}: a tapped word plays at 1× in 读 and in 精听; 播放全文 reads at 1.5× before and after it",
+                  bar == '1.5×' and read and heard and set(read + heard) == {1} and before == after == 1.5, (bar, read, heard, before, after))
+            check(dev, f"no script errors (语速 1.5×{', 标准' if query else ''})", not errs, errs[:3])
+            pg.evaluate("(m => { const b = m && !m.hidden && m.querySelector('.stop'); if (b) b.click(); })(document.querySelector('.mini-player'))")
+            ctx.close()
         # a whole text: <audio> (the lock screen controls it), named, and a pause from outside shows on the page
         ctx, pg, errs, asked = page(narration=True)
         pg.evaluate("location.hash = '#/m/" + pid + "/listen'"); settle(pg, '#playAll'); pg.wait_for_timeout(600)
