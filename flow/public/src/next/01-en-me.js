@@ -94,7 +94,7 @@
     '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。': "Like most word apps; easy for the right hand. Swipe right if you know it, left if you don't.",
     '往左滑是认识，往右滑是不认识。': "Swipe left if you know it, right if you don't.",
     '复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。': 'Review and the vocabulary test both follow it: button positions, swipe directions, and on a computer the keys (1 2 3 and ← →) match the buttons on screen. Only on this device.',
-    '点卡片作答': 'Tap the card to answer', '开': 'On', '关': 'Off',
+    '点卡片作答': 'Tap to answer', '开': 'On', '关': 'Off',
     '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。': 'The left, middle and right of a review card work like the three buttons below (the “Know it” side is Know it). A tap only flips the card; after flipping, rate it with the buttons. Tapped by mistake? Use “Undo”.',
     '只用下面的按钮、滑动和按键。': 'Use only the buttons below, swipes and keys.',
     '手机和平板默认开，用鼠标的电脑默认关。': 'On by default on phones and tablets; off on computers with a mouse.',
