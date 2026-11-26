@@ -92,6 +92,8 @@
     INTRO.st = INTRO.st || { goals: [], exam: '', target: '', days: 0, picked: false, dayPicked: false };
     const el = INTRO.el = document.createElement('div');
     el.className = 'intro'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-labelledby', 'introT'); el.tabIndex = -1;
+    // 全英文界面 (E1): in Chinese for now, the whole of it at once (data-zh), until its words are in E1's tables
+    el.setAttribute('data-zh', '');
     // the tab bar's own icons and names, in its place at the bottom (nothing to tap: it only shows where things are)
     const tabs = [...document.querySelectorAll('.tabs a')].map(a => `<span class="intro-tab">${a.querySelector('svg') ? a.querySelector('svg').outerHTML : ''}<span>${esc(a.textContent.trim())}</span></span>`).join('');
     el.innerHTML = `<div class="intro-top"><button class="intro-back" type="button" data-intro="back" aria-label="上一步" data-tap="intro-back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -454,7 +456,7 @@
     const fixed = getComputedStyle(at).position === 'fixed' || at.closest('.mini-player, .tabs');
     if (!fixed) at.scrollIntoView({ block: 'center', behavior: 'auto' });
     const el = COACH.el = document.createElement('div');
-    el.className = 'coach';
+    el.className = 'coach'; el.setAttribute('data-zh', '');  // (as the steps: in Chinese until E1's tables have it)
     // (placed by the outer two, coachPlace; the ring breathes and the card grows inside them)
     el.innerHTML = `<div class="coach-at" aria-hidden="true"><div class="coach-ring"></div></div>
       <div class="coach-tipat"><div class="coach-tip" role="note"><b>${esc(title)}</b><p>${esc(text)}</p><button class="coach-x" type="button" data-tap="coach-ok">知道了</button></div></div>`;
