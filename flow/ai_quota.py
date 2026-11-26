@@ -24,23 +24,24 @@ PAUSED_EN = 'Your AI features are paused. Texts, words and practice work as usua
 SITE_FULL_EN = "Today's AI use for the whole site is used up. Please come back tomorrow."
 DAY_FULL_EN = "Today's AI use is full. It starts again at 8:00 Beijing time."
 RESET_TEXT_EN = '8:00 Beijing time'
-# What a learner calls each task in 「我的 → 设置 → AI 用量」 (各项功能各几次), Chinese and English. A kind that is not here
+# What a learner calls each task in 「我的 → 设置 → AI 用量」 (各项功能各几次), Chinese and English (the English as
+# docs/english-ui.md's terms have them, E1). A kind that is not here
 # shows 「其他」 / "Other", never its key (the owner, 2026-11-26 22:1x: 「AI 用量显示界面存在一些汉化不完全的问题」).
 NAMES = {
     'next-rewrite': ('仿写批改', 'Rewrite feedback'), 'next-essay': ('作文批改', 'Essay feedback'),
     'next-translate': ('翻译批改', 'Translation feedback'), 'next-transsrc': ('翻译练习的中文句子', 'Sentence to translate'),
-    'next-retell': ('复述点评', 'Retelling feedback'), 'next-dialog': ('情景对话', 'Conversation practice'),
-    'next-ielts': ('雅思口语', 'IELTS speaking'), 'next-two-ask': ('听两句、答一句：出题', 'Listen and answer: question'),
-    'next-two-check': ('听两句、答一句：批改', 'Listen and answer: feedback'), 'next-explain': ('句子讲解', 'Sentence explanation'),
+    'next-retell': ('复述点评', 'Retelling feedback'), 'next-dialog': ('情景对话', 'Role-play'),
+    'next-ielts': ('雅思口语', 'IELTS Speaking'), 'next-two-ask': ('听两句、答一句：出题', 'Two lines, one reply: question'),
+    'next-two-check': ('听两句、答一句：批改', 'Two lines, one reply: feedback'), 'next-explain': ('句子讲解', 'Sentence explanation'),
     'next-variant': ('难度改写', 'Easier or harder version'), 'next-examples': ('AI 例句', 'AI example sentences'),
     'next-enrich': ('导入文章出题', 'Questions for your text'), 'next-shadow': ('跟读', 'Shadowing'),
-    'next-say': ('单词发音', 'Word pronunciation'), 'next-assess-speaking': ('能力测评：口语', 'Skill check: speaking'),
-    'next-assess-writing': ('能力测评：写作', 'Skill check: writing'), 'next-zh': ('看中文', 'Show Chinese'),
+    'next-say': ('单词发音', 'Word pronunciation'), 'next-assess-speaking': ('能力测评：口语', 'Skills test: speaking'),
+    'next-assess-writing': ('能力测评：写作', 'Skills test: writing'), 'next-zh': ('看中文', 'Show Chinese'),
     'context-help': ('随堂提示', 'Hints'), 'chat': ('导师问答', 'Ask the tutor'), 'coach': ('学习教练', 'Study coach'),
     'vocab-feedback': ('单词造句批改', 'Word sentence feedback'), 'vocab-generate': ('单词练习出题', 'Word practice questions'),
     'vocab-explain': ('单词讲解', 'Word explanation'), 'feedback': ('练习批改', 'Practice feedback'),
     'audio': ('录音批改', 'Recording feedback'), 'generate': ('生成练习材料', 'New practice text'),
-    'daily-topic': ('今日一读', "Today's read"), 'daily-news': ('今日热点', "Today's news"),
+    'daily-topic': ('今日一读', "Today's read"), 'daily-news': ('今日热点', 'In the news'),
 }
 OTHER = ('其他', 'Other')
 
