@@ -140,7 +140,7 @@
         <p class="tv-sub"><span class="tp-count" role="img" aria-label="今天的计划，已完成 ${f.p.done} 步，共 ${f.p.total} 步"><span aria-hidden="true">${f.p.total} 步，${f.next ? `做完 ${f.p.done} 步了` : '都做完了'}</span></span></p>
         ${sprintLine(h)}<div class="tv-st">${stepsHTML(f)}</div>${f.p.note ? `<p class="tiny muted tp-note">${esc(f.p.note)}</p>` : ''}${overLineHTML(f.p, f.next)}
         ${f.next ? '' : `<a class="link small hit44 tv-also" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>`}</div>${goHTML(f)}`,  // a short card: the words scroll, the button stays
-      line: () => l && `<p class="tv-lb">今日好句</p><p class="tv-quote lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${lineEnHTML(l)}</p><p class="tv-p lc-zh">${esc(l.zh)}</p>
+      line: () => l && `<p class="tv-lb">今日好句</p><p class="tv-quote lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${lineEnHTML(l)}</p><p class="tv-p lc-zh" data-zh>${esc(l.zh)}</p>
         <p class="tv-sub lc-src">${esc(l.source)}${l.label ? ' · ' + esc(l.label) : ''}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
         <div class="tv-foot"><div id="lcPanel" hidden></div>${aiVoiceNote('朗读由 AI 合成', 'p', 'tv-ai')}<div class="tv-three"><button class="tv-act" type="button" id="lcSay" data-tap="line-say">听一遍</button>`
         + `<button class="tv-act" type="button" id="lcShadow" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>`
