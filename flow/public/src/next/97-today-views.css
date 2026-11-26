@@ -142,3 +142,7 @@
   .tv-under{margin-top:0}
 }
 @media (prefers-reduced-motion:reduce){.tv-chev{transition:none}}
+
+/* 小彩蛋 (14-today-egg.js): drawn over everything, never in the way of a tap; the greeting is held, never selected */
+.egg-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:9999;pointer-events:none}
+.greet-row .greet{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}

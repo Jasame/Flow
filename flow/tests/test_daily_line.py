@@ -114,5 +114,18 @@ class PageTests(unittest.TestCase):
         for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot'):
             self.assertIn(s, CSS, s)
 
+    def test_the_easter_egg_is_short_silent_and_never_in_the_way(self):
+        # 小彩蛋 (the user's pick 2026-11-26): hold 今日's greeting, or the plan all done the first time that day; four
+        # kinds, never the same twice in a row; 1.5 s; a layer that takes no tap, made to play and taken away; not with
+        # 减少动态效果; no sound and nothing sent (no audio, no fetch, no api in it)
+        egg = JS[JS.index('const EGG = (() => {'):JS.index("return { play, bindGreeting, planDone };")]
+        for s in ('const MS = 1500;', "matchMedia('(prefers-reduced-motion: reduce)')", '} while (k === last);', 'cv.remove(); busy = false;',
+                  "cv.className = 'egg-layer'", 'setTimeout(() => { hold = 0; play(x0, y0); }, 450)', "load('flow-egg-done') === day"):
+            self.assertIn(s, egg, s)
+        for s in ('api(', 'fetch(', 'Audio', 'speak', 'TTS'):
+            self.assertNotIn(s, egg, s)
+        self.assertIn("EGG.bindGreeting(view.querySelector('.greet-row .greet'))", JS)
+        self.assertIn('.egg-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:9999;pointer-events:none}', CSS)
+
 if __name__ == '__main__':
     unittest.main()
