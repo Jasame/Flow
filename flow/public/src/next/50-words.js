@@ -308,7 +308,7 @@
     const list = []; if (c.context) list.push({ text: c.context, audio: 0 }); (c.examples || []).forEach(e => list.push(e));
     root.querySelectorAll('[data-exp]').forEach(b => b.onclick = () => CLIP.sentence(list[Number(b.dataset.exp)]));
   }
-  // 常用搭配和近义词 (words-modes-plan.md 第 4 步; B7's word_extras: AI 生成, checked, nothing taken down): a fold like 易混
+  // 常用搭配和近义、易混词 (words-modes-plan.md 第 4 步; B7's word_extras: AI 生成, checked, nothing taken down): a fold like 易混
   // on the 详细 back and in a word's sheet, marked 「AI 生成」 where it shows; each item has 「这条不对」 (hidden for this
   // learner from then on, a note to 语流's admins with no name, an undo; 放回 in the word's sheet)
   function extrasHTML(c) {
@@ -318,9 +318,9 @@
     const col = xs.filter(x => x.kind === 'colloc'), near = xs.filter(x => x.kind === 'near'), SHOW = { colloc: 3, near: 2 };
     const part = (g, kind, title) => g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : '';
     const more = col.slice(SHOW.colloc).length + near.slice(SHOW.near).length;
-    return `<section class="xtra-wrap" aria-label="常用搭配和近义词（AI 生成）"><p class="xtra-ai">常用搭配和近义词 · AI 生成，仅供参考</p>
-      ${part(col.slice(0, SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(0, SHOW.near), 'near', '近义词')}
-      ${more ? `<details class="xtra-more"><summary>更多 ${more} 条</summary>${part(col.slice(SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(SHOW.near), 'near', '近义词')}</details>` : ''}
+    return `<section class="xtra-wrap" aria-label="常用搭配和近义、易混词（AI 生成）"><p class="xtra-ai">常用搭配和近义、易混词 · AI 生成，仅供参考</p>
+      ${part(col.slice(0, SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(0, SHOW.near), 'near', '近义和易混词')}
+      ${more ? `<details class="xtra-more"><summary>更多 ${more} 条</summary>${part(col.slice(SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(SHOW.near), 'near', '近义和易混词')}</details>` : ''}
       <p class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button> · <a class="link small" href="#/guide/ai-service">AI 服务说明</a></p></section>`;
   }
   function bindExtras(root, c) {
@@ -331,7 +331,7 @@
     const xs = c.extras || []; if (!xs.length) return;
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">哪一条不对？</h2>
       <div class="xpicks" role="radiogroup" aria-labelledby="sheetTitle">${xs.map(x => `<label class="xpick"><input type="radio" name="xpick" value="${x.id}"><span><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</span></label>`).join('')}</div>
-      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说"></textarea></label>
+      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说（不用写你的名字）"></textarea></label>
       <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
       <div class="row"><button class="btn primary" id="xGo" type="button" disabled>提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
       const go = card.querySelector('#xGo');

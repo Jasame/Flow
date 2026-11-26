@@ -1,4 +1,4 @@
-"""单词详细模式第 4 步 on the learner's side (B2, 2026-11-26): the card shows B7's checked AI 常用搭配和近义词 less the ones
+"""单词详细模式第 4 步 on the learner's side (B2, 2026-11-26): the card shows B7's checked AI 常用搭配和近义、易混词 less the ones
 this learner marked 「这条不对」; a mark keeps one row per learner and item with a cleaned note; 放回 takes it back;
 the word's detail lists the marked ones; the word-book exports carry them marked 「AI 生成」; B7's reported() counts them."""
 import csv, io, sys, tempfile, time, unittest
@@ -44,6 +44,7 @@ class ExtrasOnTheCardTests(unittest.TestCase):
         # B7's count for the console (B6): one learner, the note, no name
         rep = wx.reported(self.c)
         self.assertEqual([(r['en'], r['users'], r['notes']) for r in rep], [('a tough decision', 1, ['不常用'])])
+        self.assertFalse({'user_id', 'user', 'username', 'email', 'uid'} & set(rep[0]))  # 「不显示你的名字」: nothing that leads to the learner (D2)
         self.assertEqual(vs.unflag_extra(self.c, 1, {'id': bad})[1], 200)
         self.assertIn(bad, [x['id'] for x in self.card(1)['extras']]); self.assertEqual(vs.detail(self.c, 1, self.cid)[0]['marked'], [])
 
@@ -69,11 +70,12 @@ class ExtrasOnTheCardTests(unittest.TestCase):
         vs.flag_extra(self.c, 1, {'id': self.ids['a tough decision']})
         rows = list(csv.reader(io.StringIO(account_data.cards_csv(self.c, 1).decode('utf-8-sig'))))
         head, row = rows[0], rows[1]
-        self.assertEqual(head[-2:], ['常用搭配（AI 生成，仅供参考）', '近义词（AI 生成，仅供参考）'])
+        self.assertEqual(head[-2:], ['常用搭配（AI 生成，仅供参考）', '近义和易混词（AI 生成，仅供参考）'])
         self.assertEqual(row[-2:], ['make a decision 做决定', 'choice 选择（更口语）'])
         anki = account_data.cards_anki(self.c, 1).decode('utf-8')
-        self.assertIn('常用搭配（AI 生成）：make a decision 做决定', anki); self.assertIn('近义词（AI 生成）：choice 选择（更口语）', anki)
+        self.assertIn('常用搭配（AI 生成）：make a decision 做决定', anki); self.assertIn('近义和易混词（AI 生成）：choice 选择（更口语）', anki)
         self.assertNotIn('tough', anki)
+        self.assertIn('\t语流 单词 语流_AI生成', anki)  # a tag to find them in Anki (D2)
 
     def test_the_marks_are_in_the_learners_data_and_go_with_the_account(self):
         vs.flag_extra(self.c, 1, {'id': self.ids['choice'], 'note': '不对'})
