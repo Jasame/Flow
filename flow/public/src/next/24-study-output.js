@@ -54,7 +54,9 @@
         <div><button class="btn primary" id="dlgStart">开始对话</button></div><div id="dlgOut"></div>`;
       const chat = pane.querySelector('#chat');
       const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
-      const busy = on => { ['#dlgSend', '#dlgEnd', '#dlgMic'].forEach(s => { const b = pane.querySelector(s); if (b) b.disabled = on; }); };
+      // 8 lines a round (output_service.DIALOG_LINES): then only 结束并总结, which the server takes whatever the length
+      const FULL = 8, full = () => hist.filter(h => h.role === 'me').length >= FULL;
+      const busy = on => { ['#dlgSend', '#dlgEnd', '#dlgMic', '#dlgText'].forEach(s => { const b = pane.querySelector(s); if (b) b.disabled = (on && s !== '#dlgText') || (s !== '#dlgEnd' && full()); }); };  // the box only when the round is full
       // After each reply: the newest message and the answer box are on screen together, above the keyboard and the tabs.
       const showInput = () => { const box = pane.querySelector('#dlgIn'); if (box && !box.hidden) box.scrollIntoView({ block: 'end', behavior: REDUCED ? 'auto' : 'smooth' }); };
       async function turn(body) {
@@ -72,6 +74,7 @@
         pane.querySelector('#dlgIn').hidden = false; showInput(); if (!TOUCH) pane.querySelector('#dlgText').focus({ preventScroll: true });
       };
       async function send(text, blob) {
+        if (full()) return;
         const body = blob ? { audio: await MIC.payload(blob) } : { text };
         const x = await turn(body); if (!x) return;
         const me = x.heard || text;
@@ -79,8 +82,9 @@
         hist.push({ role: 'me', text: me });
         bubble('ai', x.reply); TTS.say(x.reply); hist.push({ role: 'ai', text: x.reply });
         pane.querySelector('#dlgHint').textContent = x.hint ? '提示：' + x.hint : '';
-        showInput();
-        if (hist.length >= 14) toast('聊得差不多了，可以结束并看总结');
+        busy(false); showInput();
+        if (full()) pane.querySelector('#dlgHint').textContent = `这一轮说满 ${FULL} 句了，点「结束并总结」`;
+        else if (hist.length >= 14) toast('聊得差不多了，可以结束并看总结');
       }
       pane.querySelector('#dlgSend').onclick = () => { const t = pane.querySelector('#dlgText'); const v = t.value.trim(); if (!v) return; t.value = ''; send(v); };
       pane.querySelector('#dlgText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pane.querySelector('#dlgSend').click(); } });
