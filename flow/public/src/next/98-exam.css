@@ -1,0 +1,26 @@
+/* ---------- 考试练习 (42-exam.js; B9's batch 3, the user 2026-11-26): the two lines on what the questions are stay as
+   they are, small and grey; 我的考试 a white card and the page's one green button; the exams one white card, a row
+   each ---------- */
+.ex-page{display:grid;gap:0}
+.ex-page .h1{margin:0}
+.ex-note{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--muted)}
+.ex-mine{display:grid;gap:6px;margin-top:16px;padding:16px;border-radius:20px;background:var(--paper)}
+.ex-mine-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.ex-mine-h h2{margin:0;font-size:17px;font-weight:600;line-height:1.35}
+.ex-mine-h span{font-size:13.5px;color:var(--muted)}
+.ex-mine-q{font-size:20px;font-weight:600;line-height:1.35}
+.ex-mine p{margin:0;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.ex-go{min-height:56px;margin-top:12px;border-radius:16px;font-size:17px}
+.ex-h{margin:20px 4px 8px;font-size:13.5px;line-height:1.5;color:var(--muted)}
+.ex-list{display:grid;gap:2px;padding:6px;border-radius:20px;background:var(--paper)}
+.ex-page > .ex-list{margin-top:0}
+.ex-page > .ex-mine + .ex-list,.ex-page > .h1 + .ex-note + .ex-list{margin-top:16px}
+.ex-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;min-height:52px;padding:10px;border-radius:14px;text-decoration:none;color:var(--ink);transition:background-color .18s cubic-bezier(.2,.8,.2,1)}
+.ex-row .l{font-size:17px;font-weight:600;line-height:1.35;min-width:0}
+.ex-row .m{font-size:13.5px;color:var(--muted);white-space:nowrap}
+.ex-row .d{grid-column:1/-1;font-size:13.5px;line-height:1.5;color:var(--muted)}
+.ex-row:hover,.ex-row[aria-pressed=true]{background:var(--sunk)}
+@media (hover:none){.ex-row:hover:not([aria-pressed=true]){background:none}}
+.exam-cur{margin:4px 4px 8px;padding:14px;border-radius:16px;background:var(--sunk)}  /* the chosen exam, under its row */
+.exam-cur .btn:not(.primary){background:var(--paper)}  /* 改用…背单词, 设为我的考试: buttons, on the grey */
+@media (prefers-reduced-motion:reduce){.ex-row{transition:none}}

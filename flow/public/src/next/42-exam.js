@@ -4,14 +4,16 @@
     const o = await api('/api/next/exam');
     // 考试冲刺 (42-sprint.js): with an exam set, the page opens on it; another exam opens in the list as before.
     let cur = null;
-    const pickList = list => list.length ? `<div class="exam-pick choice">${list.map(e => `<a class="opt" href="#/exam/${e.id}" aria-pressed="${cur && cur.id === e.id}"><span class="l">${esc(e.title)}</span>
-        <span class="d">${esc(e.blurb)}</span><span class="tiny muted">约 ${e.minutes} 分钟${e.history.length ? ` · 上次 ${e.history[e.history.length - 1].pct}%` : ''}</span></a>`).join('')}</div>` : '';
+    // B9's batch 3 (the user, 2026-11-26; ui-refine/batch23/exam-*.png): the exams in one white card, a row each: the
+    // name, 「约 N 分钟 ›」 on the right, a grey line on what it asks (and the last score); the chosen one opens under its row
+    const examRow = e => `<a class="ex-row" href="#/exam/${e.id}" aria-pressed="${!!(cur && cur.id === e.id)}"><span class="l">${esc(e.title)}</span><span class="m">约 ${e.minutes} 分钟 ›</span>
+        <span class="d">${esc(e.blurb)}${e.history.length ? ` · 上次 ${e.history[e.history.length - 1].pct}%` : ''}</span></a>`;
+    const pickList = (list, after) => list.length ? `<div class="ex-list">${list.map(e => examRow(e) + (after && cur && cur.id === e.id ? after : '')).join('')}</div>` : '';
     if (o.goal && (!pick || pick === o.goal.exam) && o.exams.some(e => e.id === o.goal.exam)) return sprintHub(o, pickList);
     cur = o.exams.find(e => e.id === pick) || null;
-    // The chosen exam opens right under its own card (with eight exams, a block under the list was a scroll away): the
-    // list is cut after it, so the details sit between the two halves and keep their own button styles.
-    const at = cur ? o.exams.indexOf(cur) : o.exams.length - 1;
-    const detail = cur ? `<div class="stack-s exam-cur" id="examCur"><h2 class="h2">${esc(cur.title)}</h2>
+    // The chosen exam opens right under its own row, inside the card (with eight exams, a block under the list was a
+    // scroll away); its name is the row just above, so the block is named for a screen reader only.
+    const detail = cur ? `<div class="stack-s exam-cur" id="examCur" role="region" aria-label="${esc(cur.title)}">
         <ul class="steps-list small"><li>词汇 10 题：${esc(cur.book_title)}里的词，选中文意思</li><li>语法 8 题：这个考试常考的语法点</li><li>阅读 2 篇短文，4 题</li></ul>
         ${cur.trend.length ? `<div class="stack-s"><span class="tiny muted">成绩走势</span>${trendHTML(cur.trend)}</div>` : ''}
         <button class="btn primary block" id="exStart">开始一套（约 ${cur.minutes} 分钟）</button>
@@ -20,13 +22,15 @@
           '<p class="tiny muted">登录后成绩会保存，语法错题进错题本，没认出的词可以一键加进单词本。</p>'}
         ${S.user ? `<button class="btn small" type="button" id="exGoal" data-tap="exam-goal">${o.goal ? '改成我的考试' : '设为我的考试'}</button>` : ''}
         ${typesHTML(cur.id, cur.types, o.types_note)}</div>` : '';
-    // Signed in without an exam: one line says what setting it gives.
-    const invite = S.user && !o.goal ? `<div class="card sunk stack-s sp-invite"><b>在准备哪个考试？</b><span class="small">设好考试和日期，这一页就是你的备考主页：倒计时、每天该背多少词、成绩走势和题型专练。</span>
-        <div><button class="btn small primary" type="button" id="exInvite" data-tap="exam-goal">设定我的考试</button></div></div>` : '';
-    view.innerHTML = `<div class="stack"><div><h1 class="h1">考试练习</h1>
-        <p class="muted small">${esc(o.note)}</p></div>
-      ${invite}${cur ? '' : '<p class="muted small">选一个考试开始。每套约 12–20 分钟，每周做一套就能看到变化。</p>'}
-      ${pickList(o.exams.slice(0, at + 1))}${detail}${pickList(o.exams.slice(at + 1))}</div>`;
+    // Signed in without an exam: a white card says what setting it gives, the page's one green button under it (an exam
+    // chosen in the list has 开始一套 for that, and 设为我的考试 in its own block)
+    const invite = S.user && !o.goal && !cur ? `<section class="ex-mine" aria-labelledby="exMineH"><div class="ex-mine-h"><h2 id="exMineH">我的考试</h2><span>还没设定</span></div>
+        <b class="ex-mine-q">在准备哪个考试？</b><p>设好考试和日期，这一页就是你的备考主页：倒计时、每天该背多少词、成绩走势和题型专练。</p></section>
+      <button class="btn primary block ex-go" type="button" id="exInvite" data-tap="exam-goal">设定我的考试</button>` : '';
+    view.innerHTML = `<div class="ex-page"><h1 class="h1">考试练习</h1>
+        <p class="ex-note">${esc(o.note)}</p>
+      ${invite}${cur ? '' : '<p class="ex-h">选一个考试开始 · 每套约 12–20 分钟</p>'}
+      ${pickList(o.exams, detail)}</div>`;
     drawTrends();
     const inv = document.getElementById('exInvite'); if (inv) inv.onclick = () => examGoalSheet(() => examView());
     if (!cur) return;
