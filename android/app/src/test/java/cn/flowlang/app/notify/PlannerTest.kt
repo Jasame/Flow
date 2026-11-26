@@ -164,6 +164,25 @@ class PlannerTest {
         assertFalse("signing out (or in as someone else) starts over", Planner.signedOut(x).paused)
     }
 
+    /** account.changed (Reminders.accountChanged): the last account's hour, counts and 这次什么时候复习 go; this phone's stay. */
+    @Test fun anotherAccountKeepsOnlyThisPhonesSettings() {
+        val last = input {
+            hour = 7; once = 1_795_600_000.0; onceSeen = 1_795_600_000.0; due = 12; forecast = listOf(3, 4); dailyNew = 10
+            hasWords = true; planHour = 8; planMinutes = 15; app = true; paused = true
+        }
+        val x = Planner.signedOut(last)
+        assertTrue("the switch is this phone's", x.app)
+        assertEquals(8, x.planHour)
+        assertEquals(15, x.planMinutes)
+        assertEquals(20, x.hour)
+        assertNull(x.once)
+        assertNull(x.onceSeen)
+        assertEquals(0, x.due)
+        assertTrue(x.forecast.isEmpty())
+        assertFalse(x.hasWords)
+        assertFalse(x.paused)
+    }
+
     @Test fun signedOutKeepsOnlyThePlan() {
         val x = Planner.signedOut(input { planHour = 8 })
         val s = Planner.slots(x, at(25, 7), zone)

@@ -289,6 +289,7 @@ Kotlin，minSdk 26，targetSdk 37；说明在 `android/README.md`。flavor `beta
   - App 打开（onStart）和切后台（onStop）时，用 WebView 的 cookie 拿 `/api/next/vocab` 重排：10 分钟内不重复拿，`sync` 和 `ask` 时一定拿。
   - `reminder.ics` 链接：App 先问「App 通知」还是「系统日历」。系统日历打开日历 App 的新建日程页（CalendarContract 的 ACTION_INSERT），不要日历权限。
   - 内测版有 `call('notify.test', 计数)`。
+  - `account.changed`（1.0.5 起，第 5 节）：停掉朗读、清掉本机各篇的朗读进度；撤掉上一个账号的提醒和已经弹出的复习通知，忘掉它的钟点和 `once`，同意过的话马上按现在的账号拉 `/api/next/vocab` 重排；cookie 立刻写盘。App 提醒的开关和「每天的学习」跟手机走，不跟账号走。App 不存用户名。→ `{ok, scheduled}`。
 - **speech**（第 7 节）：
   - 用 TextToSpeech 换掉 WebView 里没有声音的 speechSynthesis 和 SpeechSynthesisUtterance；引擎在 App 打开时就初始化好。
   - `getVoices()` 只给已经装好的英语声音。谷歌语音引擎默认只装美音，英音要用户在系统的「文字转语音」里下载；手机上没有英音时，网页按原来的做法选第一个英语声音。
