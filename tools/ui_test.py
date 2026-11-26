@@ -4443,9 +4443,10 @@ def backlog_run(pw):
         pg.unroute('**/api/next/vocab'); pg.route('**/api/next/vocab', lambda route: book(route, 'done'))
         fresh()
         done = pg.text_content('#bookDone') if pg.query_selector('#bookDone') else ''
-        check(dev, 'a finished book: 背完了, 换成 the next one as the main button, 先只复习 beside it',
-              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and 'primary' in (pg.get_attribute('#bookNext', 'class') or '')
-              and pg.is_visible('#bookRest'), done)
+        # (B9's 第一批: a page has one main button — today's 开始背单词 — so 换成 is a plain button beside 先只复习)
+        check(dev, 'a finished book: 背完了, 换成 the next one, 先只复习 beside it; still one main button on the page',
+              '背完了' in done and (pg.text_content('#bookNext') or '') == '换成《高阶词汇》' and pg.is_visible('#bookRest')
+              and len(pg.query_selector_all('#view .btn.primary')) == 1, done)
         pg.click('#bookRest'); pg.wait_for_timeout(100)
         gone = not pg.query_selector('#bookDone')
         fresh()
