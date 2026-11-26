@@ -4001,6 +4001,41 @@ def review_side_run(pw):
         check(dev, 'phone, left: swipe left again is 没错，下一个', not s['back'] and s['foot'] != f0, [f0, s])
         check(dev, 'no script errors (phone)', not errs, errs[:3])
         ctx.close()
+        # 搭配和近义、易混词 on the 详细 back (B9, 2026-11-26): 「更多 N 条」 and the line under the block are 44 px to a finger,
+        # one way in at each end; a tap at their edge opens them and never answers the card (taps on the back answer)
+        ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_init_script("try { for (const k of ['flow-tap-guide','flow-tap-guide-back','flow-next-swipe-tip']) localStorage.setItem(k,'1'); "
+                            "localStorage.setItem('flow-card-view-review','detailed'); localStorage.setItem('flow-card-view-new','detailed'); } catch (e) {}")
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['xtra']['token'], 'url': BASE}])
+        pg = ctx.new_page(); posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and r.url.endswith('/api/next/review') else None)
+        pg.goto(BASE + '/#/review', wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(800)
+        for _ in range(10):  # to a card whose back has the block (ui_server seeds lucky's, commute's, deadline's, decision's)
+            pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('#view .open-card', timeout=8000); pg.wait_for_timeout(800)
+            if pg.query_selector('#view .open-card .xtra-more'):
+                break
+            pg.click('.ractions [data-rate="good"]'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(800)
+        posts.clear()
+        pg.evaluate("document.querySelector('.xtra-wrap').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
+        box = pg.evaluate("""() => Object.fromEntries([['more', '.xtra-more>summary'], ['bad', '.xbad-open'], ['svc', '.xtra-foot a']].map(([k, sel]) => {
+          const e = document.querySelector(sel); if (!e) return [k, null]; const r = e.getBoundingClientRect(); return [k, [r.left, r.top, r.width, r.height, r.right]]; }))""")
+        ends = pg.evaluate("(() => { const f = document.querySelector('.xtra-foot').getBoundingClientRect(), a = document.querySelector('.xbad-open').getBoundingClientRect(), b = document.querySelector('.xtra-foot a').getBoundingClientRect(); return [Math.round(a.left - f.left), Math.round(f.right - b.right)]; })()")
+        b = box['bad']; pg.touchscreen.tap(b[0] + b[2] / 2, b[1] + 3); pg.wait_for_timeout(500)  # 3 px inside its top edge
+        sheet = pg.evaluate("(() => { const rows = [...document.querySelectorAll('.xpick')].map(r => Math.round(r.getBoundingClientRect().height)); const go = document.getElementById('xGo'), sh = document.getElementById('sheet');"
+                            " return { open: !!document.querySelector('[name=xpick]'), rows, goFull: go ? Math.round(go.getBoundingClientRect().width) >= Math.round(sh.querySelector('.stack').getBoundingClientRect().width) - 1 : false,"
+                            " typing: document.activeElement && document.activeElement.tagName === 'TEXTAREA' }; })()")
+        if sheet['open']:
+            pg.click('.xcancel'); pg.wait_for_timeout(400)
+        m = box['more']
+        if m:
+            pg.touchscreen.tap(m[0] + 30, m[1] + m[3] - 3); pg.wait_for_timeout(400)  # 3 px inside its bottom edge
+        opened = pg.evaluate("!!document.querySelector('.xtra-more[open]')")
+        still = pg.evaluate("!!document.querySelector('#view .open-card')")
+        check(dev, '搭配和近义、易混词: 更多 and 有不对的？ are 44 px high, at the two ends of the line; a tap at their edge opens them and answers nothing',
+              m and m[3] >= 44 and b[3] >= 44 and box['svc'][3] >= 44 and ends == [0, 0] and sheet['open'] and opened and still and not posts,
+              [box, ends, sheet, opened, still, posts])
+        check(dev, '「哪一条不对？」: each choice 44 px or more, 提交 the full width, nothing to type in until tapped',
+              sheet['rows'] and min(sheet['rows']) >= 44 and sheet['goFull'] and not sheet['typing'], sheet)
+        ctx.close()
     finally:
         browser.close()
 
