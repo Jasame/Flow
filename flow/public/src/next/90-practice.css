@@ -1,18 +1,5 @@
-/* ---------- r18: the practice hub and the guide ---------- */
-.pgroup{margin-top:18px}
-.pgroup-h{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.04em}
-.ptiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.ptile{display:grid;gap:4px;align-content:start;text-decoration:none;color:inherit;padding:14px;min-height:88px;transition:transform .18s var(--ease-spring),background .18s}
-.ptile:hover{background:var(--sunk)}
-.ptile:active{transform:scale(.97)}
-.ptile b{font-size:15px;display:flex;align-items:center;gap:6px}
-.pbadge{font-style:normal;font-size:11px;font-weight:700;line-height:1;padding:3px 6px;border-radius:999px;background:var(--amber-fill);color:var(--on-amber)}
-.psuggest{display:grid;gap:6px;text-decoration:none;color:inherit;padding:16px;background:var(--green-soft);border:0;box-shadow:none}
-.psuggest .tiny{color:var(--green-ink);font-weight:600;letter-spacing:.04em}
-.psuggest b{font-size:17px}
-.psuggest .btn{justify-self:start;margin-top:4px}
+/* ---------- r18: the guide (the practice hub itself: 98-practice.css) ---------- */
 .guide-cta{display:flex;align-items:center;min-height:44px;margin-top:16px;padding:0 4px}
-@media (min-width:760px){.ptiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* guide */
 .guide-toc{display:grid;gap:2px}
 .guide-toc a{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;align-items:center;text-decoration:none;color:inherit;padding:10px 8px;border-radius:10px;min-height:44px}

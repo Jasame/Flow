@@ -518,20 +518,21 @@ def run_device(pw, dev, opts):
     k = pg.evaluate("() => [...document.querySelectorAll('#pane .task .kicker')].map(e => e.textContent.trim())")
     check(dev, '用出来: no heading under the tabs that repeats the tab (复述、对话、用出来)', not set(k) & {'复述', '情景对话', '用出来'}, k)
 
-    # ---- 练习: the grammar map is the wide first card of the 语法 group
+    # ---- 练习 (B9's batch 1, 2026-11-26): the suggestion and the page's one green button, then the groups as white cards
+    # in two columns, one row per practice with its icon; 知识图谱 first in 语法
     go(pg, '#/practice')
-    pm = pg.evaluate("() => { const m = document.querySelector('#view .ptile.pmap'); return m ? [m.getAttribute('href'), m.closest('.pgroup').querySelector('h2').textContent, Math.round(m.getBoundingClientRect().width / m.parentElement.getBoundingClientRect().width * 100), Math.round(m.getBoundingClientRect().top), innerHeight] : null; }")
-    check(dev, 'practice: the grammar map is the wide card of the 语法 group, on the first screen', pm and pm[0] == '#/graph' and pm[1] == '语法' and pm[2] >= 98 and pm[3] < pm[4], pm)
-    pr = pg.evaluate("""() => ({rows: document.querySelectorAll('#view .px-list .px-row').length, tiles: document.querySelectorAll('#view .ptile:not(.pmap)').length,
-      noicon: [...document.querySelectorAll('#view .px-row .pico svg')].filter(x => !x.children.length).length,
-      wide: [...document.querySelectorAll('#view .px-row')].filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
-      tall: [...document.querySelectorAll('#view .px-row .t .tiny')].filter(e => e.getBoundingClientRect().height > 24).length})""")
-    check(dev, '练习: one row per practice, each with an icon (a note only where it says what AI does), inside the screen',
-          pr['rows'] >= 14 and pr['tiles'] == 0 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0, pr)
+    pr = pg.evaluate("""() => { const rows = [...document.querySelectorAll('#view .pc-row')], g = [...document.querySelectorAll('#view .pc-card')].find(c => c.querySelector('.pc-h').textContent === '语法');
+      return { rows: rows.length, noicon: rows.filter(r => !r.querySelector('svg.fi') || !r.querySelector('svg.fi').children.length).length,
+               wide: rows.filter(e => e.getBoundingClientRect().right > innerWidth + 1).length,
+               tall: rows.filter(r => !r.querySelector('.pc-sub') && r.getBoundingClientRect().height > 48).length,
+               greens: document.querySelectorAll('#view .btn.primary').length, map: g ? (g.querySelector('.pc-row') || {}).getAttribute('href') : null,
+               cols: new Set([...document.querySelectorAll('#view .pc-card')].map(c => Math.round(c.getBoundingClientRect().left))).size }; }""")
+    check(dev, '练习: one row per practice, each with an icon (a note only where it says what AI does), inside the screen; one green button; 知识图谱 first in 语法',
+          pr['rows'] >= 13 and pr['noicon'] == 0 and pr['wide'] == 0 and pr['tall'] == 0 and pr['greens'] == 1 and pr['map'] == '#/graph' and pr['cols'] == 2, pr)
     # r20: a tap on a counted entry point sends its key only (the console compares releases with these counts)
     with pg.expect_request(lambda r: r.url.endswith('/api/next/tap'), timeout=4000) as tap:
-        pg.click('#view .ptile.pmap')
-    check(dev, 'a counted entry point sends its key and nothing else', json.loads(tap.value.post_data or '{}') == {'k': 'practice-map'}, tap.value.post_data)
+        pg.click('#view .pc-go')
+    check(dev, 'a counted entry point sends its key and nothing else', json.loads(tap.value.post_data or '{}') == {'k': 'practice-tip'}, tap.value.post_data)
     settle(pg)
 
     # ---- words page: five tools, the stats folded, one short row per word
@@ -2576,6 +2577,17 @@ def privacy_run(pw):
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
+        # feedback #1 (2026-11-25): the page open while the consent goes (another device withdrew it): the next page that
+        # asks the server (我的进步; 单词 was preloaded and shows from the copy until its next request) is the consent page,
+        # not 「重试」 alone; one line, the tick and one button, the rest in small type
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session', {credentials: 'same-origin'})).json();
+            await fetch('/api/account/storage', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json',
+              'X-CSRF-Token': s.user.csrf}, body: JSON.stringify({agree: false})}); location.hash = '#/growth'; }""")
+        pg.wait_for_selector('#stoF', timeout=8000); settle(pg)
+        calm = ('这个账号已暂停' in (pg.text_content('h1') or '') and pg.is_visible('#stoF [type=submit]') and not pg.is_visible('text=重试')
+                and pg.is_visible('#stoDel') and pg.locator('.sto-why').count() == 1 and not pg.is_visible('.sto-why .hint >> nth=1'))
+        pg.screenshot(path=str(OUT / 'privacy-storage-withdrawn-open.png'))
+        check(dev, '数据存放: withdrawn while a page is open, the next page is the short consent page, never 「重试」 alone', calm)
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -3916,13 +3928,13 @@ def review_side_run(pw):
               [stt.get('due'), stt.get('other_due'), badge, extra[:1]])
         # 练习 → 复习 (语流 B9): a block of its own on top, 错题和句型复习 with its number, 错题本 beside it (moved from 单词:
         # one way in, not two); the 「练习」 tab carries the same number
-        go(pg, '#/practice'); pg.wait_for_selector('#view .review-block', timeout=6000)
-        rb = pg.evaluate("""() => { const b = document.querySelector('#view .review-block'), rows = [...b.querySelectorAll('.px-row')], first = b === document.querySelector('#view .pgroup');
-          return { first, rows: rows.map(r => [r.getAttribute('href'), (r.querySelector('b') || {}).textContent.replace(/\\s+/g, ' ').trim()]),
+        go(pg, '#/practice'); pg.wait_for_selector('#view .pc-card[aria-label="复习"]', timeout=6000)
+        rb = pg.evaluate("""() => { const b = document.querySelector('#view .pc-card[aria-label="复习"]'), rows = [...b.querySelectorAll('.pc-row')], first = b === document.querySelector('#view .pc-card');
+          return { first, rows: rows.map(r => [r.getAttribute('href'), r.querySelector('.pc-name').textContent.replace(/\\s+/g, ' ').trim(), r.getAttribute('aria-label'), !!r.querySelector('.pc-dot')]),
                    mistake: document.querySelectorAll('#view a[href="#/cards/mistake"]').length, tab: document.getElementById('otherBadge').closest('a').getAttribute('aria-label') || '', dotText: document.getElementById('otherBadge').textContent,
                    tabShown: !document.getElementById('otherBadge').hidden }; }""")
-        check(dev, '练习 → 复习 on top: 错题和句型复习 2 (#/review/other) and 错题本 (only there); the 「练习」 tab has a dot, and says 2 to a screen reader',
-              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型复习 2'], ['#/cards/mistake', '错题本']] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
+        check(dev, '练习 → 复习 first: 错题和句型 with a dot (2 due, said to a screen reader) and 错题本 (only there); the 「练习」 tab has a dot, and says 2',
+              rb['first'] and rb['rows'] == [['#/review/other', '错题和句型', '错题和句型，有 2 项到期', True], ['#/cards/mistake', '错题本', None, False]] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         seen = set()
         for k in range(6):

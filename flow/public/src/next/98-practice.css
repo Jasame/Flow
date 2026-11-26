@@ -1,0 +1,24 @@
+/* ---------- 练习 (49-practice.js; B9's batch 1, the user 2026-11-26): white cards, no lines or borders, ink and grey;
+   the accent only on the suggestion's icon tile and the page's one green button (ui-refine/accent.md) ---------- */
+.pc-tip{display:flex;align-items:center;gap:12px;margin:4px 0 12px;padding:16px;border-radius:20px;background:var(--paper)}
+.pc-tip-t{display:grid;gap:4px;min-width:0;flex:1}
+.pc-tip-h{margin:0;font-size:17px;font-weight:600;line-height:1.35;color:var(--ink)}
+.pc-tip-b{font-size:20px;font-weight:600;line-height:1.35;color:var(--ink)}
+.pc-tip-s{font-size:13.5px;line-height:1.5;color:var(--muted)}
+.pc-tip-i{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:var(--green-soft)}
+.pc-tip-i .fi{width:26px;height:26px;color:var(--green-ink)}
+.pc-tip-i .fi .w{fill:var(--green-ink);fill-opacity:.14}
+.pc-go{display:flex;align-items:center;justify-content:center;min-height:56px;border-radius:16px;font-size:17px;font-weight:600;margin:0 0 14px}
+/* the groups: two columns of cards, each card its own height */
+.pc-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.pc-col{display:grid;gap:12px;align-content:start;min-width:0}
+.pc-card{padding:12px 12px 6px;border-radius:20px;background:var(--paper);min-width:0}
+.pc-h{margin:0 4px 2px;font-size:13.5px;font-weight:400;line-height:1.5;color:var(--muted)}
+.pc-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px;border-radius:12px;text-decoration:none;color:var(--ink);transition:background-color .18s cubic-bezier(.2,.8,.2,1)}
+.pc-row:hover,.pc-row:active{background:var(--sunk)}
+.pc-name{display:grid;gap:1px;min-width:0;flex:1;font-size:15.5px;line-height:1.35}
+.pc-sub{font-size:12px;line-height:1.4;color:var(--muted)}
+.pc-dot{flex:none;width:8px;height:8px;margin-right:4px;border-radius:50%;background:var(--ink)}
+/* a very narrow phone: one column */
+@media (max-width:339px){.pc-cols{grid-template-columns:minmax(0,1fr)}}
+@media (prefers-reduced-motion:reduce){.pc-row{transition:none}}
