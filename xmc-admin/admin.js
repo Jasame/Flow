@@ -659,6 +659,39 @@
       });
     }).catch(fail);
   }
+  /* ---------- 测试账号（beta_tools.py，只在内测版）：一键造各种状态的账号；重置只删这些，真正内测的人一个都不动 ---------- */
+  function testsView() {
+    if (!isBeta()) { main.innerHTML = '<div class="card"><p>测试账号只在内测版的后台（xmc.hk/flow-beta）里造和删。</p></div>'; return Promise.resolve(); }
+    return getJSON('/beta-tests').then(function (d) {
+      main.innerHTML =
+        '<div class="head-row"><div><h1>测试账号</h1><p class="muted">' + esc(siteName()) + ' · 一键造各种状态的账号，用完一起删掉。真正内测的人的账号不会被动到。</p></div></div>' +
+        '<section class="card"><h2>造一个</h2><div class="tk-kinds">' + d.kinds.map(function (k) {
+          return '<button class="btn" type="button" data-tkind="' + esc(k.key) + '">' + esc(k.label) + '</button>';
+        }).join('') + '</div><div id="tkOut"></div></section>' +
+        '<section class="card"><h2>现在的测试账号（' + n(d.items.length) + ' 个）</h2>' + (d.items.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>用户名</th><th>种类</th><th class="opt">造于</th></tr></thead><tbody>' +
+          d.items.map(function (x) {
+            return '<tr><td><a href="#learners/' + x.id + '">' + esc(x.username) + '</a></td><td>' + esc(x.label) + '</td><td class="opt">' + esc(when(x.created)) + (x.by ? '<span class="sub">' + esc(x.by) + '</span>' : '') + '</td></tr>';
+          }).join('') + '</tbody></table></div>' +
+          '<p><button class="btn danger" type="button" id="tkReset">重置测试数据：删掉这 ' + n(d.items.length) + ' 个测试账号</button></p>' +
+          '<p class="muted small">和「注销账号」一样，账号和它的学习记录全部删掉，不能恢复。只删这张表里的账号。</p>'
+          : '<p class="muted">现在没有测试账号。</p>') + '</section>';
+      main.querySelectorAll('[data-tkind]').forEach(function (b) {
+        b.onclick = function () {
+          busy(b, postJSON('/beta-test/create', { kind: b.dataset.tkind })).then(function (r) {
+            testsView().then(function () {
+              document.getElementById('tkOut').innerHTML = '<p><b>' + esc(r.label) + '</b> 造好了：</p><dl class="kv"><dt>用户名</dt><dd><code>' + esc(r.username) + '</code></dd>' +
+                '<dt>密码</dt><dd><code>' + esc(r.password) + '</code></dd></dl><p class="muted small">密码只显示这一次。在 ' + esc(siteUrl('/')) + ' 用这个用户名和密码登录就行。</p>';
+            });
+          }, function () { /* shown */ });
+        };
+      });
+      var rs = document.getElementById('tkReset');
+      if (rs) rs.onclick = function () {
+        if (!ask('删掉全部 ' + d.items.length + ' 个测试账号？\n\n账号和它们的学习记录都删掉，不能恢复。真正内测的人的账号不受影响。')) return;
+        busy(rs, postJSON('/beta-test/reset', { count: d.items.length })).then(function (r) { alert('删掉了 ' + r.deleted + ' 个测试账号。'); testsView(); }, function () { testsView(); });
+      };
+    }).catch(fail);
+  }
   function openClass(id) {
     drawer.hidden = drawerBg.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -1231,8 +1264,8 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, classes: classesView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, errors: errorsView, log: logView };
-  var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log'];
+    learners: learnersView, classes: classesView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
+  var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log', 'tests'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
     var h = (location.hash || '#overview').slice(1), cut = h.indexOf('/');

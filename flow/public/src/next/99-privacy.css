@@ -40,6 +40,9 @@
 .sw-in:focus-visible+.sw{outline:2px solid var(--green);outline-offset:2px}
 .gfoot #mePersInfo{margin-left:4px}
 @media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
+/* the consent tick: the words in normal weight, only the separate 香港 consent bold (D2 plan B: it leads, in bold) */
+.storagefs .checkline{font-weight:400}
+.storagefs .checkline b{font-weight:700}
 
 /* 我的 → 设置 → AI 用量 (81-me.js aiUsageSheet): the day's number, a thin bar, then the calls by task */
 .aiq-num{display:flex;align-items:baseline;gap:6px}

@@ -47,6 +47,7 @@ flow/attempt_service.py
 flow/audio_validation.py
 flow/auth_service.py
 flow/beta_invites.py
+flow/beta_tools.py
 flow/chat_service.py
 flow/class_service.py
 flow/coach_service.py
@@ -246,6 +247,7 @@ flow/public/about.css
 flow/public/about.html
 flow/public/about.js
 flow/public/about/app-android.jpg
+flow/public/about/app-harmony.jpg
 flow/public/about/app-linux.jpg
 flow/public/about/app-mac.jpg
 flow/public/about/app-windows.jpg
@@ -350,6 +352,7 @@ flow/tests/test_audio_route.py
 flow/tests/test_auth_limits.py
 flow/tests/test_backup_age.py
 flow/tests/test_beta_invites.py
+flow/tests/test_beta_tools.py
 flow/tests/test_channels.py
 flow/tests/test_chat.py
 flow/tests/test_class_signup.py

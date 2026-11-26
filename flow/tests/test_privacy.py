@@ -480,7 +480,7 @@ class PromiseTests(unittest.TestCase):
     def test_the_privacy_chapter_says_what_the_site_does(self):
         import user_guide as ug
         ch = next(c for c in ug.parse()['chapters'] if c['id'] == 'privacy')
-        for words in ('香港的服务器', '保留 14 天', '最迟 14 天后删除', '阿里云百炼', '不交给境外的 AI', '不会被拿去训练', '不带你的用户名',
+        for words in ('香港的服务器', '保留 14 天', '最迟 14 天后删除', '阿里云百炼', '不交给境外的 AI', '不会用这些内容训练', '不带你的用户名',
                       '录音不保存', '不满 14 岁', '导出我的数据', '注销账号', '只能看到全班的汇总数字'):
             self.assertIn(words, ch['text'], words)
         self.assertIn('/#/guide/privacy', (HERE / 'public' / 'about.html').read_text())

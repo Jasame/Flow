@@ -96,6 +96,7 @@ FLOW_FILES=(
   audio_validation.py
   auth_service.py
   beta_invites.py
+  beta_tools.py
   chat_service.py
   class_service.py
   coach_service.py
