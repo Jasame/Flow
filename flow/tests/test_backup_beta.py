@@ -71,5 +71,42 @@ class BetaBackup(unittest.TestCase):
         self.assertEqual(services, ['flow-beta', 'flow-beta'])  # no flow (语流), no flow-daily (the 内测版 has none)
 
 
+
+class BackupPrune(unittest.TestCase):
+    """最近 14 天 (the 隐私说明, 2026-11-26: the backups on 香港 and their copy in 杭州): after a backup that succeeded, the
+    newest 14 completed backups stay at most, and nothing of this tool older than 13½ days, a failed one included, so a
+    copy never outlives 14 days even when days were skipped; other folders in the place are left alone."""
+    def make(self, root, name, days_ago, done=True, now=1_800_000_000):
+        f = root / name; f.mkdir(); (f / 'flow.sqlite3').write_bytes(b'x')
+        if done:
+            (f / 'manifest.json').write_text('{}')
+        t = now - days_ago * 86400
+        os.utime(f, (t, t))
+        return f
+
+    def test_old_copies_go_even_when_days_were_skipped(self):
+        now = 1_800_000_000
+        with tempfile.TemporaryDirectory() as tmp, patch.object(ops, 'BACKUPS', Path(tmp)):
+            root = Path(tmp)
+            daily = [self.make(root, f'flow-d{d:02}', d) for d in range(0, 16)]  # one a day: today and 15 before
+            failed = self.make(root, 'flow-failed-old', 20, done=False)
+            failed_new = self.make(root, 'flow-failed-new', 2, done=False)
+            other = root / 'notes'; other.mkdir(); os.utime(other, (now - 40 * 86400,) * 2)
+            gone = ops.prune_backups(now=now, say=lambda *a: None)
+            self.assertEqual(sorted(p.name for p in gone), ['flow-d14', 'flow-d15', 'flow-failed-old'])
+            self.assertTrue(all(d.exists() for d in daily[:14]))  # today's and the 13 before it, as before
+            self.assertTrue(failed_new.exists() and other.exists())  # a recent failed one stays a while; not ours stays
+
+    def test_after_a_gap_only_what_is_young_enough_stays(self):
+        now = 1_800_000_000
+        with tempfile.TemporaryDirectory() as tmp, patch.object(ops, 'BACKUPS', Path(tmp)):
+            root = Path(tmp)
+            self.make(root, 'flow-today', 0)
+            for d in (10, 13, 14, 20, 30):  # the timer had stopped for a while: fewer than 14 left, some too old
+                self.make(root, f'flow-d{d:02}', d)
+            ops.prune_backups(now=now, say=lambda *a: None)
+            self.assertEqual(sorted(p.name for p in root.iterdir()), ['flow-d10', 'flow-d13', 'flow-today'])
+
+
 if __name__ == '__main__':
     unittest.main()

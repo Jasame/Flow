@@ -48,9 +48,7 @@ def backup(env_required=True):
   env,env_error=save_env(folder)
   (folder/'manifest.json').write_text(json.dumps({'version':'2.1','created':time.time(),'integrity':'ok','restore_copy_checked':True,'env':env}))
   status={'ok':True,'created':time.time()};print('备份与恢复副本校验通过：'+str(folder))
-  # Only remove completed backups created by this tool, keeping the most recent 14.
-  completed=sorted([p for p in BACKUPS.glob('flow-*') if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
-  for old in completed[14:]:shutil.rmtree(old)
+  prune_backups()
   prune_deploy_copies(channel=CHANNEL)
   if env_error:
    print(env_error)
@@ -62,6 +60,21 @@ def backup(env_required=True):
  finally:
   status_file=ROOT/'data/backup-status.json';temp=status_file.with_suffix('.tmp');temp.write_text(json.dumps(status));temp.chmod(0o644);temp.replace(status_file)
  return folder
+
+KEEP=14  # the daily backups kept: today's and the 13 before it (the 隐私说明: 最近 14 天, here and in 杭州's copy)
+def prune_backups(now=None,keep=KEEP,say=print):
+ """After a backup that just succeeded (so at least that one stays): this tool's backups beyond the newest KEEP go, as
+ before, and so does any of its folders made more than KEEP - ½ days ago, a failed one too (it may hold a copy of the
+ database), so no copy outlives the 14 days even when days were skipped. With one backup a day the two agree: today's
+ and the 13 before it stay. 杭州's copy follows (rsync --delete). Returns the folders removed."""
+ now=time.time() if now is None else now
+ folders=[p for p in BACKUPS.glob('flow-*') if p.is_dir() and not p.is_symlink()]
+ completed=sorted([p for p in folders if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
+ gone=set(completed[keep:])|{p for p in folders if now-p.stat().st_mtime>(keep-0.5)*86400}
+ for old in sorted(gone):
+  made=datetime.datetime.fromtimestamp(old.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+  shutil.rmtree(old);say('prune backup %s (%s%s)'%(old.name,made,'' if old in completed else ', unfinished'))
+ return sorted(gone)
 
 def age_recipients():
  """FLOW_BACKUP_AGE_RECIPIENT: from the environment, or else as systemd would read it from flow.env itself (the backup
