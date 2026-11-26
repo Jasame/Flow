@@ -298,7 +298,7 @@ class ReleaseCompareTests(Servers):
                 for r in range(2):
                     c.execute("INSERT INTO next_reviews(user_id,card,rating,created) VALUES(3,1,'good',?)", (at + d * DAY + 120 + r,))
             c.execute('INSERT INTO next_profiles(user_id,level,goal,themes,minutes,created) VALUES(3,"B1","work","[]",15,?)', (at + 30,))
-            for key, t, n in (('home-more', at - 2 * DAY, 3), ('home-more', at + DAY, 9), ('practice-map', at + DAY, 5), ('words-plan', at, 4)):
+            for key, t, n in (('home-more', at - 2 * DAY, 3), ('home-more', at + DAY, 9), ('practice-tip', at + DAY, 5), ('words-plan', at, 4)):
                 c.execute('INSERT INTO ui_taps(day,key,n) VALUES(?,?,?)', (day(t), key, n))
         st, cmp, _ = self.console(f'/compare?at={at}&days=7', 'anyone@example.com')
         self.assertEqual(st, 200)
@@ -309,7 +309,7 @@ class ReleaseCompareTests(Servers):
         self.assertEqual(m['back7']['after'], 100)  # the learner who started after the release came back the next days
         self.assertEqual(cmp['after_days'], 4.0)
         taps = {t['key']: t for t in cmp['taps']}
-        self.assertEqual((taps['home-more']['before'], taps['home-more']['after'], taps['practice-map']['after']), (3, 9, 5))
+        self.assertEqual((taps['home-more']['before'], taps['home-more']['after'], taps['practice-tip']['after']), (3, 9, 5))
         self.assertEqual(taps['home-more']['label'], '今日 · 更多材料')
         self.assertEqual((taps['words-plan']['before'], taps['words-plan']['after']), (0, 0))  # the release day is on neither side
 
@@ -317,12 +317,12 @@ class ReleaseCompareTests(Servers):
 class TapTests(Servers):
     def test_a_tap_is_counted_per_day_and_key_only(self):
         for _ in range(3):
-            self.assertEqual(self.call(self.site, '/api/next/tap', {'k': 'practice-map'})[0], 200)
+            self.assertEqual(self.call(self.site, '/api/next/tap', {'k': 'practice-tip'})[0], 200)
         self.assertEqual(self.call(self.site, '/api/next/tap', {'k': 'anything-else'})[0], 400)
         with app.db() as c:
             rows = [tuple(r) for r in c.execute('SELECT key, n FROM ui_taps')]
             cols = [r[1] for r in c.execute('PRAGMA table_info(ui_taps)')]
-        self.assertEqual(rows, [('practice-map', 3)])
+        self.assertEqual(rows, [('practice-tip', 3)])
         self.assertEqual(cols, ['day', 'key', 'n'])  # nothing about who
 
     def test_every_counted_entry_point_is_on_the_page_and_known_to_the_console(self):

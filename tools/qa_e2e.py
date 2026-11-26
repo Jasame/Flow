@@ -207,8 +207,10 @@ def persona_a2(cl):
     check(who, 'version of the page files', s == 200 and isinstance(ver.get('asset'), str) and len(ver['asset']) >= 6, ver)
     goal = meta['goals'][0]['id']
     themes = [t['id'] for t in meta['themes'][:2]]
-    s, j = cl.post('/api/next/profile', {'level': 'A2', 'goal': goal, 'themes': themes, 'minutes': 10})
+    second = 'interest' if goal != 'interest' else 'daily'  # 学英语为了什么, more than one (2026-11-26): the first is the main one
+    s, j = cl.post('/api/next/profile', {'level': 'A2', 'goal': goal, 'goals': [goal, second], 'themes': themes, 'minutes': 10})
     check(who, 'save profile A2', s == 200 and j['profile']['level'] == 'A2', j)
+    check(who, 'goals saved, the main one first', j['profile'].get('goals') == [goal, second] and j['profile']['goal'] == goal, j['profile'].get('goals'))
     check(who, '主题色 in the profile (green by default)', j['profile'].get('accent') == 'green', j['profile'])
     check(who, '界面语言 in the profile (Chinese by default)', j['profile'].get('lang') == 'zh', j['profile'])
     s, j = cl.post('/api/next/accent', {'accent': 'indigo'})

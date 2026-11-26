@@ -102,12 +102,15 @@ def word_extras_post(c, path, data, op, who):
         xid = int(data.get('id'))
     except (TypeError, ValueError):
         return {'error': '参数不正确'}, 400
-    row = c.execute('SELECT norm, kind, en, zh FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
+    row = c.execute('SELECT norm, kind, en, zh, hidden FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
         c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras'").fetchone() else None
     if not row:
         return {'error': '没有找到这一条'}, 404
     target = f"{row[0]} · {WX_KIND.get(row[1], row[1])}：{row[2]} {row[3] or ''}".strip() + f' #{xid}'
     if path.endswith('take-down'):
+        if row[4]:  # hidden already (taken down here, or by the AI review): nothing to take down, and the review's own
+            # reason is never replaced by a console one (put_back would then show it again; B7 #443 guards the same)
+            return {'error': '这一条已经藏起来了（审稿时就藏了，或者之前下架过），不用再下架'}, 409
         why = re.sub(r'\s+', ' ', str(data.get('why') or '')).strip()
         if not why or len(why) > 120:
             return {'error': '写一句为什么下架（120 字以内）', 'field': 'why'}, 400
@@ -294,7 +297,7 @@ TAP_LABEL = {
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
     'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
-    'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
+    'practice-tip': '练习 · 今天建议',
     'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',

@@ -13,12 +13,6 @@
     return esc(sentence.slice(0, at)) + (open ? `<span class="gap open">${esc(w)}</span>` : `<span class="gap" aria-label="空格">${' '.repeat(Math.max(4, w.length))}</span>`) + esc(sentence.slice(at + w.length));
   }
   const pct = r => r == null ? '' : Math.round(r * 100) + '%';
-  function recallPill(c) {
-    if (c.known) return '<span class="pill green">熟知</span>';
-    if (c.state === 'new') return '<span class="pill">待学</span>';
-    const r = c.recall; const cls = r >= 0.9 ? 'green' : r >= 0.75 ? '' : 'amber';
-    return `<span class="pill ${cls}" title="此刻记得的概率">${c.mastered ? '已掌握 · ' : ''}记得 ${pct(r)}</span>`;
-  }
   const SOURCE = { book: '词书', saved: '收藏', import: '导入' };
   // By calendar day, not "within 24 hours": a card due tomorrow morning is not "later today".
   function dueText(t) {
@@ -29,11 +23,7 @@
   }
   const WEEKDAY = '日一二三四五六';
   // The 单词 page's tool row: [link or button id, label, icon paths].
-  const WORD_TOOLS = [
-    ['#/vocab/plan', '背词计划', '<path d="M5 5a2 2 0 0 1 2-2h11v15H7a2 2 0 0 0-2 2z"/><path d="M5 20a2 2 0 0 0 2 1h11v-3"/>'],
-    ['#/words/confuse', '词汇辨析', '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>'],
-    ['#/vocab/test', '测词汇量', '<path d="M4 17a8 8 0 0 1 16 0"/><path d="m12 17 4-5"/>'],
-    ['imp', '导入', '<path d="M12 3v11m-4-4 4 4 4-4"/><path d="M5 15v5h14v-5"/>']];
+  const WORD_TOOLS = [['#/vocab/plan', '背词计划', 'cal'], ['#/words/confuse', '词汇辨析', 'venn'], ['#/vocab/test', '测词汇量', 'gauge'], ['imp', '导入', 'inbox']];  // B9's icons (00-icons.js)
   // 「认识」放在 (我的 → 设置; a trial student and the owner, 2026-11-25): on the right by default, as in most word apps;
   // the buttons of the review and of the vocabulary test, their keys (1 2 3, and ← → by their place on screen) and the
   // swipe all follow it: the side 「认识」 is on is the way to swipe for it. Kept on this device, like 单词读音方式.
@@ -147,50 +137,58 @@
     const capLine = o.cap ? ` · 单词每天 ${o.cap} 分钟` : '';
     const bk = o.book, nb = bk && bk.next;
     let rested = false; try { rested = !!(bk && localStorage.getItem('flow-book-rest-' + bk.id)); } catch (e) { /* private mode */ }
-    // a book nearly done says what comes next; a finished one offers it, one tap away (or reviewing until the exam first)
-    const bookNote = !bk ? '' : bk.done && !rested ? `<div class="card sunk stack-s" id="bookDone"><b>《${esc(bk.title)}》背完了</b>
-        <span class="small">${bk.exam_first ? '离考试还有一段时间，先把学过的词复习牢，考完再换下一本。' : nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : '可以在背词计划里换一本接着背。'}</span>
-        <div class="row">${nb && !bk.exam_first ? `<button class="btn primary small" id="bookNext">换成《${esc(nb.title)}》</button><button class="btn small" id="bookRest">先只复习</button>`
-          : bk.exam_first ? `<button class="btn primary small" id="bookRest">先只复习到考试</button>${nb ? `<button class="btn small" id="bookNext">换成《${esc(nb.title)}》</button>` : ''}`
-          : '<a class="btn small" href="#/vocab/plan">换一本</a><button class="btn small" id="bookRest">先只复习</button>'}</div></div>`
-      : bk.soon ? `<p class="small" id="bookSoon">《${esc(bk.title)}》还剩 ${bk.left} 个新词，大约 ${bk.days} 天背完。${nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : ''}</p>` : '';
+    // B9's 第一批 (the user, 2026-11-26: 「可以，第二批第三批一起做」; ui-refine/batch1/spec.md, README 「单词」): white blocks
+    // (titles inside, a grey line on the right), one full-width main button, the word book a block of its own, four equal
+    // tool tiles, the stats a fold, a three-way switch by the search, one word a row. Every entry and state of before stays.
+    const row = (icon, label, val) => `<div class="wp-row">${fi(icon)}<span>${label}</span><b>${val}</b></div>`;
+    const note = (o.catch_up ? `<p class="wp-note" id="catchUp">补积压：还剩 ${o.catch_up.left} 个，大约 ${o.catch_up.days} 天补完。最容易忘的排在前面，补完之前先不加新词。</p>`
+      : o.new_paused ? '<p class="wp-note" id="newPaused">到期的词比较多，今天先复习，新词明天继续。</p>' : '');
+    const book = o.book ? `<a class="wp-blk wp-book" href="#/vocab/plan">${fiTile('book')}
+        <span class="wp-bk"><span class="wp-bk-t"><b>《${esc(o.book.title)}》</b><span class="wp-num">${o.book.started} / ${o.book.size - (o.book.skipped || 0)}</span></span>
+          <span class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></span>
+          <span class="wp-bk-s">${o.plan ? `每天 ${o.plan.daily_new} 个新词 · ` : ''}${o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完' : '已全部学过'}${o.book.skipped ? ` · 跳过 ${o.book.skipped} 个常用词` : ''}${o.plan ? ` · 目标记住率 ${Math.round(o.plan.retention * 100)}%` : ''}</span>
+          <span class="wp-link">换词书或改计划 ›</span></span></a>` : '';
+    const soon = bk && !bk.done && bk.soon ? `<p class="wp-note" id="bookSoon">《${esc(bk.title)}》还剩 ${bk.left} 个新词，大约 ${bk.days} 天背完。${nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : ''}</p>` : '';
+    const done = !bk || !bk.done || rested ? '' : `<section class="wp-blk stack-s" id="bookDone"><h2 class="wp-blk-t">《${esc(bk.title)}》背完了</h2>
+        <p class="wp-note">${bk.exam_first ? '离考试还有一段时间，先把学过的词复习牢，考完再换下一本。' : nb ? `接下来推荐《${esc(nb.title)}》：你学过的词会跳过，还剩约 ${nb.new.toLocaleString()} 个新词。` : '可以在背词计划里换一本接着背。'}</p>
+        <div class="row">${nb && !bk.exam_first ? `<button class="btn small" id="bookNext">换成《${esc(nb.title)}》</button><button class="btn small" id="bookRest">先只复习</button>`
+          : bk.exam_first ? `<button class="btn small" id="bookRest">先只复习到考试</button>${nb ? `<button class="btn small" id="bookNext">换成《${esc(nb.title)}》</button>` : ''}`
+          : '<a class="btn small" href="#/vocab/plan">换一本</a><button class="btn small" id="bookRest">先只复习</button>'}</div></section>`;
+    // today: what is due (复习, 新词, about how long), the one main button under it; done, or more waiting for later days
     const today = o.plan
-      ? `<div class="card section stack-s vtoday"><div class="row between"><div><div class="kicker">今天</div>
-            ${n ? `<div class="big-line">复习 <b>${o.due}</b> · 新词 <b>${o.new}</b></div><div class="muted small">大约 ${o.minutes} 分钟${capLine} · 已完成 ${o.done_today} 次</div>`
-              : o.later ? `<div class="big-line">今天的单词做完了</div><div class="muted small" id="laterLine">还有 ${o.later} 个复习留到之后几天，想多背可以继续${capLine}</div>`
-              : `<div class="big-line">今天的都完成了</div><div class="muted small">已完成 ${o.done_today} 次 · 明天预计 ${o.forecast[1]} 个复习</div>`}
-            ${o.catch_up ? `<p class="small" id="catchUp">补积压：还剩 ${o.catch_up.left} 个，大约 ${o.catch_up.days} 天补完。最容易忘的排在前面，补完之前先不加新词。</p>`
-              : o.new_paused ? '<p class="small" id="newPaused">到期的词比较多，今天先复习，新词明天继续。</p>' : ''}</div>
-            ${n ? '<a class="btn primary" href="#/review">开始</a>' : o.later ? '<a class="btn small" href="#/review/more" id="moreRev">继续复习</a>' : '<button class="btn small" id="moreNew">再学 10 个</button>'}</div>
-          ${bookNote}
-          ${o.book ? `<div class="stack-s"><div class="row between small"><span>《${esc(o.book.title)}》已学 ${o.book.started} / ${o.book.size - (o.book.skipped || 0)}${o.book.skipped ? `<span class="muted">（跳过 ${o.book.skipped} 个常用词）</span>` : ''}</span></div>
-            <div class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></div></div>` : ''}
-          <span class="tiny muted">${o.book ? (o.book.finish ? '预计 ' + dayLabel(o.book.finish) + '学完 · ' : '已全部学过 · ') : ''}每天 ${o.plan.daily_new} 个新词 · 目标记住率 ${Math.round(o.plan.retention * 100)}%</span></div>`
-      : `<div class="card section stack-s"><div class="kicker">开始背单词</div><b>选一本词书，每天几个新词，按遗忘曲线复习</b>
-          <span class="muted small">例句来自你读的文章，还能听原文录音。不选词书也可以：读文章时点词收藏，收藏的词同样按遗忘曲线复习。</span>
-          <div class="row"><a class="btn primary" href="#/vocab/plan">选词书</a><a class="btn" href="#/vocab/test">先测词汇量（约 3 分钟）</a></div>
-          ${n ? `<div class="row between small"><span>收藏的词：复习 ${o.due} · 待学 ${o.new}</span><a class="btn small" href="#/review">开始复习</a></div>` : ''}</div>`;
+      ? `<div class="vtoday wp-top"><section class="wp-blk wp-today">
+          ${n ? `<div class="wp-blk-h"><h2 class="wp-blk-t">今天要背</h2><span class="wp-blk-r">约 ${o.minutes} 分钟</span></div>${row('again', '复习', o.due + ' 个')}${row('spark', '新词', o.new + ' 个')}
+                 ${o.cap || o.done_today ? `<p class="wp-note">${[o.cap ? `单词每天 ${o.cap} 分钟` : '', o.done_today ? `今天已完成 ${o.done_today} 次` : ''].filter(Boolean).join(' · ')}</p>` : ''}`
+            : o.later ? `<div class="wp-blk-h"><h2 class="wp-blk-t">今天的单词做完了</h2></div><p class="wp-note" id="laterLine">还有 ${o.later} 个复习留到之后几天，想多背可以继续${capLine}</p>`
+            : `<div class="wp-blk-h"><h2 class="wp-blk-t">今天的都完成了</h2></div><p class="wp-note">已完成 ${o.done_today} 次 · 明天预计 ${o.forecast[1]} 个复习</p>`}
+          ${note}</section>
+          ${n ? '<a class="btn primary wp-go" href="#/review">开始背单词</a>' : o.later ? '<a class="btn primary wp-go" href="#/review/more" id="moreRev">继续复习</a>' : '<button class="btn primary wp-go" type="button" id="moreNew">再学 10 个</button>'}
+          ${book}${soon}${done}</div>`
+      : `<section class="wp-blk wp-today stack-s"><h2 class="wp-blk-t">开始背单词</h2><p class="wp-lead">选一本词书，每天几个新词，按遗忘曲线复习</p>
+          <p class="wp-note">例句来自你读的文章，还能听原文录音。不选词书也可以：读文章时点词收藏，收藏的词同样按遗忘曲线复习。</p>
+          ${n ? `<div class="wp-row">${fi('again')}<span>收藏的词：复习 ${o.due} · 待学 ${o.new}</span><a class="wp-link" href="#/review">开始复习 ›</a></div>` : ''}</section>
+        <a class="btn primary wp-go" href="#/vocab/plan">选词书</a><p class="tc"><a class="wp-link" href="#/vocab/test">先测词汇量（约 3 分钟）›</a></p>`;
     let statsOpen = false; try { statsOpen = localStorage.getItem('flow-words-stats') === 'open'; } catch (e) { /* private mode */ }
     const est = o.plan && o.plan.estimate;
     const TAP = { '#/vocab/plan': 'words-plan', '#/words/confuse': 'words-confuse', '#/cards/mistake': 'words-mistake', '#/vocab/test': 'words-test', imp: 'words-import' };
-    // no words yet (a new account): the card above says how to start; counts of 0, a search box and filters wait for words
+    // no words yet (a new account): the block above says how to start; counts of 0, a search box and filters wait for words
     const none = !o.total;
-    view.innerHTML = `<div><h1 class="h1">单词</h1>${none ? '' : `<span class="muted small">共 ${o.total} 个 · 已掌握 ${o.mastered}</span>`}</div>
+    view.innerHTML = `<div class="wp-head"><h1 class="h1">单词</h1>${none ? '' : `<span class="wp-sub">共 ${o.total} 个 · 已掌握 ${o.mastered}</span>`}</div>
       ${today}
-      <nav class="tools section" aria-label="单词工具">${WORD_TOOLS.map(([to, label, icon]) => `${to[0] === '#' ? `<a href="${to}" data-tap="${TAP[to]}">` : `<button type="button" id="${to}" data-tap="${TAP[to]}">`}
-        <svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${label}</span>${to[0] === '#' ? '</a>' : '</button>'}`).join('')}</nav>
-      ${none ? '' : `<details class="card flat fold section" id="vStats"${statsOpen ? ' open' : ''}><summary data-tap="words-stats"><b>统计和复习预测</b><span class="tiny muted">已掌握 ${o.mastered} · 学习中 ${o.learning}${est ? ` · 词汇量约 ${est.toLocaleString()}` : ''}</span></summary>
-        <div class="stack-s">
+      <nav class="tools wp-tools" aria-label="单词工具">${WORD_TOOLS.map(([to, label, icon]) => `${to[0] === '#' ? `<a href="${to}" data-tap="${TAP[to]}">` : `<button type="button" id="${to}" data-tap="${TAP[to]}">`}
+        ${fi(icon)}<span>${label}</span>${to[0] === '#' ? '</a>' : '</button>'}`).join('')}</nav>
+      ${none ? '' : `<details class="fold wp-stats" id="vStats"${statsOpen ? ' open' : ''}><summary data-tap="words-stats">${fi('bars')}<b>统计和复习预测</b><span class="wp-r">在学 ${o.learning} · 已掌握 ${o.mastered}${est ? ` · 词汇量约 ${est.toLocaleString()}` : ''}</span></summary>
+        <div class="stack-s wp-stats-in">
         <div class="stat-grid"><div class="card sunk stat"><b>${o.mastered}</b><span class="tiny muted">已掌握</span></div><div class="card sunk stat"><b>${o.learning}</b><span class="tiny muted">学习中</span></div>
           <div class="card sunk stat"><b>${est ? est.toLocaleString() : '—'}</b><span class="tiny muted">${est ? '词汇量估计' : '<a class="link" href="#/vocab/test">测词汇量</a>'}</span></div></div>
         <div class="row between"><b class="small">未来 7 天的复习量</b><span class="tiny muted">按你的记忆情况算出</span></div>
-        ${o.forecast.some(Boolean) ? `<div class="forecast" aria-label="未来 7 天复习量">${o.forecast.map((v, k) => { const d = new Date(start.getTime() + k * 864e5); return `<div><span class="n">${v || ''}</span><i data-h="${v / maxF * 100}"></i><span class="tiny muted">${k === 0 ? '今天' : k === 1 ? '明天' : '周' + WEEKDAY[d.getDay()]}</span></div>`; }).join('')}</div>`
+        ${o.forecast.some(Boolean) ? `<div class="forecast" aria-label="未来 7 天复习量">${o.forecast.map((v, k) => { const d = new Date(start.getTime() + k * 864e5); return `<div><span class="n">${v || ''}</span><i data-h="${v / maxF * 100}"></i><span class="tiny muted">${k === 0 ? '今天' : k === 1 ? '明天' : '周' + '日一二三四五六'[d.getDay()]}</span></div>`; }).join('')}</div>`
           : '<p class="muted tiny">开始学习后，这里会显示每天大约要复习多少个。</p>'}
         <div class="cal" aria-label="最近 5 周每天复习次数">${o.calendar.map(d => `<i class="l${d.n ? Math.min(4, Math.ceil(d.n / maxC * 4)) : 0}" title="${d.day}：${d.n} 次"></i>`).join('')}</div></div></details>
-      <form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索单词、意思或原句" enterkeyhint="search" placeholder="搜索单词、意思或原句${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"><button class="btn">搜索</button></form>
-      <div class="chips filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达']].map(([k, l]) => `<button class="chip small" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div>
+      <div class="wp-search"><form class="searchrow" id="sf" role="search"><input type="search" name="q" aria-label="搜索单词、意思或原句" enterkeyhint="search" placeholder="搜单词、意思${TOUCH ? '' : '（按 / 跳到这里）'}" value="${esc(q)}"></form>
+        <div class="seg wp-filt" role="group" aria-label="筛选">${[['', '全部'], ['word', '单词'], ['phrase', '表达']].map(([k, l]) => `<button type="button" data-f="${k}" aria-pressed="${f === k}">${l}</button>`).join('')}</div></div>
       <div id="listSlot">${listHTML(list, q, page, f)}</div>`}
-      ${o.total ? '<p class="tc section"><button class="link small" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki</button></p>' : ''}`;
+      ${o.total ? '<p class="tc"><button class="link small wp-link" type="button" id="wbExport" data-tap="words-export">导出单词本：Excel 表格或 Anki ›</button></p>' : ''}`;
     requestAnimationFrame(() => requestAnimationFrame(() => {
       view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; });
       view.querySelectorAll('.forecast i').forEach(i => { i.style.height = Math.max(3, i.dataset.h) + '%'; });
@@ -241,12 +239,17 @@
     const st = { q, page };
     const [list, ov] = await Promise.all([api('/api/next/cards?f=mistake&q=' + encodeURIComponent(q) + '&page=' + page), api('/api/next/vocab')]);
     const due = (ov.other || {}).mistakes || 0;  // the mistakes due: this page is about mistakes (the patterns are counted on 练习)
-    const body = l => l.items.length ? listHTML(l, st.q, st.page, '')
+    // B9's 第三批 (the user, 2026-11-26 17:4x: 「完全做，按照现在的效果图」; ui-refine/batch23 「错题本」): ‹ 练习; a white block
+    // of what is due (N 道, about how long); the one main button under it when some are due; the search; one mistake a row
+    const oc = ov.other || {}, mins = due && oc.due ? Math.max(1, Math.round((oc.minutes || 0) * due / oc.due)) : 0;
+    const body = l => l.items.length ? listHTML(l, st.q, st.page, '', true)
       : `<div class="empty"><p>${st.q ? `没找到「${esc(st.q)}」。可以换个写法，或者搜中文。` : '还没有错题。理解题答错、写作和口语里被改出的错误、读不准的发音、做错的语法题和辨析题，都会自动收进来。'}</p>${st.q ? '<div class="row center"><button class="btn small" type="button" id="sfClear">清除搜索</button></div>' : ''}</div>`;
-    view.innerHTML = `<div><a class="link small hit44" href="#/practice">← 练习</a></div>
-      <div><h1 class="h1">错题本</h1><span class="muted small">做错的题都在这里，到期了会在「错题和句型复习」里再考你 · 共 ${list.total} 道</span></div>
-      ${due ? `<a class="btn primary" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
-      ${list.total || q ? `<form class="searchrow section" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
+    view.innerHTML = `<div><a class="link small hit44 wp-back" href="#/practice">‹ 练习</a></div>
+      <div class="wp-head"><h1 class="h1">错题本</h1><span class="wp-sub">共 ${list.total} 道 · 做错的题都在这里</span></div>
+      <section class="wp-blk"><div class="wp-blk-h"><h2 class="wp-blk-t">到期要复习的</h2>${due ? `<span class="wp-blk-r">约 ${mins} 分钟</span>` : ''}</div>
+        <p class="wp-big">${due ? `${due} 道` : '都复习完了'}</p><p class="wp-note">到期了会在「错题和句型复习」里再考你</p></section>
+      ${due ? `<a class="btn primary wp-go" href="#/review/other" id="mbReview">复习到期的 ${due} 道</a>` : ''}
+      ${list.total || q ? `<form class="searchrow wp-msearch" id="sf" role="search"><input type="search" name="q" aria-label="搜索错题" enterkeyhint="search" placeholder="搜索错题" value="${esc(q)}"></form>` : ''}
       <div id="listSlot">${body(list)}</div>`;
     const reload = async () => {
       const slot = document.getElementById('listSlot'); slot.classList.add('busy');
@@ -263,7 +266,7 @@
     const sf = document.getElementById('sf'); if (sf) sf.onsubmit = e => { e.preventDefault(); st.q = e.target.q.value.trim(); st.page = 1; reload(); };
     bind();
   }
-  function listHTML(list, q, page, f) {
+  function listHTML(list, q, page, f, mistakes) {
     const pages = Math.max(1, Math.ceil(list.total / list.per));
     // nothing found: say what was searched, and a way out (清除搜索; with a filter on, the search across all of them) (语流 B9)
     const FILT = { word: '单词', phrase: '表达', mistake: '错题' };
@@ -271,7 +274,12 @@
       mistake: '还没有错题。理解题答错、写作和口语里被改出的错误，都会自动收进来。' }[f] || '还没有单词。选一本词书，或者学一篇材料时点词收藏。';
     const sub = c => c.source === 'mistake' ? '错题 · ' + ({ fix: '改错', question: '理解题', sound: '发音' }[c.kind] || '') + (c.context ? ' · ' + esc(c.context) : '')
       : esc(c.meaning || c.context || SOURCE[c.source] || '');
-    return `${list.items.length ? `<div class="xlist" id="clist">${list.items.map(c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="tiny muted">${sub(c)}</span></span>${recallPill(c)}</button>`).join('')}</div>`
+    // one word a row (B9's 第一批): the English left in the serif, its meaning grey on the right; how well it is held is in
+    // its sheet (a tap on the row)
+    // 错题本 (mistakes): two lines — the question (serif), its kind and where it came from — and on the right 待学 or when it is due
+    const MK = { fix: '改错', question: '理解题', sound: '发音' };
+    const mrow = c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="m">${[MK[c.kind] || '错题', c.context ? esc(c.context) : ''].filter(Boolean).join(' · ')}</span></span><span class="st">${c.state === 'new' ? '待学' : dueText(c.due)} ›</span></button>`;
+    return `${list.items.length ? `<div class="xlist wp-list${mistakes ? ' wp-mlist' : ''}" id="clist">${list.items.map(c => mistakes ? mrow(c) : `<button class="xrow" type="button" data-card="${c.id}"><span class="x">${esc(c.text)}</span><span class="m"${c.source === 'mistake' ? '' : ' data-zh'}>${sub(c)}</span></button>`).join('')}</div>`
         : `<div class="empty"><p>${none}</p>${q ? `<div class="row center">${f && FILT[f] ? '<button class="btn small" type="button" id="sfAll">在全部里找</button>' : ''}<button class="btn small" type="button" id="sfClear">清除搜索</button></div>` : ''}</div>`}
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${page} / ${pages}</span><button class="btn small" id="nx" ${page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;
   }
@@ -295,7 +303,7 @@
     (c.examples || []).forEach(e => list.push(e));
     // many speakers in a list that can scroll: a faint 「AI」 on each (aiBadge); the grey line is the card's (aiVoiceNote)
     return list.length ? `<div class="exs">${list.map((e, k) => `<div class="ex"><button class="icon-btn has-ai" type="button" data-exp="${k}" aria-label="播放例句（AI 朗读）">${ICON.speak}${aiBadge()}</button>
-      <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted">${esc(e.zh)}</div>` : ''}
+      <div><div class="text">${open === false ? gapped(e.text, e.form || c.text, false) : gapped(e.text, e.form || c.text, true)}</div>${e.zh && open !== false ? `<div class="tiny muted" data-zh>${esc(e.zh)}</div>` : ''}
       ${e.pack ? `<a class="tiny muted link" href="#/m/${encodeURIComponent(e.pack)}/read">${e.mine ? esc(e.title) : '出自《' + esc(e.title) + '》'}${e.audio ? ' · 原文录音' : ''}</a>` : e.ai ? aiTag() : `<span class="tiny muted">${esc(e.title)}</span>`}</div></div>`).join('')}</div>` : '';
   }
   function wordHead(word, phonetic) {
@@ -314,14 +322,14 @@
   function extrasHTML(c) {
     const xs = (c && c.extras) || []; if (!xs.length) return '';
     // the user, 2026-11-26 (「视觉压力小」): no new box or line, no coloured tag — 「AI 生成」 in grey words; a few of each, the rest folded
-    const li = x => `<li data-xid="${x.id}"><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}${x.diff ? `<span class="xd"> · ${esc(x.diff)}</span>` : ''}</li>`;
+    const li = x => `<li data-xid="${x.id}"><b>${esc(x.en)}</b>${x.zh ? ` <span data-zh>${esc(x.zh)}</span>` : ''}${x.diff ? `<span class="xd" data-zh> · ${esc(x.diff)}</span>` : ''}</li>`;
     const col = xs.filter(x => x.kind === 'colloc'), near = xs.filter(x => x.kind === 'near'), SHOW = { colloc: 3, near: 2 };
     const part = (g, kind, title) => g.length ? `<div class="xtra-h" data-xk="${kind}">${title}</div><ul class="xtra" data-xk="${kind}">${g.map(li).join('')}</ul>` : '';
     const more = col.slice(SHOW.colloc).length + near.slice(SHOW.near).length;
     return `<section class="xtra-wrap" aria-label="常用搭配和近义、易混词（AI 生成）"><p class="xtra-ai">常用搭配和近义、易混词 · AI 生成，仅供参考</p>
       ${part(col.slice(0, SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(0, SHOW.near), 'near', '近义和易混词')}
       ${more ? `<details class="xtra-more"><summary>更多 ${more} 条</summary>${part(col.slice(SHOW.colloc), 'colloc', '常用搭配')}${part(near.slice(SHOW.near), 'near', '近义和易混词')}</details>` : ''}
-      <p class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button> · <a class="link small" href="#/guide/ai-service">AI 服务说明</a></p></section>`;
+      <div class="xtra-foot"><button class="link small xbad-open" type="button">有不对的？</button><a class="link small" href="#/guide/ai-service">AI 服务说明</a></div></section>`;
   }
   function bindExtras(root, c) {
     const b = root.querySelector('.xbad-open'); if (b) b.onclick = e => { e.stopPropagation(); extraBad(c, root); };
@@ -333,7 +341,7 @@
       <div class="xpicks" role="radiogroup" aria-labelledby="sheetTitle">${xs.map(x => `<label class="xpick"><input type="radio" name="xpick" value="${x.id}"><span><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</span></label>`).join('')}</div>
       <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说（不用写你的名字）"></textarea></label>
       <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
-      <div class="row"><button class="btn primary" id="xGo" type="button" disabled>提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
+      <button class="btn primary xgo" id="xGo" type="button" disabled>提交</button><button class="link small xcancel" data-close type="button">取消</button></div>`, card => {
       const go = card.querySelector('#xGo');
       card.querySelectorAll('[name=xpick]').forEach(r => { r.onchange = () => { go.disabled = false; }; });
       go.onclick = async () => {
@@ -374,7 +382,7 @@
     openSheet(`<div class="stack">
       ${wordHead(c.text, c.phonetic)}
       ${c.source === 'mistake' && (c.extra || {}).from ? `<div class="fixline"><del>${esc(c.extra.from)}</del> → <ins>${esc(c.text)}</ins></div>` : ''}
-      ${c.meaning ? `<div class="mean">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
+      ${c.meaning ? `<div class="mean" data-zh>${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}
       <div class="wd-meta">${[c.known ? '熟知' : c.state === 'new' ? '待学' : `${c.mastered ? '已掌握 · ' : ''}<span title="此刻记得的概率">记得 ${pct(c.recall)}</span>`,
         c.stability ? `记忆稳定性 ${c.stability < 1 ? '不到 1 天' : Math.round(c.stability) + ' 天'}` : '', c.state !== 'new' && !c.known ? dueText(c.due) : ''].filter(Boolean).join(' · ')}</div>
       ${curveSVG(c, d.retention)}

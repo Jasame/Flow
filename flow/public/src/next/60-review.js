@@ -30,6 +30,28 @@
   function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; view.onclick = view.onpointerdown = null; activityEnd(); }
   // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
   // part 'other': 其他复习 (练习 → 复习; review-split-plan.md): mistakes, saved sentences and patterns, apart from the words
+  // The word in one place and on one line (the owner, 2026-11-26: 「单词要固定在一个位置…最好是一行展示完毕，字体太大就按设备
+  //尺寸缩放」): the box keeps the height of one line at the full size, so what is under it stays put too; a word wider than
+  // the screen gets a smaller size, down to 60% of it, and only past that wraps (a long phrase)
+  function fitWords(root) {
+    root.querySelectorAll('.review:not(.vtest) .wordbig').forEach(el => {
+      el.style.fontSize = ''; el.style.minHeight = ''; el.classList.add('one-line');
+      const full = parseFloat(getComputedStyle(el).fontSize), w = el.clientWidth;
+      if (!w || !full) return;
+      el.style.minHeight = Math.ceil(full * 1.15) + 'px';
+      if (el.scrollWidth <= w) return;
+      const least = Math.round(full * 0.6);
+      let size = Math.max(least, Math.floor(full * w / el.scrollWidth));
+      el.style.fontSize = size + 'px';
+      while (el.scrollWidth > w && size > least) { size -= 1; el.style.fontSize = size + 'px'; }  // a pixel of rounding left over
+      if (el.scrollWidth > w) el.classList.remove('one-line');
+    });
+  }
+  if (!fitWords.on) {
+    fitWords.on = true;
+    let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => fitWords(view), 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitWords(view)).catch(() => {});
+  }
   async function reviewView(goOn, part) {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
@@ -72,7 +94,8 @@
     const actions = (html, over) => `<div class="ractions">${over || ''}${html}${foot()}</div>`;
     // the word itself plays too (like the speaker beside its phonetics); a tap on it answers nothing
     const sayBtn = (label, big) => `<button class="icon-btn ${big ? 'big' : 'say-btn'}" id="sayW" type="button" aria-label="${label}（AI 朗读）">${ICON.speak}</button>`;
-    const wordHTML = (cls) => `<div class="wordbig tapsay${cls || ''}">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}${sayBtn('播放读音')}</div>`;
+    // the word's own letters play it (not the whole row: a tap beside it is a tap on the card, 「点哪儿都行」)
+    const wordHTML = (cls) => `<div class="wordbig${cls || ''}"><span class="tapsay">${esc(c.text)}</span></div><div class="ph">${esc(c.phonetic || '')}${sayBtn('播放读音')}</div>`;
     let undo = null;  // the latest rating, while it can be taken back (撤销)
     // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
     let peek = null;
@@ -94,6 +117,7 @@
     }
     let c, t0, claim;
     const bar = () => {
+      fitWords(view);
       const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
       const eb = document.getElementById('easyBtn'); if (eb) eb.onclick = () => known();
@@ -236,7 +260,7 @@
           : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div>`)}</div>`;
       // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
       if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && tipSeen('know-side', 'flow-know-tip') === false) {
-        view.querySelector('.review').insertAdjacentHTML('afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
+        (view.querySelector('.review .ph') || view.querySelector('.review')).insertAdjacentHTML(view.querySelector('.review .ph') ? 'afterend' : 'afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
         document.getElementById('knowTipOk').onclick = () => { TIPS.mark('know-side'); const t = document.getElementById('knowTip'); if (t) t.remove(); };
       }
       bar(); swipe = null;
@@ -376,7 +400,8 @@
         for (let k = 1; k <= a.length; k++) for (let j = 1; j <= b.length; j++) d[k][j] = Math.min(d[k - 1][j] + 1, d[k][j - 1] + 1, d[k - 1][j - 1] + (a[k - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
       const r = !got ? 'again' : got === want ? 'good' : (want.length > 4 && dist(got, want) === 1) ? 'hard' : 'again';
       const msg = r === 'good' ? '<div class="ok">✓ 拼对了</div>' : r === 'hard' ? `<div class="warn">差一点：你写的是 <s>${esc(v)}</s></div>` : got ? `<div class="bad">你写的是 <s>${esc(v)}</s></div>` : '';
-      view.innerHTML = `${top(true)}<div class="review open-card">${msg}${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
+      view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
+      const ph = view.querySelector('.open-card .ph'); if (ph && msg) ph.insertAdjacentHTML('afterend', msg);  // under the word: the word keeps its place
       bar(); bindExamples(view, c); bindExtras(view, c); sayable(); CLIP.word(c);
       const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });
