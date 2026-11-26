@@ -149,6 +149,14 @@ class StoreTests(unittest.TestCase):
         self.assertIn('lend', [x['en'] for x in wx.shown(self.c, 'borrow')])
         wx.flag(self.c, [{'word': 'borrow', 'kind': 'colloc', 'en': 'borrow an idea', 'why': '不常用'}])  # the reviewer hid it
         self.assertEqual(wx.put_back(self.c, ids['borrow an idea'], 'admin@flow'), 0)  # the console does not undo the reviewer
+        self.assertEqual(wx.take_down(self.c, ids['borrow an idea'], '再下架一次', 'admin@flow'), 0)  # nor writes over it,
+        self.assertEqual(wx.put_back(self.c, ids['borrow an idea'], 'admin@flow'), 0)  # so 放回 cannot show it after all
+        why = json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['borrow an idea'],)).fetchone()[0])
+        self.assertEqual(why, {'by': 'qwen-plus', 'why': '不常用'})
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说错', 'admin@flow'), 1)  # taken down again: a new reason
+        self.assertEqual(wx.take_down(self.c, ids['lend'], '区别说反了', 'admin@flow'), 1)
+        self.assertEqual(json.loads(self.c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (ids['lend'],)).fetchone()[0])['why'], '区别说反了')
+        self.assertEqual(wx.take_down(self.c, 99999, 'x', 'admin@flow'), 0)
         self.assertFalse([x for x in wx.reported(self.c) if x['en'] == 'borrow an idea'][0]['by_admin'])
         wx.store(self.c, 'borrow', keep, 'flow-batch-ds-flash')  # a rerun does not show it again
         self.assertNotIn('borrow an idea', [x['en'] for x in wx.shown(self.c, 'borrow')])

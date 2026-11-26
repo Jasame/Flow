@@ -56,3 +56,9 @@
 .aiq-bar.low::-moz-progress-bar{background:var(--amber)}
 .aiq-kinds{list-style:none;margin:0;padding:0}
 .aiq-kinds li{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:15px}
+
+/* 数据存放 page (81-privacy.js storageView): the long note on the storage folds under one quiet line */
+.sto-why{margin-top:2px}
+.sto-why summary{cursor:pointer;display:inline-block;list-style:none;text-decoration:underline;text-underline-offset:3px}
+.sto-why summary::-webkit-details-marker{display:none}
+.sto-why[open] summary{margin-bottom:6px}

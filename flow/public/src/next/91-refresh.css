@@ -21,10 +21,6 @@
 /* the single notice slot */
 .notice.guide-hint{display:grid;grid-template-columns:minmax(0,1fr) 14px;gap:10px;align-items:center;text-decoration:none;color:inherit}
 .notice.guide-hint b{font-size:15.5px}
-/* 练习: the grammar map is the 语法 group's wide card */
-.ptile.pmap{grid-column:1/-1;min-height:0;gap:6px}
-.ptile.pmap .row{flex-wrap:nowrap}
-.ptile.pmap .gbar{margin-top:4px}
 /* 我的: a header card, then groups of one-line rows; a row opens a page or a sheet */
 .me-head{display:grid;gap:14px}
 .me-id{display:flex;align-items:center;gap:14px;min-width:0}

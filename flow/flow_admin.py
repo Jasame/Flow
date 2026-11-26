@@ -14,7 +14,7 @@ Cloudflare Access signed in: FLOW_ADMIN_EMAILS (comma-separated) are 管理员; 
 only look at the numbers (只看数据). Without FLOW_ADMIN_EMAILS everyone is 管理员, as before. What a 管理员 changes or
 exports is written to the operator log.
 """
-import datetime, json, os, threading, time
+import datetime, json, os, re, threading, time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlsplit, parse_qs
 
@@ -45,7 +45,7 @@ VIEWER_GET = {'/me', '/overview', '/learning', '/survey/definition', '/survey/su
               '/funnel', '/cohorts', '/content', '/books', '/ai', '/ai/samples', '/tasks', '/announcements'}
 ADMIN_GET = {'/users', '/survey/responses', '/survey/export.csv', '/errors', '/log', '/feedback', '/feedback/image',
              '/learners', '/learner', '/export/learners.csv', '/export/materials.csv', '/export/ai.csv',
-             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people'}
+             '/classes', '/class', '/export/classes.csv', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people', '/word-extras'}
 CSV_EXPORTS = {'/export/learners.csv': ('learners', '学员'), '/export/materials.csv': ('materials', '材料'), '/export/ai.csv': ('ai', 'AI 用量'),
                '/export/classes.csv': ('classes', '班级试用人次')}
 ROLE_LABEL = {'admin': '管理员', 'viewer': '只看数据', 'system': '自动'}  # system: the site itself (privacy_service.purge_paused)
@@ -79,6 +79,52 @@ def schema(c):
     __import__('teacher_service').schema(c)  # 老师账号 and the one-use 老师注册链接 (2026-11-26)
     __import__('beta_invites').schema(c)  # 内测版邀请码 (2026-11-26)
     __import__('beta_tools').schema(c)  # 内测版的测试账号 (2026-11-26)
+
+
+WX_KIND = {'colloc': '常用搭配', 'near': '近义、易混词'}
+
+
+def word_extras_list(c, days):
+    """GET /word-extras?days=7|30|0 (管理员 only): the AI 常用搭配和近义、易混词 learners marked 「这条不对」, most learners
+    first, no names (word_extras.reported); the ones taken down here say so and can go back."""
+    import word_extras as wx
+    days = 30 if str(days) == '30' else 0 if str(days) == '0' else 7
+    rows = wx.reported(c, time.time() - days * 86400 if days else None)
+    for r in rows:
+        r['kind_label'] = WX_KIND.get(r['kind'], r['kind'])
+    return {'days': days, 'items': rows}
+
+
+def word_extras_post(c, path, data, op, who):
+    """POST /word-extras/take-down {id, why} and /word-extras/put-back {id}, in the operator log."""
+    import word_extras as wx
+    try:
+        xid = int(data.get('id'))
+    except (TypeError, ValueError):
+        return {'error': '参数不正确'}, 400
+    row = c.execute('SELECT norm, kind, en, zh, hidden FROM vocab_extras WHERE id=?', (xid,)).fetchone() if \
+        c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='vocab_extras'").fetchone() else None
+    if not row:
+        return {'error': '没有找到这一条'}, 404
+    target = f"{row[0]} · {WX_KIND.get(row[1], row[1])}：{row[2]} {row[3] or ''}".strip() + f' #{xid}'
+    if path.endswith('take-down'):
+        if row[4]:  # hidden already (taken down here, or by the AI review): nothing to take down, and the review's own
+            # reason is never replaced by a console one (put_back would then show it again; B7 #443 guards the same)
+            return {'error': '这一条已经藏起来了（审稿时就藏了，或者之前下架过），不用再下架'}, 409
+        why = re.sub(r'\s+', ' ', str(data.get('why') or '')).strip()
+        if not why or len(why) > 120:
+            return {'error': '写一句为什么下架（120 字以内）', 'field': 'why'}, 400
+        changed = wx.take_down(c, xid, why, who)
+        c.commit()
+        if changed:
+            log_action(c, op, 'extra-down', target, why)
+        return {'ok': True, 'changed': bool(changed)}, 200
+    changed = wx.put_back(c, xid, who)
+    c.commit()
+    if not changed:
+        return {'error': '这一条不是在后台下架的（是审稿时就藏起来的），不能在这里放回'}, 409
+    log_action(c, op, 'extra-up', target)
+    return {'ok': True, 'changed': True}, 200
 
 
 def harmony_link(c, admin):
@@ -159,7 +205,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'ai-quota': '调整 AI 额度', 'ai-quota-clear': '恢复普通 AI 额度', 'invite-revoke': '作废内测版邀请码',
+                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'ai-quota': '调整 AI 额度', 'extra-down': '下架单词搭配', 'extra-up': '放回单词搭配', 'ai-quota-clear': '恢复普通 AI 额度', 'invite-revoke': '作废内测版邀请码',
                 'test-account': '造测试账号', 'test-reset': '重置测试数据（删掉全部测试账号）',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
@@ -251,7 +297,7 @@ TAP_LABEL = {
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
     'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'today-view-list': '今日 · 换成列表', 'today-view-cards': '今日 · 换成卡片', 'today-edit': '今日 · 调整顺序', 'today-edit-done': '今日 · 调整顺序 · 完成', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
-    'practice-map': '练习 · 知识图谱大卡', 'practice-tip': '练习 · 今天建议',
+    'practice-tip': '练习 · 今天建议',
     'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
@@ -458,6 +504,8 @@ def console_get(c, path, one, op):
         return __import__('beta_tools').listing(c)
     if path == '/ai-people':
         return cd.ai_people(c)
+    if path == '/word-extras':
+        return word_extras_list(c, one('days', '7'))
 
 
 ACCOUNT_POSTS = {'/learner/disable', '/learner/signout', '/learner/staff', '/learner/teacher', '/learner/level', '/learner/daily-new'}
@@ -573,6 +621,9 @@ def console_post(c, path, data, op):
             log_action(c, op, 'test-reset', tgt)
         return body, status
     # 鸿蒙内测链接 (console_ops, D3 #415): the 内测版's download page shows 「加入内测」 with it, 「即将开放」 without
+    # 单词搭配反馈 (word_extras, B7; B2's 「这条不对」): a row learners marked is taken down for everyone, or put back
+    if path in ('/word-extras/take-down', '/word-extras/put-back'):
+        return word_extras_post(c, path, data, op, who)
     if path == '/settings/harmony-link':
         import app
         if app.CHANNEL != 'beta':
@@ -690,7 +741,7 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self._send(got)
                 if path == '/ai/samples':
                     return self._send(*__import__('console_data').ai_samples(c, one('kind'), int(one('n', '5') or 5)))
-                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people'):
+                if path in ('/funnel', '/cohorts', '/content', '/books', '/ai', '/tasks', '/announcements', '/learners', '/classes', '/teacher-links', '/beta-invites', '/beta-tests', '/ai-people', '/word-extras'):
                     return self._send(console_get(c, path, one, op))
                 if path in CSV_EXPORTS:
                     import console_data as cd

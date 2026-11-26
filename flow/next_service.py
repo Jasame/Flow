@@ -38,6 +38,8 @@ ACCENTS = ('green', 'indigo')
 TODAY_VIEWS = ('list', 'cards')
 # 今日's blocks in the learner's order (one order for both looks; 调整顺序 on 今日 changes it): 今天的计划 first by default
 TODAY_KEYS = ('plan', 'week', 'line', 'mine', 'news', 'extra')
+# 界面语言 (全英文界面, 语流 E1): 'zh', the default, or 'en'; kept with the account like 主题色 (07-lang.js, ui_lang.py)
+LANGS = ('zh', 'en')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -103,6 +105,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute("ALTER TABLE next_profiles ADD COLUMN today_view TEXT NOT NULL DEFAULT 'list'")
     if 'today_order' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 今日's order, a JSON list of TODAY_KEYS
         c.execute('ALTER TABLE next_profiles ADD COLUMN today_order TEXT')
+    if 'lang' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 界面语言, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN lang TEXT NOT NULL DEFAULT 'zh'")
     if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         # 按我的学习记录推荐 (我的 → 设置; 个保法第二十四条, 算法推荐规定第十七条): 1 = on (the default), 0 = off
         c.execute('ALTER TABLE next_profiles ADD COLUMN personalize INTEGER NOT NULL DEFAULT 1')
@@ -392,6 +396,7 @@ def profile(c, uid):
             'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green',
             'today_view': r['today_view'] if 'today_view' in r.keys() and r['today_view'] in TODAY_VIEWS else 'list',
             'today_order': _today_order(r['today_order'] if 'today_order' in r.keys() else None),
+            'lang': r['lang'] if 'lang' in r.keys() and r['lang'] in LANGS else 'zh',
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
 
 
@@ -517,6 +522,16 @@ def set_today_view(c, uid, data):
     c.commit()
     p = profile(c, uid)
     return {'today_view': p['today_view'], 'today_order': p['today_order']}, 200
+def set_lang(c, uid, data):
+    """界面语言: kept with the account, so another phone or computer opens in it too. Before there is a 学习目标 there is
+    no profile to keep it in: kept is False and the page hands it over later (07-lang.js)."""
+    lang = data.get('lang')
+    if lang not in LANGS:
+        return {'error': '没有这个语言'}, 400
+    kept = c.execute('UPDATE next_profiles SET lang=?, updated=? WHERE user_id=?', (lang, time.time(), uid)).rowcount > 0
+    if kept:
+        c.commit()
+    return {'lang': lang, 'kept': kept}, 200
 
 
 def set_accent(c, uid, data):
@@ -1033,8 +1048,8 @@ def stats(c, uid):
     return {
         'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),
         'other_due': oc['due'], 'other_minutes': oc['minutes'],
-        # 底栏「能力」 (2026-11-26): the skills due to be measured (never, or more than ability_radar.RETEST days ago)
-        'radar_due': len(__import__('ability_radar').due_today(c, uid, now) or []),
+        # 底栏「能力」's dot (2026-11-26): the skills measured before and due again (ability_radar.retest_due)
+        'radar_due': __import__('ability_radar').retest_due(c, uid, now),
         'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
@@ -1979,6 +1994,8 @@ def post(c, uid, path, data):
         return set_accent(c, uid, data)
     if path == '/api/next/today-view':
         return set_today_view(c, uid, data)
+    if path == '/api/next/lang':  # 界面语言 (LANGS)
+        return set_lang(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404

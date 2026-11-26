@@ -101,7 +101,7 @@ body.reviewing{touch-action:pan-y pinch-zoom}
   body.reviewing main{display:flex;flex-direction:column;min-height:calc(100vh - var(--bar-h,48px));min-height:calc(100dvh - var(--bar-h,48px));padding-bottom:calc(12px + var(--sab))}
   body.reviewing .review:not(.q){display:flex;flex-direction:column;flex:1 0 auto;gap:14px}
   body.reviewing .sr-only{top:0}  /* the live region after main (1px, absolute where it stands) would hang below the screen */
-  body.reviewing .review:not(.open-card):not(.q)>:first-child{margin-top:auto}
+  body.reviewing .review.vtest>:first-child{margin-top:auto}  /* 测词汇量 as before; 复习's word stays at the top (30-words.css) */
   body.reviewing .review:not(.open-card):not(.q) .choice{margin-top:auto}
   body.reviewing .choice button{min-height:64px;font-size:16.5px}
   /* the buttons (.ractions, 60-review.js) at the bottom of the screen on both sides of the card, in the same place: the
