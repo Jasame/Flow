@@ -19,6 +19,31 @@ KEEP_DAYS, TOTAL = 90, -1  # TOTAL: the no-account row of a day once its people 
 PAUSED = '你的 AI 功能暂停中；学材料、背单词和做题照常可以用。有疑问请在「我的 → 帮助 → 问题反馈」里说。'  # D2: a way to reach someone
 SITE_FULL = '本站今日 AI 调用额度已用完，请明天再来。'
 RESET_TEXT = '北京时间早上 8 点'
+# English for an English page (全英文界面: ui_lang). The Chinese above stay the constants the gates compare with.
+PAUSED_EN = 'Your AI features are paused. Texts, words and practice work as usual. Questions? Me → Help → Feedback.'
+SITE_FULL_EN = "Today's AI use for the whole site is used up. Please come back tomorrow."
+DAY_FULL_EN = "Today's AI use is full. It starts again at 8:00 Beijing time."
+RESET_TEXT_EN = '8:00 Beijing time'
+# What a learner calls each task in 「我的 → 设置 → AI 用量」 (各项功能各几次), Chinese and English (the English as
+# docs/english-ui.md's terms have them, E1). A kind that is not here
+# shows 「其他」 / "Other", never its key (the owner, 2026-11-26 22:1x: 「AI 用量显示界面存在一些汉化不完全的问题」).
+NAMES = {
+    'next-rewrite': ('仿写批改', 'Rewrite feedback'), 'next-essay': ('作文批改', 'Essay feedback'),
+    'next-translate': ('翻译批改', 'Translation feedback'), 'next-transsrc': ('翻译练习的中文句子', 'Sentence to translate'),
+    'next-retell': ('复述点评', 'Retelling feedback'), 'next-dialog': ('情景对话', 'Role-play'),
+    'next-ielts': ('雅思口语', 'IELTS Speaking'), 'next-two-ask': ('听两句、答一句：出题', 'Two lines, one reply: question'),
+    'next-two-check': ('听两句、答一句：批改', 'Two lines, one reply: feedback'), 'next-explain': ('句子讲解', 'Sentence explanation'),
+    'next-variant': ('难度改写', 'Easier or harder version'), 'next-examples': ('AI 例句', 'AI example sentences'),
+    'next-enrich': ('导入文章出题', 'Questions for your text'), 'next-shadow': ('跟读', 'Shadowing'),
+    'next-say': ('单词发音', 'Word pronunciation'), 'next-assess-speaking': ('能力测评：口语', 'Skills test: speaking'),
+    'next-assess-writing': ('能力测评：写作', 'Skills test: writing'), 'next-zh': ('看中文', 'Show Chinese'),
+    'context-help': ('随堂提示', 'Hints'), 'chat': ('导师问答', 'Ask the tutor'), 'coach': ('学习教练', 'Study coach'),
+    'vocab-feedback': ('单词造句批改', 'Word sentence feedback'), 'vocab-generate': ('单词练习出题', 'Word practice questions'),
+    'vocab-explain': ('单词讲解', 'Word explanation'), 'feedback': ('练习批改', 'Practice feedback'),
+    'audio': ('录音批改', 'Recording feedback'), 'generate': ('生成练习材料', 'New practice text'),
+    'daily-topic': ('今日一读', "Today's read"), 'daily-news': ('今日热点', 'In the news'),
+}
+OTHER = ('其他', 'Other')
 
 
 def schema(c):
@@ -206,10 +231,10 @@ def header(c, uid, now=None):
     return f"{'' if b['remaining'] is None else b['remaining']}/{b['limit'] or ''}/{b['level']}"
 
 def _label(kind):
-    import ai_routes
-    if kind == 'other':
-        return '其他'
-    return ai_routes.LABEL.get(kind) or (ai_routes.EXTRA.get(kind) or (kind,))[0]
+    """The learner's name for a task (NAMES), in the page's language; 「其他」 for any kind not there, never the key."""
+    import ui_lang
+    zh, en = NAMES.get(kind, OTHER)
+    return ui_lang.L(zh, en)
 
 
 def _by_kind(c, uid, days, total):
@@ -218,7 +243,7 @@ def _by_kind(c, uid, days, total):
     out = sorted(({'kind': k, 'label': _label(k), 'count': n} for k, n in rows if k != 'other'), key=lambda x: -x['count'])
     rest = total - sum(x['count'] for x in out)
     if rest > 0:  # calls counted before tasks were (2026-11-26) and those marked other
-        out.append({'kind': 'other', 'label': '其他', 'count': rest})
+        out.append({'kind': 'other', 'label': _label('other'), 'count': rest})
     return out
 
 
@@ -238,12 +263,15 @@ def today(c, uid, now=None):
     stopped = ('day_full' if ai_routes.day_full(c) else
                'site' if site and c.execute('SELECT COALESCE(SUM(count),0) FROM ai_usage WHERE day=?', (day,)).fetchone()[0] >= site else
                'paused' if is_paused else 'user' if left == 0 else None)
-    line = {'day_full': cs.DAY_FULL, 'site': SITE_FULL, 'paused': PAUSED,
-            'user': f'今天的 {limit} 次 AI 用完了，{RESET_TEXT}重置。'}.get(stopped) or (
-        f'今天还能用 {left} 次 AI，{RESET_TEXT}重置。' if left is not None else '今天的 AI 不限次数。')
+    import ui_lang
+    L = ui_lang.L
+    line = {'day_full': L(cs.DAY_FULL, DAY_FULL_EN), 'site': L(SITE_FULL, SITE_FULL_EN), 'paused': L(PAUSED, PAUSED_EN),
+            'user': L(f'今天的 {limit} 次 AI 用完了，{RESET_TEXT}重置。', f"Today's {limit} AI uses are used up. They start again at {RESET_TEXT_EN}.")}.get(stopped) or (
+        L(f'今天还能用 {left} 次 AI，{RESET_TEXT}重置。', f'{left} AI uses left today. They start again at {RESET_TEXT_EN}.') if left is not None
+        else L('今天的 AI 不限次数。', 'No limit on AI today.'))
     reset = (int(now // 86400) + 1) * 86400
     return {'used': n, 'limit': limit, 'remaining': left, 'level': _level(left, limit, stopped), 'adjusted': source == 'override', 'paused': is_paused,
-            'paused_until': o['until'] if is_paused else None, 'reset_at': reset, 'reset_text': RESET_TEXT,
+            'paused_until': o['until'] if is_paused else None, 'reset_at': reset, 'reset_text': ui_lang.L(RESET_TEXT, RESET_TEXT_EN),
             'by_kind': _by_kind(c, uid, [day], n), 'stopped': stopped, 'note': line}
 
 
