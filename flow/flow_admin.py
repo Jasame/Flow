@@ -296,7 +296,7 @@ TAP_LABEL = {
     'home-sprint': '今日 · 考试倒计时', 'home-remind-once': '今日 · 计划完成后约复习时间', 'me-exam': '我的 · 我的考试', 'exam-goal': '考试练习 · 设定考试', 'exam-pace': '考试练习 · 按倒计时改每天新词',
     'exam-type': '考试练习 · 题型专练',
     'notice-login': '今日 · 提醒：登录', 'notice-level': '今日 · 提醒：换水平', 'notice-mail': '今日 · 提醒：绑定邮箱', 'notice-guide': '今日 · 提醒：看指南',
-    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
+    'home-resume': '今日 · 继续上次', 'home-news': '今日 · 今日一读', 'home-mine': '今日 · 我的材料', 'home-start': '今日 · 开始今天的练习', 'today-view-list': '今日 · 换成列表', 'today-view-cards': '今日 · 换成卡片', 'today-edit': '今日 · 调整顺序', 'today-edit-done': '今日 · 调整顺序 · 完成', 'home-pick': '今日 · 也可以读', 'home-more': '今日 · 更多材料',
     'practice-tip': '练习 · 今天建议',
     'practice-review-other': '练习 · 错题和句型复习',  # 练习 → 复习 (49-practice.js)
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
@@ -317,7 +317,7 @@ TAP_LABEL = {
     'me-about': '我的 · 认识语流', 'welcome-about': '第一次打开 · 认识语流',
     'about-start': '认识语流 · 开始学', 'about-join': '认识语流 · 注册账号', 'about-guide': '认识语流 · 操作指南', 'about-vocab-test': '认识语流 · 测词汇量',
     'about-dl-android': '认识语流 · 下载安卓 App', 'about-dl-windows': '认识语流 · 下载 Windows 版', 'about-dl-mac': '认识语流 · 下载 Mac 版', 'about-dl-linux-appimage': '认识语流 · 下载 Linux 测试版（AppImage）', 'about-dl-linux-deb': '认识语流 · 下载 Linux 测试版（deb）',
-    'about-harmony-apply': '认识语流 · 鸿蒙申请内测（去问题反馈）', 'about-harmony-join': '认识语流 · 鸿蒙加入内测（AppTest，仅内测版）', 'about-hero-download': '认识语流 · 第一屏的下载入口',
+    'about-harmony-apply': '认识语流 · 鸿蒙申请内测（去问题反馈）', 'about-harmony-join': '认识语流 · 鸿蒙加入内测（AppTest，仅内测版）', 'about-harmony-copy': '认识语流 · 复制鸿蒙内测邀请码（仅内测版）', 'about-hero-download': '认识语流 · 第一屏的下载入口',
     'announce-open': '今日 · 公告：去看看',
     'home-week': '今日 · 这周进步', 'me-weekly-mail': '我的 · 每周进度邮件',
     'finish-expr': '学完一篇 · 小结：表达', 'finish-words': '学完一篇 · 小结：新词', 'finish-grammar': '学完一篇 · 小结：语法点',

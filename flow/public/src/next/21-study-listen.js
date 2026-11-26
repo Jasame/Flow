@@ -181,7 +181,7 @@
       const pr = m._prHidden ? [] : (m.preread || []);
       return pr.length ? `<details class="fold preread"><summary data-tap="listen-preread"><b class="small">读前先认识这 ${pr.length} 个词</b><span class="tiny muted">${pr.map(w => esc(w.word)).join(' · ')}</span></summary>
           <div class="stack-s"><div class="pr-list">${pr.map((w, k) => `<div class="pr"><button class="icon-btn" data-prsay="${k}" aria-label="朗读 ${esc(w.word)}">${ICON.speak}</button>
-            <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted">${esc(w.meaning)}</div></div></div>`).join('')}</div>
+            <div><b>${esc(w.word)}</b> <span class="ph">${esc(w.phonetic)}</span><div class="tiny muted" data-zh>${esc(w.meaning)}</div></div></div>`).join('')}</div>
           <div class="row"><button class="btn small primary" id="prAdd">全部加入复习</button><span class="muted tiny">加入后会在文章里标出来</span></div></div></details>` : '';
     }
     function modeTabs() {
@@ -234,7 +234,7 @@
     }
     function soundsHTML(ss) {
       return ss && ss.length ? `<div class="stack-s"><b class="small">要练的音</b>${ss.map(s => `<div class="snd small"><b class="ph">${esc(s.sound)}</b>
-          <span><b>${esc(s.word)}</b>：${esc(s.note)}${s.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(s.set)}" data-tap="shadow-sound">去练 ${esc(s.set_title)} →</a>` : ''}</span></div>`).join('')}</div>` : '';
+          <span><b>${esc(s.word)}</b>：<span data-ex>${esc(s.note)}</span>${s.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(s.set)}" data-tap="shadow-sound">去练 ${esc(s.set_title)} →</a>` : ''}</span></div>`).join('')}</div>` : '';
     }
     async function shadowMode() {
       const ls = lines(), nm = await narration(ls);
@@ -290,9 +290,9 @@
           const x = (await api('/api/next/shadow', { pack: id, i, audio: { mime_type: mime, data }, request_id: rid('sh') })).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency];
           const out = row(i).querySelector('.sh-out');
-          out.innerHTML = `<div class="card flat sh-res stack-s enter">${aiMark('发音分和点评由 AI 估计，仅供参考')}${pronHTML(x)}${soundsHTML(x.sounds)}
-            ${x.issues.length ? `<div class="stack-s"><b class="small">${x.sounds && x.sounds.length ? '其他要注意的' : '要注意的'}</b>${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}</div>` : ''}
-            ${x.tip ? `<div class="small tip">建议：${esc(x.tip)}</div>` : ''}
+          out.innerHTML = `<div class="card flat sh-res stack-s enter" data-ex-block>${aiMark('发音分和点评由 AI 估计，仅供参考')}${pronHTML(x)}${soundsHTML(x.sounds)}
+            ${x.issues.length ? `<div class="stack-s"><b class="small">${x.sounds && x.sounds.length ? '其他要注意的' : '要注意的'}</b>${x.issues.map(it => `<div class="small"><b>${esc(it.word)}</b>：<span data-ex>${esc(it.note)}</span></div>`).join('')}</div>` : ''}
+            ${x.tip ? `<div class="small tip">建议：<span data-ex>${esc(x.tip)}</span></div>` : ''}
             <div class="stack-xs">${wordsHTML(x.words)}<div class="tiny muted">AI 听到：${esc(x.transcript || '（没听清）')} · 读到 ${x.matched}/${x.words.length} 个词${x.score ? '' : ' · ' + flu}</div></div></div>`;
           requestAnimationFrame(() => requestAnimationFrame(() => out.querySelectorAll('.vbar i').forEach(b => { b.style.width = b.dataset.w + '%'; })));
           if (x.score) {

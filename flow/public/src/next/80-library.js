@@ -20,7 +20,7 @@
     view.innerHTML = `<h1 class="h1">全部材料</h1>
       <div class="lib-two"><a class="lib-way" href="#/easy">${fi('read')}<b>轻松读</b><span class="tiny muted">低一级</span></a><a class="lib-way" href="#/import">${fi('docpen')}<b>我的文章</b><span class="tiny muted">导入</span></a></div>
       ${d.series && d.series.length ? `<section class="lib-sec"><h2 class="lib-cap">连载故事</h2><div class="lib-sers">${d.series.map(s => `<a class="lib-ser" href="#/series/${encodeURIComponent(s.id)}">
-        <b>《${esc(s.title)}》</b><span class="en" lang="en">${esc(s.title_en)}</span><span class="tiny muted">${esc(s.level)} · 共 ${s.of} 集 ${aiTag()}</span>
+        <b>${uiLang() === 'en' && !s.title_en ? esc(s.title) : `《${esc(s.title)}》`}</b><span class="en" lang="en">${esc(s.title_en)}</span><span class="tiny muted">${esc(s.level)} · 共 ${s.of} 集 ${aiTag()}</span>
         <span class="lib-bar" aria-hidden="true"><i data-w="${Math.round((s.done || 0) / s.of * 100)}"></i></span>
         <span class="tiny muted">${s.done ? (s.next ? `读到第 ${s.done} 集 · 继续第 ${s.next_part} 集` : '读完了') : '从第 1 集开始'}</span></a>`).join('')}</div></section>` : ''}
       <section class="lib-sec"><div class="lib-caprow"><h2 class="lib-cap">单篇 · ${d.total} 篇</h2><span class="lib-filt">
@@ -45,7 +45,7 @@
     const next = s.episodes.find(e => e.id === s.next);
     view.innerHTML = `<div><a class="link small" href="#/library">← 全部材料</a></div>
       <div><span class="kicker">连载故事 · ${esc(s.level)} · 共 ${s.of} 集</span><h1 class="h1">${esc(s.title)}</h1><div class="title-en">${esc(s.title_en)}</div>
-        <p class="muted small">${esc(s.blurb)}</p>${aiCheckLink(aiMark('经规范检查'))}</div>
+        <p class="muted small" data-zh>${esc(s.blurb)}</p>${aiCheckLink(aiMark('经规范检查'))}</div>
       ${next ? `<a class="btn primary block" href="#/m/${encodeURIComponent(next.id)}">${s.done ? `继续：第 ${next.part} 集` : '从第 1 集开始'}<span aria-hidden="true">→</span></a>` : '<p class="small">六集都读完了。可以回到任意一集，再听一遍或者重写输出任务。</p>'}
       <div class="serial section">${s.episodes.map(e => `<a class="ep${e.read ? ' done' : ''}${e.id === s.next ? ' next' : ''}" href="#/m/${encodeURIComponent(e.id)}">
         <span class="n" aria-hidden="true">${e.read ? '✓' : e.part}</span><span class="t"><b>${esc(e.title.replace(/^.*?[：:]/, ''))}</b><span class="tiny muted">${esc(e.preview.replace(/^连载第\s*\d+\s*集(（完）)?[：:]\s*/, ''))}</span></span>

@@ -12,6 +12,7 @@ While the English pages are being done it is open only on the 内测版 (and on 
 | `flow/public/src/next/01-en-*.js` | the tables, one per area: `enTable({ '中文': 'English', … })` |
 | `flow/public/src/next/07-lang.js` | the switch (`langSwitchHTML()` + `langSwitchWire(root)`), `setLang()`, kept with the account, the line to undo a switch |
 | `flow/public/src/next/00-lang.css` | Latin fonts first under `html[lang=en]`, English for words in CSS `content:`, the switch and the undo line |
+| `flow/public/src/next/31-ex-zh.js` | 看中文: under each block of AI feedback in English mode, a button that brings each explanation line's Chinese (`/api/next/zh`, ai_lang.py) |
 | `flow/ui_lang.py` | the request's language (`X-Flow-Lang: en`), `L(zh, en)`, English for the server's error messages (`ERRORS`) |
 | `next_service.set_lang` | `/api/next/lang` → `next_profiles.lang` → `profile.lang` |
 | `tools/check_i18n.py` | lists the Chinese in the front end and the server's error messages that have no English yet |
@@ -39,6 +40,10 @@ the account after signing in. For 10 s after a switch a line offers to undo it, 
 - Chinese meant to stay Chinese in English mode — a word's meaning, a translation, a Chinese source sentence, what the
   learner wrote — goes in an element with `data-zh`. It is not looked up, a screen reader reads it with a Chinese
   voice, and the missing-English check does not count it. `translate="no"` also leaves a part alone (the switch).
+- AI feedback is in English on an English page (ai_lang.py). Mark the block that holds one answer (a result, a
+  look-up's explanation, a dialog's chat) with `data-ex-block` and each line of explanation in it with `data-ex`
+  (not the learner's text, not the model sentences, not a meaning or translation that is Chinese anyway): the
+  「Show Chinese · 看中文」 button comes by itself (31-ex-zh.js).
 - Counts: `qty(n, '天', 'day')` → 「3 天」 / "3 days" (`qty(2, '个', 'box', 'boxes')` for an irregular plural).
   Dates: `dayMonth(d)` → 「11月26日」 / "Nov 26", `dayMonth(d, true)` with the year, `weekday(d)` → 「周四」 / "Thu".
   Lists: `listJoin(['听', '读'])`. Do not use `Intl.PluralRules`, `Intl.RelativeTimeFormat`, `Intl.ListFormat` or
@@ -54,12 +59,15 @@ above, the Chinese stays under it, small); exam explanations (考试练习的解
 top: "The guide is in Chinese for now.").
 
 **AI marks** in English mode carry both languages, Chinese first: 「AI 生成 · AI-generated」, 「AI 朗读 · AI voice」,
-「朗读由 AI 合成 · AI voice」. Where that is too long, the Chinese alone.
+「朗读由 AI 合成 · AI voice」. Where that is too long, the Chinese alone. The small tag in a card's info line (`aiTag()`) is the
+Chinese alone; the line on top of AI content (`aiMark()`) and the voice lines carry both.
 
 ## Style
 
 - American English (color, favorite, practice as noun and verb). The default voice is American too.
 - Sentence case everywhere: "Word plan", not "Word Plan". Brand names keep their case: IELTS, CET-4.
+- A row in a list or a two-column grid is one line: about 13 letters on an iPhone SE (B9). Page names are the
+  row names, so they are short too.
 - Short and plain; the learner is reading in a second language. A button is a verb or a noun: "Save", "Next".
   No exclamation marks, no "please" on buttons, no "Oops".
 - Numbers as digits ("3 words"), "min" in tight labels ("10 min"), "Beijing time" for 北京时间, "8 a.m." for 早上 8 点.
@@ -76,6 +84,7 @@ top: "The guide is in Chinese for now.").
 | 练习 | Practice | tab, page |
 | 单词 | Words | tab, page |
 | 我的 | Me | tab, page |
+| 能力 | Skills | tab (the skills radar) |
 | 内测版 / 内测 | Beta | 正式版 = the main site (flowlang.cn) |
 | 材料 / 文章 / 一篇 | text | "a text", "Study a text"; never "material" |
 | 学一篇 | study a text | |
@@ -92,20 +101,26 @@ top: "The guide is in Chinese for now.").
 | 新词 | New words | |
 | 复习 | Review | |
 | 到期 / 待复习 | due | "12 due" |
-| 认识 · 模糊 · 忘了 | Know it · Not sure · Forgot | review buttons |
-| 收藏 / 已收藏 | Save / Saved | to word cards; 保存 (settings) is not shown as a word |
+| 不认识 · 模糊 · 认识 | Don't know · Not sure · Know it | review buttons (front) |
+| 记错了 · 没错 | Wrong · Right | review buttons (after the answer) |
+| 收藏 / 已收藏 | Save / Saved | to word cards |
+| 保存 / 已保存 | Save / Saved | settings, a form |
+| 存到本机 / 已存到本机 | Keep offline / Kept offline | |
 | 单词卡 / 卡片 | card / word card | |
 | 词书 | Word book | |
 | 查词 | Look up | |
-| 测词汇量 | Vocabulary test | |
-| 错题本 | Mistakes | |
+| 测词汇量 | Vocab test | |
+| 错题本 · 错题和句型 | Mistake log · Mistakes | |
 | 讲解 | Explanation (noun) · Explain (button) | |
 | 看中文 | Show Chinese | under each AI explanation |
 | 例句 | Example | |
 | 释义 / 意思 | Meaning | |
 | 表达 | Expression | |
 | 生词 | New word | in a text |
+| 中文导读 | In Chinese (the button) · Chinese summary (in a sentence) | |
+| 改写成 B1 难度 | B1 version | |
 | 跟读 | Shadow (button) · Shadowing (noun) | |
+| 录音键 | the record button | never ● |
 | 听写 | Dictation | |
 | 精听 | Close listening | |
 | 听一遍 | Play | |
@@ -121,25 +136,33 @@ top: "The guide is in Chinese for now.").
 | 能力雷达 | Skills radar | |
 | 知识图谱 | Grammar map | |
 | 语法点 | Grammar point | |
-| 语法起点小测 | Grammar placement quiz | |
+| 语法起点小测 | Grammar level | |
 | 起点检查 | Placement check | |
 | 词汇辨析 | Word pairs | |
 | 口语路线 | Speaking path | |
 | 雅思口语 | IELTS Speaking | |
-| 发音入门 | Pronunciation basics | |
+| 发音入门 | Sounds | |
 | 考试练习 | Exam practice | |
 | 考试冲刺 | Exam sprint | |
-| 混合练习 | Mixed practice | |
+| 混合练习 | Mixed drill | |
 | 这周进步 | This week | card on 今日 |
 | 我的进步 | My progress | |
 | 周报 | Weekly report | |
 | 使用习惯 | Preferences | 我的 → 使用习惯 |
 | 设置 | Settings | |
+| 外观 | Appearance | |
+| AI 用量 | AI use | |
+| 修改密码 · 退出所有设备 · 注销账号 | Change password · Sign out everywhere · Delete account | |
+| 新手引导 · 使用提示 | tour · tips | |
+| 开 · 关 | On · Off | |
+| 新功能 · 改进 · 修好的问题 · 用法变了 | New features · Improvements · Fixes · Works differently | 更新记录 |
+| 今日推荐 · 本周任务 · 还有时间的话 | Today's pick · This week's tasks · If you have time | 今日 |
+| 早上好 · 中午好 · 下午好 · 晚上好 · 夜深了 | Good morning · Hello · Good afternoon · Good evening · It's late | greetings |
 | 今日的样子 · 列表 · 卡片 | Today view · List · Cards | |
 | 主题色 · 松绿 · 靛蓝 | Accent · Green · Indigo | |
 | 新词卡 · 复习卡 · 简洁 · 详细 | New-word card · Review card · Simple · Detailed | |
 | 字号 · 标准 · 大 · 特大 | Text size · Standard · Large · Extra large | |
-| 行距 · 标准 · 宽松 | Spacing · Normal · Wide | |
+| 行距 · 标准 · 宽松 | Spacing · Standard · Wide | 标准 is Standard everywhere |
 | 朗读声音 · 美音 · 英音 · 女声 · 男声 | Voice · American · British · female · male | |
 | 学习目标 | Goal | |
 | 水平 | Level | |
@@ -168,3 +191,14 @@ top: "The guide is in Chinese for now.").
 | AI 生成 | AI 生成 · AI-generated | both, Chinese first |
 | AI 朗读（自然人声） | AI 朗读 · AI voice | both, Chinese first |
 | 北京时间 | Beijing time | |
+| 盲听 | Listen only | |
+| 朗读 | Read aloud | AI 朗读: see the AI marks |
+| 推荐 | Suggested | |
+| 以后再说 | Not now | |
+| 邀请码 | Invite code | |
+| 我的班级 · 新建班级 | My class · New class | |
+| 验证码登录 · 忘记密码 · 绑定邮箱 | Sign in with a code · Forgot password · Add your email | |
+| 加到手机日历 | Add to phone calendar | |
+| 话题卡 | cue card | IELTS |
+| 记住率 | recall rate | |
+| 中考 · 高考 · 四级 · 六级 · 考研 · 专四 · 专八 · 雅思 · 托福 | Zhongkao · Gaokao · CET-4 · CET-6 · Kaoyan · TEM-4 · TEM-8 · IELTS · TOEFL | exam names |

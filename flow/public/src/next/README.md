@@ -30,6 +30,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`); 仿写 in three blocks: the sentence and the task, the writing box, one full-width button (`97-out-model.css`) |
 | `25-finish.js` | 这篇完成了 (r27): the finish card after any 用出来, with three lines on what the text gave (expressions, words, a grammar point) |
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
+| `31-ex-zh.js` | 看中文 under the AI's English explanations (English mode): one 「Show Chinese · 看中文」 after each `data-ex-block`, the block's `data-ex` lines to `/api/next/zh` and back in Chinese under each line; lines added later come in Chinese while it is on (`31-ex-zh.css`) |
 | `40-graph.js` | knowledge graph: learning route and full map; grammar-point pages (Chinese-speaker trap, connected points, rounds of 4 from a bank of 10) |
 | `41-placement.js` | 语法起点小测: 16 questions band by band, places the learner and lights the graph |
 | `42-exam.js` | 考试练习: timed sets for 中考 … 专八 / IELTS, results and their trend |
@@ -47,7 +48,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `70-learner.js` | ability profile, daily plan, level suggestion, microphone; the record key (`recBtn`, `REC_MARK`: 语流's mark, its waves move while recording, `97-rec-key.css`) |
 | `71-import.js` | 我的文章 |
 | `72-sounds.js` | 发音入门 and its listening quiz |
-| `73-report.js` | weekly report and share picture |
+| `73-report.js` | weekly report and share picture; the page in blocks: the week in one sentence with seven dots, a block a subject, rows to open, one full-width button (`97-report.css`) |
 | `80-library.js` | 全部材料, serial stories and their episode list; the page: two ways out, serial stories as cards to swipe, 单篇 with its filters on one line and the level as a switch (`97-library.css`) |
 | `81-me.js` | 我的, email binding |
 | `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |

@@ -330,7 +330,7 @@ class FinishTests(Db):
 
     def test_study_again_offers_the_next_recommendation(self):
         self.assertIn("const more1 = h.today.find(m => m && m.id !== readId", JS)
-        self.assertIn("href=\"${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}\"", JS)
+        self.assertIn("href=\"${f.more1 ? '#/m/' + encodeURIComponent(f.more1.id) : '#/library'}\"", JS)
 
 
 class WeekDaysTests(Db):

@@ -57,7 +57,7 @@ UI_SHARDS = [
     ['layout', 'sprint', 'backlog', 'review-side', 'app-audio'],                  # 465 s (app-audio about 20 s)
     ['home-app', 'phone-land', 'progress', 'ios-audio', 'swipe', 'privacy', 'one-screen'],  # 454 s + one-screen
     ['phone', 'tablet', 'start', 'ux', 'platforms', 'learner', 'shell'],           # 454 s + shell
-    ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey'],       # 454 s
+    ['listen-speak', 'desktop', 'a11y', 'wechat', 'class', 'trial-survey', 'english'],  # 454 s + english (全英文界面, ~3 min; the user's pick A, 2026-11-26)
 ]
 
 

@@ -1,26 +1,22 @@
-  /* ---------- 今日好句 and 今日一读 (今日热点 until 2026-11-25): the top of 今日 ---------- */
+  /* ---------- 今日好句 (r27): a row under 还有时间的话 that opens in place (列表), or a card of its own (卡片) ---------- */
   // 好句 (daily_line.py, in the home data): a public-domain line one day, a sentence from a 语流 text the next, with its
   // meaning and where it comes from. 听一遍 (the text's own narration when it has one, else the browser voice),
   // 跟读 (record, play back after the original; signed in, the AI says what to fix) and 收藏 (into review).
-  function lineCardHTML(h) {
-    const l = h && h.line; if (!l) return '';
+  // The sentence (the expression to learn in bold), what it means, where it is from, and 听一遍 · 跟读 · 收藏: opened in
+  // place from its row under 还有时间的话 (列表), or the whole of its card (卡片, 13-today-views.js).
+  function lineEnHTML(l) {
     let en = esc(l.en).split(' / ').join('<br>');
     if (l.expression) { const k = l.en.toLowerCase().indexOf(l.expression.toLowerCase()); if (k >= 0) en = esc(l.en.slice(0, k)) + '<b>' + esc(l.en.slice(k, k + l.expression.length)) + '</b>' + esc(l.en.slice(k + l.expression.length)); }
-    // 今日好句 is the section's name (aria-labelledby), not a heading: 今日's first heading is 今天的计划, the page's h1
-    // (UI audit r33: an h2 came before the h1). On a phone the card is one line until tapped (the owner, 2026-11-25: 今天的计划 and its button on the first screen);
-    // opened, it stays open for the rest of the day. iPad and computer always show it whole (98-daily-line.css).
-    const open = load('flow-line-open') === lineDay(l);
-    return `<section class="card line-card${open ? ' open' : ''}" id="lineCard" aria-labelledby="lineTitle">
-      <div class="lc-head"><span class="lc-title" id="lineTitle">今日好句</span><span class="pill${l.kind === 'text' ? ' green' : ''}">${esc(l.label)}</span>
-        <button class="lc-fold" id="lcFold" type="button" aria-expanded="${open}" aria-controls="lcBody" aria-label="${open ? '收起' : '展开'}今日好句" data-tap="line-fold"><span class="lc-peek" lang="en" aria-hidden="true">${esc(l.say)}</span><span class="lc-chev" aria-hidden="true"></span></button></div>
-      <div class="lc-body" id="lcBody">
-      <p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${en}</p>
+    return en;
+  }
+  function lineBodyHTML(l) {
+    return `<p class="lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${lineEnHTML(l)}</p>
       <p class="lc-zh">${esc(l.zh)}</p>${l.note ? `<p class="tiny muted lc-note">${esc(l.note)}</p>` : ''}
-      <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
+      <p class="lc-src tiny">${l.kind === 'quote' ? '— ' : ''}${esc(l.source)}${l.label ? ' · ' + esc(l.label) : ''}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
       <div class="lc-acts"><button class="btn small" id="lcSay" type="button" data-tap="line-say">${ICON.speak}听一遍</button>
         <button class="btn small" id="lcShadow" type="button" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>
         <button class="btn small" id="lcKeep" type="button" data-tap="line-keep">${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>
-      <div id="lcPanel" hidden></div></div></section>`;
+      <div id="lcPanel" hidden></div>`;
   }
   function lineDay(l) { return new Date().toDateString() + ' ' + l.id; }
   function sayLine(l, done) {
@@ -29,18 +25,23 @@
   }
   function bindLine(h) {
     const l = h && h.line, box = document.getElementById('lineCard'); if (!l || !box) return;
+    // 列表: a row that opens the sentence in place (open for the rest of the day); 卡片: always open, no row
     const fold = box.querySelector('#lcFold');
-    fold.onclick = () => {
-      const open = !box.classList.contains('open');
-      box.classList.toggle('open', open); fold.setAttribute('aria-expanded', String(open)); fold.setAttribute('aria-label', (open ? '收起' : '展开') + '今日好句');
-      save('flow-line-open', open ? lineDay(l) : null);
-      if (!open) { MIC.stop(); const p = box.querySelector('#lcPanel'); if (!p.hidden) box.querySelector('#lcShadow').click(); }
-    };
+    if (fold) {
+      const show = open => { box.classList.toggle('open', open); fold.setAttribute('aria-expanded', String(open)); };
+      show(load('flow-line-open') === lineDay(l));
+      fold.onclick = () => {
+        const open = !box.classList.contains('open');
+        show(open); save('flow-line-open', open ? lineDay(l) : null);
+        if (!open) { MIC.stop(); const p = box.querySelector('#lcPanel'); if (p && !p.hidden) box.querySelector('#lcShadow').click(); }
+      };
+    }
     box.querySelector('#lcSay').onclick = () => sayLine(l);
     box.querySelector('#lcKeep').onclick = e => saveCard(l.kind === 'text'
       ? { text: l.expression, meaning: l.meaning, context: l.en, pack: l.pack }
       : { text: l.say, meaning: l.zh, context: l.source }, e.currentTarget);
     const tog = box.querySelector('#lcShadow'), panel = box.querySelector('#lcPanel');
+    if (!tog || !panel) return;  // 卡片: 听一遍 and 收藏 only
     let blob = null, url = '';
     tog.onclick = () => {
       const open = panel.hidden; panel.hidden = !open; tog.setAttribute('aria-expanded', String(open));
@@ -62,22 +63,14 @@
           const x = (await api('/api/next/shadow', body)).result;
           const flu = { smooth: '流畅', ok: '基本流畅', choppy: '有点断断续续' }[x.fluency] || '';
           const sc = x.score;  // 发音分 (r27 C, the same as 听 → 跟读): accuracy, fluency and how much of the line was said
-          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter">${aiMark('发音分和点评由 AI 估计，仅供参考')}${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
+          panel.querySelector('.lc-out').innerHTML = `<div class="card flat stack-s enter" data-ex-block>${aiMark('发音分和点评由 AI 估计，仅供参考')}${sc ? `<div class="small"><b class="lc-score">${sc.total}</b> 发音分 · 准确 ${sc.accuracy} · 流利 ${sc.fluency} · 完整 ${x.matched}/${x.words.length}<span class="tiny muted">（AI 估计，仅供参考）</span></div>` : ''}
             <div class="small">${x.words.map(w => `<span class="${w.ok ? '' : 'miss'}" lang="en">${esc(w.w)}</span>`).join(' ')}</div>
             <div class="tiny muted">AI 听到：<span lang="en">${esc(x.transcript || '（没听清）')}</span> · 读到 ${x.matched}/${x.words.length} 个词${flu && !sc ? ' · ' + flu : ''}</div>
-            ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：${esc(sd.note)}${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
-            ${x.issues.map(it => `<div class="small"><b lang="en">${esc(it.word)}</b>：${esc(it.note)}</div>`).join('')}${x.tip ? `<div class="small">建议：${esc(x.tip)}</div>` : ''}</div>`;
+            ${(x.sounds || []).map(sd => `<div class="small"><b lang="en">${esc(sd.sound)} ${esc(sd.word)}</b>：<span data-ex>${esc(sd.note)}</span>${sd.set ? ` <a class="link" href="#/sounds/${encodeURIComponent(sd.set)}" data-tap="shadow-sound">去练 ${esc(sd.set_title)} →</a>` : ''}</div>`).join('')}
+            ${x.issues.map(it => `<div class="small"><b lang="en">${esc(it.word)}</b>：<span data-ex>${esc(it.note)}</span></div>`).join('')}${x.tip ? `<div class="small">建议：<span data-ex>${esc(x.tip)}</span></div>` : ''}</div>`;
         } catch (e) { toast(e.message); }
         ai.disabled = false; ai.textContent = '✦ AI 点评';
       };
     };
   }
-  // 今日一读 (since 2026-11-25; 今日热点 before): an original short text a day on a lasting topic, written by AI with no
-  // news and no search (daily_service), marked 「AI 生成」 in the shared style (aiTag, 00-head.js). On a phone it is one
-  // line (its name, the title, 「AI 生成」): a tap opens the text, as before.
-  function newsCardHTML(n) {
-    if (!n) return '';
-    return `<a class="card news-card" href="#/m/${encodeURIComponent(n.id)}" data-tap="home-news"><span class="lc-head"><span class="lc-title nc-title">今日一读</span>${aiTag()}</span>
-      <b class="nc-h">${esc(n.title)}</b>${n.preview ? `<span class="small muted nc-p">${esc(n.preview)}</span>` : ''}
-      <span class="tiny muted nc-meta">${n.level} · ${n.reasons && n.reasons.length ? `<span class="nc-why">${esc(n.reasons[0])}</span>` : esc(n.theme_label || '')}${n.minutes ? ` · 约 ${n.minutes} 分钟` : ''}<span class="nc-go">读这篇 →</span></span></a>`;
-  }
+

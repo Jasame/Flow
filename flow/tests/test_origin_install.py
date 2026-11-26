@@ -62,7 +62,7 @@ class FrontEndTests(unittest.TestCase):
         self.assertIn('aiMark(aiNote(m))', (SRC / '44-easy.js').read_text(encoding='utf-8'))
         for f in ('10-welcome-today.js', '44-easy.js'):
             self.assertIn("m.ai ? ' ' + aiTag() : ''", (SRC / f).read_text(encoding='utf-8'), f)
-        self.assertIn('aiTag()', (SRC / '12-daily-line.js').read_text(encoding='utf-8'))
+        self.assertIn('aiTag()', (SRC / '13-today-views.js').read_text(encoding='utf-8'))  # 今日一读: its row and its card (r39)
         lib = (SRC / '80-library.js').read_text(encoding='utf-8')
         self.assertIn('aiTag()', lib); self.assertIn("aiCheckLink(aiMark('经规范检查'))", lib)
 
