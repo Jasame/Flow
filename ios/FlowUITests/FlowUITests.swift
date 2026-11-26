@@ -358,6 +358,7 @@ final class FlowUITests: XCTestCase {
         tapButton("开关复原")
         wait(web.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "features: ", "siri:1")).firstMatch, 10,
              "快捷指令和 Siri: on as it comes: \(value("features: "))")
+        XCTAssertTrue(value("features: ").contains("word-search:0"), "在系统搜索里找生词: off as it comes")
         tapButton("iOS 专属功能")
         wait(app.navigationBars["iOS 专属功能"], 10, "the app's own page")
         let siri = app.switches["feature.siri"]
