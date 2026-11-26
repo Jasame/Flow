@@ -184,7 +184,10 @@ def learner(c, uid):
     mats = []
     for pid, steps, last in c.execute('SELECT pack, GROUP_CONCAT(step), MAX(created) FROM next_progress WHERE user_id=? GROUP BY pack ORDER BY MAX(created) DESC LIMIT 20', (uid,)):
         t = titles.get(pid)
-        mats.append({'id': pid, 'title': _title(c, titles, pid), 'level': t[1] if t else '', 'steps': (steps or '').split(','), 'last': last})
+        own = not t and c.execute('SELECT 1 FROM lab_packs WHERE id=? AND owner IS NOT NULL', (pid,)).fetchone()
+        # an article the learner imported is theirs: its title is not shown either
+        mats.append({'id': '' if own else pid, 'title': '自己导入的文章' if own else _title(c, titles, pid), 'level': t[1] if t else '',
+                     'steps': (steps or '').split(','), 'last': last})
     vo = None
     if c.execute('SELECT 1 FROM next_vocab_plans WHERE user_id=?', (uid,)).fetchone() or c.execute('SELECT 1 FROM next_cards WHERE user_id=?', (uid,)).fetchone():
         o = vs.overview(c, uid)
@@ -194,7 +197,10 @@ def learner(c, uid):
         if vo['plan']:
             vo['plan']['title'] = vs.book_title(vo['plan']['book'])
     sources = {SOURCE_LABEL.get(k, k): n for k, n in c.execute('SELECT source, COUNT(*) FROM next_cards WHERE user_id=? GROUP BY source', (uid,))}
-    mistakes = [dict(r) for r in c.execute('SELECT text, meaning, lapses, reps FROM next_cards WHERE user_id=? AND lapses>0 ORDER BY lapses DESC, last DESC LIMIT 12', (uid,))]
+    # words and phrases only: a 改错卡 holds a piece of what the learner wrote (corrected) and a question card a question;
+    # the console never shows what a learner wrote (隐私和数据: 看不到作文内容)
+    mistakes = [dict(r) for r in c.execute("SELECT text, meaning, lapses, reps FROM next_cards WHERE user_id=? AND lapses>0 AND kind IN ('word','phrase') "
+                                           "AND COALESCE(source,'')!='mistake' ORDER BY lapses DESC, last DESC LIMIT 12", (uid,))]
     ratings = {RATE_LABEL.get(k, k): n for k, n in c.execute('SELECT rating, COUNT(*) FROM next_reviews WHERE user_id=? AND created>? GROUP BY rating', (uid, now - 30 * DAY))}
     mature = c.execute("SELECT COUNT(*), SUM(rating!='again') FROM next_reviews WHERE user_id=? AND created>? AND elapsed>=1 AND rating IN ('again','hard','good','easy')",
                        (uid, now - 30 * DAY)).fetchone()
