@@ -3670,6 +3670,12 @@ def review_side_run(pw):
         ZONE_JS = """() => ({ front: !!document.querySelector('.ractions [data-claim]'), back: !!document.querySelector('.open-card'),
           rates: [...document.querySelectorAll('.ractions [data-rate]')].map(b => b.dataset.rate), guide: !!document.getElementById('zoneGuide'),
           undo: !!document.querySelector('#undo:not([disabled])') })"""
+        def steady(pg):  # the card drawn and left as it is for 700 ms: a new or redrawn card takes no tap for 600 ms (60-review.js)
+            for _ in range(8):
+                pg.wait_for_selector('#view .review [data-claim], #view .review.zoned', timeout=8000)
+                pg.evaluate("window.__steady = document.querySelector('#view .review')"); pg.wait_for_timeout(700)
+                if pg.evaluate("!!(window.__steady && window.__steady.isConnected)"):
+                    return
         def tap_card(pg, third, down=None):  # a third of the card (0 left, 1 middle, 2 right), near its top or `down` of its height
             r = pg.evaluate("() => { const r = document.querySelector('.review').getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
             pg.touchscreen.tap(r[0] + r[2] * (third * 2 + 1) / 6, r[1] + (r[3] * down if down else 24)); pg.wait_for_timeout(350)
@@ -3678,7 +3684,7 @@ def review_side_run(pw):
         pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
         posts = []; pg.on('request', lambda r: posts.append(r.url) if r.method == 'POST' and re.search(r'/api/next/review(/undo)?$', r.url) else None)
         pg.goto(BASE + '/#/cards', wait_until='load'); settle(pg)
-        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)  # a new card takes no tap in its first 600 ms
+        go(pg, '#/review'); steady(pg)  # a new card takes no tap in its first 600 ms
         z0 = pg.evaluate(ZONE_JS)
         labels = pg.evaluate("[...document.querySelectorAll('#zoneGuide span')].map(s => s.textContent)")
         pg.screenshot(path=str(OUT / 'review-side-zone-guide.png'))
@@ -3739,11 +3745,12 @@ def review_side_run(pw):
         left_ok = pg.evaluate("() => [!!document.querySelector('#listSlot'), !document.querySelector('#view .review'), (document.querySelector('#view h1') || {}).textContent]")
         check(dev, 'leaving while an answer is saved: the next page stays, no review card drawn over it', left_ok[0] and left_ok[1], left_ok)
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
-        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
+        pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); steady(pg)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)
-        pg.click('#undo'); pg.wait_for_timeout(300)
-        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
+        if pg.query_selector('#undo:not([disabled])'):  # nothing to take back if the tap above did not answer (that check says so)
+            pg.click('#undo'); pg.wait_for_timeout(300)
+        pg.evaluate("localStorage.setItem('flow-tap-zones', '0')"); pg.reload(wait_until='load'); steady(pg)
         tap_card(pg, 0)
         check(dev, '点卡片作答 off (我的 → 设置): a tap on the card does nothing', pg.evaluate(ZONE_JS)['front'], pg.evaluate(ZONE_JS))
         check(dev, 'no script errors (点卡片作答)', not errs, errs[:3])
