@@ -4228,8 +4228,9 @@ def shell_run(pw):
                    sideways: document.scrollingElement.scrollWidth > innerWidth }; }""")
         due = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => (h.stats || {}).radar_due)")
         go(pg, '#/me'); me_radar = pg.locator('#view a[href="#/radar"]').count(); ctx.close()
-        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; the dot says how many skills are due; 我的 has no second way in',
-              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due and tb['dot'] and tb['label'] == f'能力，有 {due} 项该测了' and me_radar == 0, (tb, due, me_radar))
+        # the dot only for a skill measured before and due again (B9, 2026-11-26): goals set, nothing measured yet → none
+        check(dev, '底栏: five tabs, 能力 in the middle and lit on #/radar; no dot for skills never measured; 我的 has no second way in',
+              tb['names'] == ['今日', '练习', '能力', '单词', '我的'] and tb['current'] == '能力' and due == 0 and not tb['dot'] and tb['label'] is None and me_radar == 0, (tb, due, me_radar))
         check(dev, '底栏 at 320 px: five tabs of 44 px or more, one line each, nothing sideways',
               min(tb['widths']) >= 44 and max(tb['lines']) <= 20 and not tb['sideways'], tb)
         check(dev, 'no page errors', not errs, errs[:3])
@@ -4516,7 +4517,7 @@ HOME_INIT = """(([t, b, s]) => {
     r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); r.setProperty('--sal', s + 'px'); r.setProperty('--sar', s + 'px'); });
 })(%s)"""
 HOME_SUB = ['#/m/{pid}/listen', '#/m/{pid}/read', '#/m/{pid}/output/essay', '#/review', '#/vocab/test', '#/vocab/plan', '#/exam/cet4', '#/exam/cet4/banked',
-            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
+            '#/graph', '#/graph/voice-basic', '#/import', '#/report', '#/growth', '#/radar/test', '#/guide', '#/guide/words', '#/feedback',
             '#/library', '#/welcome/edit', '#/speak', '#/easy', '#/sounds', '#/placement', '#/mix', '#/words/confuse']
 BACK_JS = """() => { const b = document.getElementById('backBtn'); if (!b || b.hidden || b.offsetParent === null) return null; const r = b.getBoundingClientRect();
   return { top: Math.round(r.top), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height), label: b.textContent.trim(),
@@ -4543,18 +4544,25 @@ def home_app_run(pw):
             ctx, pg, errs = context(size)
             pg.goto(BASE + '/', wait_until='networkidle'); settle(pg)
             check(dev, f'{size}: the page knows it is a home-screen app', pg.evaluate("document.documentElement.classList.contains('home-app')"))
-            for page in ('#/', f'#/m/{PID}/read'):  # --bar-h, for pages that fill one screen: the bar's real height, back button or not
+            phone = w < 760  # phones have no 「语流 Flow」 bar in the app (2026-11-26): only 返回's, on the pages that have one
+            for page in ('#/', f'#/m/{PID}/read'):  # --bar-h, for pages that fill one screen: what is above the page, back button or not
                 go(pg, page); pg.wait_for_timeout(150)
                 bh = pg.evaluate("[parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--bar-h')), Math.round(document.getElementById('bar').getBoundingClientRect().height)]")
-                check(dev, f'{size} {page}: --bar-h is the top bar\'s height ({bh[1]}px, the inset included)', bh[0] == bh[1] and bh[1] >= 48 + top, bh)
-            # the four tabs: no back button, the logo below the Dynamic Island, every tab above the home bar
-            for page in ('#/', '#/practice', '#/cards', '#/me'):
+                if phone and page == '#/':
+                    check(dev, f'{size} {page}: no top bar; --bar-h is the status bar\'s room ({top}px)', bh[1] == 0 and bh[0] == top, bh)
+                else:
+                    check(dev, f'{size} {page}: --bar-h is the top bar\'s height ({bh[1]}px, the inset included)', bh[0] == bh[1] and bh[1] >= 48 + top, bh)
+            # the five tabs: no back button; a phone has no bar, the page itself clears the Dynamic Island (a wider screen: the
+            # logo does); every tab above the home bar
+            for page in ('#/', '#/practice', '#/radar', '#/cards', '#/me'):
                 go(pg, page)
                 tabs = pg.evaluate("""() => { const t = [...document.querySelectorAll('.tabs a')].filter(a => a.offsetParent !== null).map(a => a.getBoundingClientRect());
-                  const brand = document.querySelector('.bar .brand').getBoundingClientRect();
-                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, brandTop: Math.round(brand.top), back: !document.getElementById('backBtn').hidden }; }""")
-                check(dev, f'{size} {page}: no back button; the logo clears the top inset; the tabs clear the home bar',
-                      not tabs['back'] and tabs['brandTop'] >= top and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
+                  const bar = document.getElementById('bar'), brand = document.querySelector('.bar .brand').getBoundingClientRect(), first = document.querySelector('#view > *');
+                  return { n: t.length, low: t.length ? Math.round(Math.max(...t.map(r => r.bottom))) : null, bar: bar.offsetParent !== null || getComputedStyle(bar).display !== 'none',
+                           brandTop: Math.round(brand.top), pageTop: first ? Math.round(first.getBoundingClientRect().top + scrollY) : null, back: !document.getElementById('backBtn').hidden }; }""")
+                top_ok = (not tabs['bar'] and tabs['pageTop'] is not None and tabs['pageTop'] >= top) if phone else tabs['brandTop'] >= top
+                check(dev, f'{size} {page}: no back button; ' + ('no top bar, the page clears the top inset' if phone else 'the logo clears the top inset') + '; the tabs clear the home bar',
+                      not tabs['back'] and top_ok and (tabs['n'] == 0 or tabs['low'] <= h - bottom), tabs)
             # every other page: a back button in the first screen, below the Dynamic Island, big enough to tap
             pid = PID
             for page in HOME_SUB:

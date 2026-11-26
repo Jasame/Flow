@@ -51,6 +51,9 @@ button{cursor:pointer}
 .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--sab));z-index:30}
 .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
 .tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* 「能力」's radar (the user, 2026-11-26: C): three thin axes, and the shape inside filled lightly; both follow the tab's colour */
+.tabs svg .t{stroke-width:1;opacity:.55}
+.tabs svg .f{fill:currentColor;fill-opacity:.28}
 .tabs a[aria-current=page]{color:var(--green-ink);font-weight:600}
 /* something waiting under 练习 / 单词: a small ink dot, no number (the count is in the tab's aria-label, 02-shell.js) */
 .badge{position:absolute;top:3px;left:calc(50% + 9px);width:8px;height:8px;border-radius:50%;background:var(--ink);padding:0;overflow:hidden;font-size:0;line-height:0}
