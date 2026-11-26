@@ -81,6 +81,15 @@ def schema(c):
     __import__('beta_tools').schema(c)  # 内测版的测试账号 (2026-11-26)
 
 
+def harmony_link(c, admin):
+    """The 内测版's 鸿蒙内测链接 for the console: the link, its domain, and when it was last saved (the operator log: the
+    settings file's own time is for all its keys)."""
+    co = __import__('console_ops')
+    last = c.execute("SELECT created, email FROM flow_admin_log WHERE action='harmony-link' ORDER BY id DESC LIMIT 1").fetchone()
+    return {'url': co.harmony_test_url(), 'host': co.harmony_test_host(),
+            'saved': ({'at': last[0], **({'by': last[1]} if admin else {})} if last else None)}
+
+
 def log_action(c, op, action, target='', detail=''):
     c.execute('INSERT INTO flow_admin_log(created, email, role, action, target, detail) VALUES(?,?,?,?,?,?)',
               (time.time(), op['email'] or '（未知）', op['role'], action, str(target)[:200], str(detail)[:300]))
@@ -101,7 +110,7 @@ ACTION_LABEL = {'reset-link': '生成重设密码链接', 'survey-hide': '隐藏
                 'class-create': '新建班级', 'class-rename': '班级改名', 'class-teacher': '换班级老师', 'class-code': '换邀请码',
                 'class-stop': '停用班级', 'class-start': '重新启用班级',
                 'teacher-link': '生成老师注册链接', 'teacher-link-revoke': '作废老师注册链接',
-                'invite-create': '生成内测版邀请码', 'invite-revoke': '作废内测版邀请码',
+                'invite-create': '生成内测版邀请码', 'harmony-link': '改鸿蒙内测链接', 'invite-revoke': '作废内测版邀请码',
                 'test-account': '造测试账号', 'test-reset': '重置测试数据（删掉全部测试账号）',
                 'ai-routes': '改任务用的模型', 'ai-budget': '改 AI 预算和评测', 'ai-redo': '让 AI 重写一条内容',
                 'account-purge': '删除暂停满 30 天的账号', 'account-purge-report': '暂停满 30 天的账号（只报告，没删）',
@@ -369,6 +378,8 @@ def console_get(c, path, one, op):
         if not admin:
             for x in out['items']:
                 x.pop('by', None)
+        if __import__('app').CHANNEL == 'beta':
+            out['harmony'] = harmony_link(c, admin)
         return out
     if path == '/learners':
         return cd.learner_list(c, one('q')[:60], one('filter', 'all'), one('sort', 'recent'), int(one('page', '1') or 1))
@@ -492,6 +503,18 @@ def console_post(c, path, data, op):
         if status == 200:
             log_action(c, op, 'test-reset', tgt)
         return body, status
+    # 鸿蒙内测链接 (console_ops, D3 #415): the 内测版's download page shows 「加入内测」 with it, 「即将开放」 without
+    if path == '/settings/harmony-link':
+        import app
+        if app.CHANNEL != 'beta':
+            return {'error': '鸿蒙内测链接只在内测版的后台里填'}, 409
+        try:
+            co.set_harmony_test_url(str(data.get('url') or '')[:2000], who)
+        except ValueError as e:
+            return {'error': str(e), 'field': 'url'}, 400
+        host = co.harmony_test_host()
+        log_action(c, op, 'harmony-link', '鸿蒙内测链接', host or '清空')
+        return {'ok': True, **harmony_link(c, True)}, 200
     # 内测版邀请码 (beta_invites): made and revoked only on the 内测版's console (FLOW_CHANNEL=beta)
     if path in ('/beta-invite/create', '/beta-invite/revoke'):
         import app
