@@ -5,7 +5,7 @@
   // A part of its own: any page puts weekCardSlot() where it wants the card and calls mountWeekCards(root). The card
   // draws from the home data when that is here (今日 needs no second request), else it asks for its own
   // (GET /api/next/week?brief=1). It makes no assumption about what is above or below it (今日 today; 能力 later).
-  const WEEKDAYS = '一二三四五六日';
+  const WEEKDAYS = uiLang() === 'en' ? 'MTWTFSS' : '一二三四五六日';  // i18n: keep (a day's first letter, Monday first)
   function accText(a) {
     const n = a.now, b = a.before;
     const value = n.rate != null ? n.rate + '%' : n.total ? `${n.right}/${n.total}` : '—';
