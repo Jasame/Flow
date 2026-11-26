@@ -27,20 +27,23 @@
   async function welcome(edit) {
     if (!S.meta || !S.meta.targets) S.meta = await api('/api/next/meta');
     const M = S.meta, cur = edit ? ((S.home && S.home.profile) || S.guest || {}) : {};
-    const st = { goal: cur.goal || '', exam: cur.exam || '', date: cur.exam_date || '', target: cur.target || '', level: cur.level || '',
+    // 学英语为了什么: more than one may be chosen (the user, 2026-11-26), up to three; the first is the main one (goal)
+    const st = { goals: (cur.goals && cur.goals.length ? cur.goals : cur.goal ? [cur.goal] : []).slice(0, 3), goal: '', exam: cur.exam || '', date: cur.exam_date || '', target: cur.target || '', level: cur.level || '',
                  minutes: cur.minutes || 10, themes: (cur.themes || []).slice(), days: cur.weekly_goal || 0 };
     let picked = !!cur.target;  // a target chosen by hand is not replaced by the suggestion
     // 一周学几天 (r28 第 6 段, 每周目标): 5 for an exam, 4 otherwise (save_profile's default) until chosen by hand
     let dayPicked = !!cur.weekly_goal;
-    const daysFor = () => (st.goal === 'exam' ? 5 : 4);
-    const suggest = () => M.target_for[st.goal === 'exam' && st.exam ? st.exam : st.goal] || 'B1';
+    st.goal = st.goals[0] || '';
+    const hasExam = () => st.goals.includes('exam');
+    const daysFor = () => (hasExam() ? 5 : 4);
+    const suggest = () => M.target_for[hasExam() && st.exam ? st.exam : st.goal] || 'B1';
     const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const radio = (attr, v, on, inner, cls = 'chip') => `<button class="${cls}" type="button" role="radio" data-${attr}="${esc(v)}" aria-checked="${on}">${inner}</button>`;
     document.body.classList.toggle('onboarding', !edit);
     view.innerHTML = `<div class="stack wg">
-      <div>${edit ? '<span class="kicker">学习目标和水平</span>' : ''}<h1 class="h1">你学英语主要为了什么？</h1><p class="muted small">选一个，之后在「我的」里随时能改。</p></div>
-      <div class="wg-goals" role="radiogroup" aria-label="学英语主要为了什么">${[...M.goals].sort((a, b) => (b.id === 'exam') - (a.id === 'exam')).map(g => radio('goal', g.id, g.id === st.goal,
-        `<span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span>`, 'opt')).join('')}</div>
+      <div>${edit ? '<span class="kicker">学习目标和水平</span>' : ''}<h1 class="h1">你学英语主要为了什么？</h1><p class="muted small">可以多选，最多 3 个，第一个选的算主要目标；之后在「我的」里随时能改。</p></div>
+      <div class="wg-goals" role="group" aria-label="学英语为了什么，可以多选">${[...M.goals].sort((a, b) => (b.id === 'exam') - (a.id === 'exam')).map(g => `<button class="opt" type="button" data-goal="${esc(g.id)}" aria-pressed="${st.goals.includes(g.id)}">
+        <span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span><span class="main" hidden>主要</span></button>`).join('')}</div><span class="sr-only" id="wgMainNote">主要目标</span>
       <section class="stack-s" id="wgExam" aria-labelledby="wgExamH" hidden><h2 class="h3" id="wgExamH">准备哪个考试？</h2>
         <div class="chips" role="radiogroup" aria-labelledby="wgExamH">${M.exams.map(e => radio('exam', e.id, e.id === st.exam, esc(e.short))).join('')}</div>
         <div class="stack-s" id="wgDate" hidden><label class="small" for="wgDateIn">考试日期（选填，不确定可以先空着）</label><input type="date" id="wgDateIn" min="${today}" value="${esc(st.date)}"></div></section>
@@ -69,21 +72,33 @@
       if (!picked) st.target = suggest();
       if (!dayPicked) st.days = daysFor();
       view.querySelectorAll('[data-days]').forEach(b => b.setAttribute('aria-checked', String(Number(b.dataset.days) === st.days)));
-      view.querySelectorAll('[data-goal]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.goal === st.goal)));
+      st.goal = st.goals[0] || '';
+      view.querySelectorAll('[data-goal]').forEach(b => {
+        const on = st.goals.includes(b.dataset.goal), main = on && st.goals.length > 1 && b.dataset.goal === st.goal;
+        b.setAttribute('aria-pressed', String(on)); b.querySelector('.main').hidden = !main;
+        // a screen reader hears which one is the main goal (the corner says 主要)
+        if (main) b.setAttribute('aria-describedby', 'wgMainNote'); else b.removeAttribute('aria-describedby');
+      });
       view.querySelectorAll('[data-exam]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.exam === st.exam)));
       view.querySelectorAll('[data-target]').forEach(b => { b.setAttribute('aria-checked', String(b.dataset.target === st.target)); b.querySelector('.rec').hidden = !st.goal || b.dataset.target !== suggest(); });
-      document.getElementById('wgExam').hidden = st.goal !== 'exam';
-      document.getElementById('wgDate').hidden = st.goal !== 'exam' || !st.exam;
-      document.getElementById('wgGo').disabled = !st.goal;
+      document.getElementById('wgExam').hidden = !hasExam();
+      document.getElementById('wgDate').hidden = !hasExam() || !st.exam;
+      document.getElementById('wgGo').disabled = !st.goals.length;
       // with an exam and no word plan yet, starting makes one on the exam's book (save_profile): said here first
-      const e = st.goal === 'exam' && M.exams.find(x => x.id === st.exam), plan = document.getElementById('wgPlan');
+      const e = hasExam() && M.exams.find(x => x.id === st.exam), plan = document.getElementById('wgPlan');
       const hasPlan = !!(S.home && S.home.stats && S.home.stats.vocab_plan);
       plan.hidden = !e || hasPlan;
       if (e && !hasPlan) plan.textContent = S.user ? `${edit ? '保存' : '开始学习'}后会为你建好《${e.book_title}》每天 10 个新词，可以在「单词」里改。`
         : `登录后会为你建好《${e.book_title}》每天 10 个新词的背词计划，可以在「单词」里改。`;
-      const need = document.getElementById('wgNeed'); need.textContent = st.goal ? '' : '先选一个目标'; need.hidden = !!st.goal;
+      const need = document.getElementById('wgNeed'); need.textContent = st.goals.length ? '' : '先选一个目标'; need.hidden = !!st.goals.length;
     };
-    view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => { st.goal = b.dataset.goal; sync(); });
+    view.querySelectorAll('[data-goal]').forEach(b => b.onclick = () => {
+      const g = b.dataset.goal;
+      if (st.goals.includes(g)) st.goals = st.goals.filter(x => x !== g);
+      else if (st.goals.length >= 3) { toast('最多选 3 个，先去掉一个再选'); return; }
+      else st.goals = st.goals.concat(g);
+      sync();
+    });
     view.querySelectorAll('[data-exam]').forEach(b => b.onclick = () => { st.exam = b.dataset.exam; sync(); });
     view.querySelectorAll('[data-target]').forEach(b => b.onclick = () => { st.target = b.dataset.target; picked = true; sync(); });
     view.querySelectorAll('[data-days]').forEach(b => b.onclick = () => { st.days = Number(b.dataset.days); dayPicked = true; sync(); });
@@ -96,11 +111,11 @@
     sync();
     document.getElementById('wgGo').onclick = async e => {
       const btn = e.currentTarget; btn.disabled = true;
-      const exam = st.goal === 'exam' ? st.exam : '', date = exam ? document.getElementById('wgDateIn').value : '';
+      const exam = hasExam() ? st.exam : '', date = exam ? document.getElementById('wgDateIn').value : '';
       // the level: from the starting check if it was just taken; from 我的 as chosen (or kept); otherwise one band below the target
       const level = S.placed ? S.placed : edit ? st.level || below(st.target) : below(st.target);
       const source = S.placed ? 'placed' : edit && st.level === cur.level ? (cur.level_source || 'self') : edit && st.level ? 'self' : 'guess';
-      const prof = { goal: st.goal, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date, weekly_goal: st.days };
+      const prof = { goal: st.goal, goals: st.goals, target: st.target, level, level_source: source, themes: st.themes, minutes: st.minutes, exam, exam_date: date, weekly_goal: st.days };
       let made = null;
       if (S.user) { try { made = (await api('/api/next/profile', prof)).plan_made; } catch (x) { btn.disabled = false; toast(x.message); return; } }
       S.placed = ''; S.guest = { ...(S.guest || {}), ...prof }; save('flow-next-guest', S.guest);

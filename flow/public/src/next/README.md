@@ -26,8 +26,8 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `20-study.js` | `study()`: material header, step bar, step bookkeeping |
 | `21-study-listen.js` | 听: whole-text playback, shadowing, dictation |
 | `22-study-read.js` | 读: reader, read-along, new words, keyboard reading |
-| `23-study-check.js` | 理解: comprehension questions |
-| `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`) |
+| `23-study-check.js` | 理解: comprehension questions, one a screen; after the answer the pick and the right option stay, the evidence and 下一题 under them; a result page that opens each question again (`97-check-one.css`) |
+| `24-study-output.js` | 用出来: model sentence, retell, dialogue, translation, essay (closes `study()`); 仿写 in three blocks: the sentence and the task, the writing box, one full-width button (`97-out-model.css`) |
 | `25-finish.js` | 这篇完成了 (r27): the finish card after any 用出来, with three lines on what the text gave (expressions, words, a grammar point) |
 | `30-lookup.js` | word look-up, AI sentence explanation, saving cards |
 | `40-graph.js` | knowledge graph: learning route and full map; grammar-point pages (Chinese-speaker trap, connected points, rounds of 4 from a bank of 10) |
@@ -48,7 +48,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `71-import.js` | 我的文章 |
 | `72-sounds.js` | 发音入门 and its listening quiz |
 | `73-report.js` | weekly report and share picture |
-| `80-library.js` | 全部材料, serial stories and their episode list |
+| `80-library.js` | 全部材料, serial stories and their episode list; the page: two ways out, serial stories as cards to swipe, 单篇 with its filters on one line and the level as a switch (`97-library.css`) |
 | `81-me.js` | 我的, email binding |
 | `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |
 | `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |

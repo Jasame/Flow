@@ -184,12 +184,16 @@
       if (om === 'essay') return essayMode();
       const key = 'flow-next-draft-' + id;
       const draft = load(key) || '';
-      pane.innerHTML = `${outTabs('model')}<div class="stack"><div class="card flat task"><b>${esc(m.task.prompt)}</b>
-          ${m.task.model ? `<div class="model">${esc(m.task.model)} <button class="icon-btn" id="sayModel" type="button" aria-label="朗读参考句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</div>` : ''}
+      // 仿写 in three blocks (B9, 2026-11-26; the user on the mock-ups: 完全做，按照现在的效果图): the sentence to copy with
+      // the task under it, the box to write in with its count, and the one full-width button.
+      pane.innerHTML = `${outTabs('model')}<div class="stack-s out1"><div class="card flat task out-card">
+          ${m.task.model ? `<div class="out-top"><span class="tiny muted">照这句写一句</span><span class="say-pair">${aiVoiceNote('AI 合成', 'span')}<button class="icon-btn out-say" id="sayModel" type="button" aria-label="朗读参考句（AI 朗读）">${ICON.speak}</button></span></div>
+          <div class="model" lang="en">${esc(m.task.model)}</div>` : ''}
+          <p class="out-task">${esc(m.task.prompt)}</p>
           ${m.task.hint ? `<div class="muted small">${esc(m.task.hint)}</div>` : ''}${tryHintHTML(id)}
           ${(m.mine || []).length ? `<div class="muted small">可以试着用上你在背的词：${[...new Set(m.mine.map(x => x.form))].slice(0, 5).map(w => `<b>${esc(w)}</b>`).join('、')}（用对了算一次成功复习）</div>` : ''}</div>
-        <label class="field">你的英文<textarea id="ans" maxlength="600" lang="en" data-submit="#go" placeholder="写一两句就好，写错没关系。">${esc(draft)}</textarea></label>
-        <div class="row between"><span class="counter" id="cnt">${draft.length} / 600</span><button class="btn primary" id="go">让 AI 帮我改</button></div>
+        <label class="card flat out-write"><span class="sr-only">你的英文</span><textarea id="ans" maxlength="600" lang="en" data-submit="#go" placeholder="写一两句就好，写错没关系。">${esc(draft)}</textarea><span class="counter" id="cnt">${draft.length} / 600</span></label>
+        <button class="btn primary block out-go" id="go">让 AI 帮我改</button>
         <p class="err" id="outErr" role="alert"></p><div id="result"></div></div>`;
       const ta = pane.querySelector('#ans');
       ta.oninput = () => { save(key, ta.value); pane.querySelector('#cnt').textContent = ta.value.length + ' / 600'; };

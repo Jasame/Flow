@@ -100,7 +100,7 @@ class OfflineTests(Db):
 
 class PageTests(unittest.TestCase):
     def test_keep_share_and_the_week_are_on_the_page(self):
-        for s in ("const OFF = {", "materialPath(id) + '&offline=1'", 'function keepTodayOffline', "data-tap=\"study-keep\"", 'm.answers && m.answers[i]',
+        for s in ("const OFF = {", "materialPath(id) + '&offline=1'", 'function keepTodayOffline', "data-tap=\"study-keep\"", 'm.answers && m.answers[k]',
                   "const SHARE_URL = 'https://flowlang.cn/?f=card'", 'function shareFromMaterial', 'id="shareX"', 'id="shareDone"', 'QR.draw(g, SHARE_URL',
                   'function mountWeekCards', 'function habitSheet', "api('/api/next/habit'", 'id="lastWeek"'):
             self.assertIn(s, JS)
