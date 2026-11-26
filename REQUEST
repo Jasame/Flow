@@ -1,3 +1,3 @@
-d41aeb353f49961afbfc879d558f97a1babc5708 9111d61eb45a5b4ee977065c45bcb510c8fd23a271bb1a9217611fb4b6ba6d25 e2e light ref=build-df9bbf3039ed tag=b124 tools=f967256ed0a029d82f5783f2bb00a69ace7a483cab64eebb55e3e7561629caff
-# b124 main: Merge pull request #423 from Jasame/console-ai-quota = build of df9bbf3039ed
+ef08df00f327045881f441fc82a51269cb545afc 6ab062fd50d445662aa96b78d5bde3836bfa613df79f10ea3e3073cafde78576 e2e light ref=build-2b80664328a4 tag=b125 tools=f967256ed0a029d82f5783f2bb00a69ace7a483cab64eebb55e3e7561629caff
+# b125 main: Merge pull request #428 from Jasame/ledger-beta-console2 = build of 2b80664328a4
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
