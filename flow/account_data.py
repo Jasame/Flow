@@ -18,7 +18,8 @@ LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures
 LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt'}
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
-    'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
+    'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_corrections': 'AI 改错记录：哪一次练习里改了哪个语法点（看哪些问题反复出现）',
+    'next_evidence': '周报「这周的一次进步」：后来你自己写对的句子（每个语法点最多两句，90 天后删）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
     'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标、我的考试和日期、朗读声音、主题色',
     'next_goals': '能力目标', 'next_assess': '水平测评', 'next_radar': '能力雷达的每次结果', 'next_skill_events': '各项练习的得分',
     'next_exam_results': '考试练习的成绩', 'next_exam_type_results': '题型专练每一组的成绩', 'next_easy_reads': '轻松读：读了什么、多快', 'next_word_practice': '单词练习的每一题',
