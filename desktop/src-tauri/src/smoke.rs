@@ -7,7 +7,8 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 
 /// FLOW_SMOKE_NOTIFY=1: also plan the reminders and show one test notification, report the system's queue, then
-/// clear it. For CI's Windows runner (nothing to approve there); a Mac would ask for permission first.
+/// do what account.changed does (切换账号) and report that nothing planned or shown is left. For CI's Windows and
+/// Linux runners (nothing to approve there); a Mac would ask for permission first.
 pub fn notify_wanted() -> bool {
     std::env::var_os("FLOW_SMOKE_NOTIFY").is_some_and(|v| v != "0")
 }
@@ -70,21 +71,46 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
     let delivered = tauri::async_runtime::spawn_blocking(crate::notify::delivered)
         .await
         .unwrap_or_default();
-    let test_notification = if notify_wanted() {
+    let (test_notification, shown, after_account_changed) = if notify_wanted() {
         let launch = format!("{}://open", st.channel.scheme());
         let r = tauri::async_runtime::spawn_blocking(move || {
-            let r = crate::notify::show_now("语流 · 冒烟测试", "测试通知，可以忽略。", &launch);
-            crate::notify::clear(); // the runner keeps nothing planned
-            r
+            crate::notify::show_now("语流 · 冒烟测试", "测试通知，可以忽略。", &launch)
         })
         .await;
-        Some(match r {
+        let r = match r {
             Ok(Ok(())) => "shown".to_string(),
             Ok(Err(e)) => e,
             Err(e) => e.to_string(),
+        };
+        // the notification centre lists it a moment later (Linux keeps no list: nothing to wait for)
+        let shown = tauri::async_runtime::spawn_blocking(|| {
+            for _ in 0..25 {
+                let d = crate::notify::delivered();
+                if !d.is_empty() || cfg!(target_os = "linux") {
+                    return d;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+            vec![]
         })
+        .await
+        .unwrap_or_default();
+        // 切换账号 as account.changed does it: nothing planned or shown is left for the last account, and the
+        // runner keeps nothing planned
+        crate::bridge::forget_account(&app).await;
+        let pending = tauri::async_runtime::spawn_blocking(crate::notify::pending)
+            .await
+            .unwrap_or_default();
+        let still = tauri::async_runtime::spawn_blocking(crate::notify::delivered)
+            .await
+            .unwrap_or_default();
+        let after = serde_json::json!({
+            "pending": pending.iter().map(|(id, _)| id).collect::<Vec<_>>(),
+            "shown": still,
+        });
+        (Some(r), Some(shown), Some(after))
     } else {
-        None
+        (None, None, None)
     };
     let out = serde_json::json!({
         "page": r,
@@ -100,6 +126,8 @@ pub async fn smoke_report(app: AppHandle, r: serde_json::Value) {
             "notify_setting": st.settings().notify,
             "smoke_notify": notify_wanted(),
             "test_notification": test_notification,
+            "shown": shown,
+            "after_account_changed": after_account_changed,
             "pending": pending.iter().map(|(id, at)| serde_json::json!({ "id": id, "at": at.map(|t| chrono::DateTime::from_timestamp(t, 0).map(|d| d.with_timezone(&chrono::Local).to_rfc3339())) })).collect::<Vec<_>>(),
             "delivered": delivered,
             "os": std::env::consts::OS,

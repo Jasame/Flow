@@ -175,12 +175,17 @@ pub async fn notify_hold(app: AppHandle) -> PlanResult {
 /// front does, without the 30 minutes' wait. The switch stays as it is: it belongs to this computer, not the account.
 #[tauri::command]
 pub async fn notify_account(app: AppHandle) -> PlanResult {
+    forget_account(&app).await
+}
+
+/// What account.changed does here (also the smoke test's check that the shown reminders go too).
+pub(crate) async fn forget_account(app: &AppHandle) -> PlanResult {
     let st = app.state::<AppState>();
     if st.settings().once_seen.is_some() {
         st.update_settings(|s| s.once_seen = None);
     }
     let _ = tauri::async_runtime::spawn_blocking(notify::clear_shown).await;
-    let r = put(&app, vec![]).await;
+    let r = put(app, vec![]).await;
     st.last_sync.store(0, Ordering::Relaxed);
     r
 }

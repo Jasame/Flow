@@ -83,6 +83,8 @@ npm run build:beta       # 打 Beta 安装包；npm run build 打 Release
 ```
 
 打开网站，在页面里检查 `FlowApp`、UA、通知权限、mediaSession 接到原生，写报告后退出（90 秒没报告退出码 2）。
+Windows 和 Linux 上 CI 加了 `FLOW_SMOKE_NOTIFY=1`：真的排提醒、弹一条测试通知，再照切换账号（account.changed）的做法撤掉，
+检查系统里排好的提醒、Windows 通知中心里弹过的那条都没了（Linux 的通知服务不留记录，只查排好的）。
 CI（`.github/workflows/desktop.yml`）在 windows-latest 上装好 NSIS 安装包再跑一次，在 macos-latest 上跑 .app，截图和安装包都在 run 的 artifacts 里（留 14 天）。
 
 ### 出安装包

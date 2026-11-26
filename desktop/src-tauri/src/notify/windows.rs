@@ -80,9 +80,17 @@ pub fn pending() -> Vec<(String, Option<i64>)> {
     v
 }
 
-/// (not read on Windows: the Action Center keeps its own history)
+/// The toasts shown and still in the notification centre (their tags; the smoke test's has none: "").
 pub fn delivered() -> Vec<String> {
-    vec![]
+    let (Some(id), Ok(h)) = (AUMID.get(), ToastNotificationManager::History()) else {
+        return vec![];
+    };
+    let Ok(list) = h.GetHistoryWithId(&HSTRING::from(id.as_str())) else {
+        return vec![];
+    };
+    list.into_iter()
+        .map(|t| t.Tag().map(|s| s.to_string()).unwrap_or_default())
+        .collect()
 }
 
 pub fn clear() {
