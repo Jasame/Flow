@@ -41,7 +41,7 @@ class LearnerModelTests(unittest.TestCase):
         self.assertFalse(nx.check(self.c, 1, {'pack': PID, 'index': 0, 'choice': wrong})[0]['correct'])
         card = self.c.execute("SELECT * FROM next_cards WHERE user_id=1 AND source='mistake'").fetchone()
         self.assertEqual((card['kind'], card['skill']), ('question', 'reading'))
-        item = vs.queue(self.c, 1)['items'][0]
+        item = vs.queue(self.c, 1, part='other')['items'][0]  # a mistake: 其他复习 (练习 → 复习), not the word queue
         self.assertEqual(item['mode'], 'question'); self.assertEqual(item['extra']['answer'], q['answer'])
         nx.check(self.c, 1, {'pack': PID, 'index': 0, 'choice': wrong})  # the same mistake again: still one card
         self.assertEqual(self.c.execute("SELECT COUNT(*) FROM next_cards WHERE source='mistake'").fetchone()[0], 1)
@@ -78,7 +78,7 @@ class LearnerModelTests(unittest.TestCase):
             self.assertEqual(nx.rewrite(self.c, 1, {'pack': PID, 'text': 'If I left earlier I would catch the bus.', 'request_id': self.rid()})[1], 200)
         card = self.c.execute("SELECT * FROM next_cards WHERE source='mistake'").fetchone()
         self.assertEqual((card['kind'], card['text'], card['node']), ('fix', 'would have caught', 'subjunctive-past'))
-        item = next(i for i in vs.queue(self.c, 1)['items'] if i['id'] == card['id'])
+        item = next(i for i in vs.queue(self.c, 1, part='other')['items'] if i['id'] == card['id'])
         self.assertEqual(item['mode'], 'fix'); self.assertEqual(item['extra']['from'], 'would catch'); self.assertEqual(item['node']['id'], 'subjunctive-past')
         self.assertEqual(self.c.execute("SELECT skill, kind FROM next_skill_events").fetchone()[:], ('writing', 'rewrite'))
 

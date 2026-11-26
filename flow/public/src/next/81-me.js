@@ -46,10 +46,10 @@
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
-        u && S.home && S.home.profile ? grow('mePers', '按我的学习记录推荐', personalizeLabel(), 'mePersV', 'me-personalize') : '',  // 81-privacy.js
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
-        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : ''],
-        u && S.home && S.home.profile ? '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。' : ''],
+        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '',
+        u && S.home && S.home.profile ? personalizeRow() : ''],  // last in the group: the grey line under it is about it (81-privacy.js)
+        u && S.home && S.home.profile ? PERSONALIZE_FOOT : ''],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
@@ -82,7 +82,7 @@
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
-    const mp = document.getElementById('mePers'); if (mp) mp.onclick = personalizeSheet;  // 81-privacy.js
+    personalizeWire();  // the switch and 「了解更多」 (81-privacy.js)
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
     const mw = document.getElementById('meWithdraw'); if (mw) mw.onclick = withdrawInApp;  // 81-privacy.js
     const mpm = document.getElementById('mePerms'); if (mpm) mpm.onclick = permissionsSheet;

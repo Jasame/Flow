@@ -363,6 +363,7 @@
       else if (name === 'mix') { setNav('practice'); await mixView(a === 'pair' || a === 'topic' || a === 'exam' || a === 'more' ? a : 'due', b ? decodeURIComponent(b) : ''); }
       else if (name === 'm' && a) { setNav('today'); await study(decodeURIComponent(a), b || 'listen', sameMaterial); }
       else if (name === 'graph') { setNav('practice'); await (a ? nodeView(decodeURIComponent(a)) : graphView()); }
+      else if (name === 'cards' && a === 'mistake') { setNav('practice'); await mistakeView(); }  // 错题本: 练习 → 复习
       // #/cards/find/<词>: the words list with that word searched (the iPhone's system search opens a word this way, 语流 C1)
       // (a 「/」 left unencoded, as in borrow / lend, is still part of the word)
       else if (name === 'cards' && a === 'find') { setNav('cards'); await vocabView(parts().slice(2).map(x => decodeURIComponent(x)).join('/').slice(0, 80), 1, ''); const sf = document.getElementById('sf'); if (sf) sf.scrollIntoView({ block: 'start' }); }
@@ -372,7 +373,7 @@
       else if (name === 'report') { setNav('me'); await reportView(); }
       else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
-      else if (name === 'review') { setNav('cards'); await reviewView(a === 'more'); }
+      else if (name === 'review') { setNav(a === 'other' ? 'practice' : 'cards'); await reviewView(a === 'more', a === 'other' ? 'other' : 'words'); }
       else if (name === 'library') { setNav('practice'); await libraryView(); }
       else if (name === 'practice') { setNav('practice'); await practiceView(); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
