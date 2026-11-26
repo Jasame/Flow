@@ -833,3 +833,10 @@
   - #372 兼容检查：Safari 只认 -webkit- 的属性，同一条规则里要有带前缀的那条（并进 B8 的 user-select 检查）（后台和班级、发版和构建）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45734755337
+
+### b104 · 2026-11-26 09:30
+- main `b5e0b7c`，构建 `db5ec87`
+- 新合并的 PR（自 b103 起）：
+  - #367 按我的学习记录推荐：小窗两段之间的空隙改成 12px（B9 巡检）（后台和班级）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 159/159，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45736090148
