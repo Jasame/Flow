@@ -35,7 +35,7 @@
   // top and this question keep a change meant for the 内测版 off 语流). Survey and feedback housekeeping does not ask.
   var PROD_ASK = { '/learner/disable': '停用或恢复这个账号', '/learner/signout': '让这个账号在所有设备上退出登录',
     '/learner/level': '改这个学员的水平', '/learner/daily-new': '改这个学员每天的新词数', '/learner/staff': '改员工账号',
-    '/learner/teacher': '改老师账号', '/users/reset-link': '生成重设密码链接', '/material/hide': '下架或恢复这篇材料',
+    '/learner/teacher': '改老师账号', '/learner/ai-quota': '改这个学员的 AI 额度', '/learner/ai-quota/clear': '恢复这个学员的普通 AI 额度', '/users/reset-link': '生成重设密码链接', '/material/hide': '下架或恢复这篇材料',
     '/settings/ai-limits': '改 AI 额度', '/settings/ai-budget': '改 AI 预算和上限', '/settings/ai-routes': '改各项任务用的 AI 模型',
     '/daily/run': '生成今日一读', '/tasks/examples/start': '开始例句预生成', '/tasks/examples/stop': '停止例句预生成',
     '/announcements/create': '发布公告（学员马上在「今日」看到）', '/announcements/end': '结束公告', '/class/create': '新建班级',
@@ -482,6 +482,7 @@
           '<p class="muted small">近 14 天每天的次数（UTC 日）· ' + (ai.remaining == null ? '今天不限次数' : '今天还剩 ' + n(ai.remaining) + ' 次') + '</p>' +
           (ai.kinds.length ? '<table class="cmp"><thead><tr><th>近 30 天</th><th class="num">成功</th><th class="num">失败</th></tr></thead><tbody>' + ai.kinds.map(function (k) {
             return '<tr><td>' + esc(k.label) + '</td><td class="num">' + n(k.complete) + '</td><td class="num">' + (k.failed ? '<span class="err">' + n(k.failed) + '</span>' : 0) + '</td></tr>'; }).join('') + '</tbody></table>' : '') + '</section>' +
+        (ai.quota ? quotaCard(ai.quota) : '') +
         (d.feedback.length ? '<section class="card"><h3>提过的反馈</h3><ul class="todo">' + d.feedback.map(function (f) {
           return '<li><a href="#feedback"><span>' + esc(f.kind) + ' · ' + esc(f.text) + '</span><span class="muted">' + (f.status === 'new' ? '待处理' : '已处理') + ' · ' + esc(rel(f.created)) + '</span></a></li>'; }).join('') + '</ul></section>' : '') +
         (d.log.length ? '<section class="card"><h3>管理员对这个账号做过的事</h3><table class="cmp"><tbody>' + d.log.map(function (r) {
@@ -530,6 +531,85 @@
       if (!(k >= 1 && k <= 200) || k === v.plan.daily_new) return;
       busy(b, postJSON('/learner/daily-new', { id: a.id, daily_new: k })).then(after);
     });
+    wireQuota(a, ai.quota, after);
+  }
+
+  /* ---------- AI 额度：一个账号自己的每天次数、倍数或暂停（ai_quota，B7 #405；管理员才看得到按人的数字） ---------- */
+  var QSRC = { admin: '员工账号，不限次数', override: '单独调整过', usual: '普通上限', none: '没有每人上限' };
+  function quotaWhat(o) {
+    return (o.paused ? '暂停 AI' : o.daily ? '每天 ' + n(o.daily) + ' 次' : '普通上限的 ' + o.factor + ' 倍') +
+      (o.until ? '，到 ' + when(o.until) : '，一直有效（直到改回）');
+  }
+  function quotaCard(q) {
+    var o = q.override, h = q.history || [], k30 = q.by_kind ? q.by_kind.d30 : q.by_kind_30 || [];
+    var html = '<section class="card" id="drQuota"><h3>AI 额度</h3><dl class="kv">' +
+      '<dt>今天</dt><dd>' + n(q.today) + (q.limit != null ? ' / ' + n(q.limit) + ' 次' : ' 次') + ' · ' + esc(QSRC[q.source] || q.source) +
+        (q.source === 'usual' && q.usual ? '（每人每天 ' + n(q.usual) + ' 次）' : '') + (q.paused ? ' · <span class="pill danger">暂停中</span>' : '') + '</dd>' +
+      '<dt>近 7 天 / 30 天</dt><dd>' + n(q.d7) + ' / ' + n(q.d30) + ' 次 · 估算费用（30 天）' + yuan(q.cost_est_30) + '</dd>' +
+      (q.near_streak ? '<dt>留意</dt><dd><span class="pill warn">连续 ' + q.near_streak + ' 天用到上限的八成以上</span>' + (q.full_days_30 ? ' · 近 30 天用满 ' + q.full_days_30 + ' 天' : '') + '</dd>' : '') +
+      (o ? '<dt>单独调整</dt><dd>' + esc(quotaWhat(o)) + (o.active ? '' : ' <span class="pill off">已到期</span>') +
+        '<div class="muted small">原因：' + esc(o.reason) + ' · ' + esc(o.by) + ' · ' + esc(when(o.updated)) + '</div></dd>' : '') + '</dl>' +
+      (k30.length ? '<table class="cmp"><thead><tr><th>近 30 天，按功能</th><th class="num">次数</th></tr></thead><tbody>' + k30.map(function (k) {
+        return '<tr><td>' + esc(k.label) + '</td><td class="num">' + n(k.count) + '</td></tr>'; }).join('') + '</tbody></table>' : '');
+    if (isAdmin()) html +=
+      '<form class="form" id="qtF" style="margin-top:12px"><div class="row">' +
+        '<label><span>怎么调</span><select id="qtMode"><option value="daily">每天固定次数</option><option value="factor">普通上限的几倍</option><option value="pause">暂停 AI</option></select></label>' +
+        '<label id="qtValL"><span id="qtValT">每天几次（1–1000）</span><input class="input" id="qtVal" type="number" min="1" max="1000" step="1" value="' + (q.limit || q.usual || 20) + '"></label>' +
+        '<label><span>多久</span><select id="qtDays"><option value="7">7 天</option><option value="30">30 天</option><option value="90">90 天</option><option value="1">1 天</option><option value="0">一直，直到改回</option></select></label></div>' +
+        '<label><span>原因（必填，120 字以内）</span><input class="input" id="qtWhy" maxlength="120" placeholder="例如：一天内调用 300 次，疑似脚本"></label>' +
+        '<p class="muted small" style="margin:0">只写事实，不写对人的评价，也不写别的个人信息。学员导出自己的数据时能看到这条原因；学员的页面上不显示。暂停时学材料、背单词和做题照常，AI 朗读改用设备的声音。</p>' +
+        '<div class="row"><button class="btn primary">保存</button>' + (o ? '<button class="btn" type="button" id="qtClear">恢复普通额度</button>' : '') + '</div></form>';
+    if (h.length) html += '<details style="margin-top:10px"><summary class="muted small">调整记录（' + h.length + '）</summary><table class="cmp"><tbody>' + h.map(function (x) {
+      var c = x.change || {};
+      return '<tr><td class="small">' + esc(when(x.at)) + '<span class="sub">' + esc(x.by) + '</span></td><td class="small">' +
+        (c.cleared ? '恢复普通额度' : esc(quotaWhat(c)) + (c.reason ? '<span class="sub">原因：' + esc(c.reason) + '</span>' : '')) + '</td></tr>'; }).join('') + '</tbody></table></details>';
+    return html + '</section>';
+  }
+  function wireQuota(a, q, after) {
+    var f = document.getElementById('qtF'); if (!f || !q) return;
+    var mode = document.getElementById('qtMode'), val = document.getElementById('qtVal'), lab = document.getElementById('qtValL'), txt = document.getElementById('qtValT');
+    mode.onchange = function () {
+      lab.hidden = mode.value === 'pause';
+      if (mode.value === 'factor') { txt.textContent = '普通上限的几倍（0.1–10）'; val.min = '0.1'; val.max = '10'; val.step = '0.1'; val.value = '2'; }
+      else if (mode.value === 'daily') { txt.textContent = '每天几次（1–1000）'; val.min = '1'; val.max = '1000'; val.step = '1'; val.value = String(q.limit || q.usual || 20); }
+    };
+    f.onsubmit = function (e) {
+      e.preventDefault();
+      var why = document.getElementById('qtWhy').value.trim(), days = Number(document.getElementById('qtDays').value);
+      if (!why) { document.getElementById('qtWhy').focus(); return; }
+      var what = mode.value === 'pause' ? '暂停 AI' : mode.value === 'daily' ? '每天 ' + val.value + ' 次' : '普通上限的 ' + val.value + ' 倍';
+      if (!ask('把「' + a.username + '」的 AI 额度改成：' + what + '，' + (days ? days + ' 天' : '一直有效（直到改回）') + '？\n\n原因：' + why)) return;
+      busy(f.querySelector('button'), postJSON('/learner/ai-quota', { id: a.id, mode: mode.value, value: mode.value === 'pause' ? null : Number(val.value), days: days, reason: why })).then(after, function () { /* shown */ });
+    };
+    var cl = document.getElementById('qtClear');
+    if (cl) cl.onclick = function () {
+      if (!ask('恢复「' + a.username + '」的普通 AI 额度？单独调整（包括暂停）马上取消。')) return;
+      busy(cl, postJSON('/learner/ai-quota/clear', { id: a.id })).then(after, function () { /* shown */ });
+    };
+  }
+  // 学员 → AI 额度: one row a person (管理员 only), most used in 30 days first; a row opens the account
+  var AQ = { filter: 'all' };
+  function aiQuotaView() {
+    return getJSON('/ai-people').then(function (d) {
+      var F = { all: ['全部', function () { return true; }], adjusted: ['单独调整过', function (r) { return !!r.override; }],
+        paused: ['暂停中', function (r) { return r.paused; }], near: ['连续用到八成', function (r) { return r.near_streak >= 2; }] };
+      var rows = d.items.filter(F[AQ.filter][1]);
+      main.innerHTML =
+        '<div class="head-row"><div><h1>AI 额度</h1><p class="muted">每个人用了多少次 AI；点账号看详情、调整额度或暂停。普通上限：' + (d.usual ? '每人每天 ' + n(d.usual) + ' 次' : '不限') +
+          '。只看数据的账号只能在「AI 用量、费用和质量」里看全站的汇总。</p></div></div>' +
+        '<div class="card toolbar"><div class="chips">' + Object.keys(F).map(function (k) {
+          var c = d.items.filter(F[k][1]).length;
+          return '<button class="chip" type="button" data-aqf="' + k + '" aria-pressed="' + (AQ.filter === k) + '">' + F[k][0] + '<b>' + n(c) + '</b></button>'; }).join('') + '</div></div>' +
+        '<section class="card">' + (rows.length ? '<div class="tbl-wrap"><table class="cmp"><thead><tr><th>账号</th><th class="num">今天</th><th class="num">近 7 天</th><th class="num">近 30 天</th><th>上限</th><th class="num">估算费用（30 天）</th><th>状态</th></tr></thead><tbody>' +
+          rows.map(function (r) {
+            var st = (r.paused ? '<span class="pill danger">暂停中</span> ' : '') + (r.override && !r.paused ? '<span class="pill">单独调整</span> ' : '') +
+              (r.near_streak >= 2 ? '<span class="pill warn">连续 ' + r.near_streak + ' 天八成</span> ' : '') + (r.staff ? '<span class="pill blue">员工</span> ' : '') + (r.teacher ? '<span class="pill">老师</span>' : '');
+            return '<tr><td><a href="#learners/' + r.user_id + '">' + esc(r.username) + '</a></td><td class="num">' + n(r.today) + '</td><td class="num">' + n(r.d7) + '</td><td class="num">' + n(r.d30) + '</td>' +
+              '<td class="small">' + (r.limit != null ? n(r.limit) + ' 次' : '不限') + '</td><td class="num">' + yuan(r.cost_est_30) + '</td><td>' + st + '</td></tr>';
+          }).join('') + '</tbody></table></div>' : '<p class="muted">没有。</p>') +
+        '<p class="muted small">' + esc(d.note) + '</p></section>';
+      main.querySelectorAll('[data-aqf]').forEach(function (b) { b.onclick = function () { AQ.filter = b.dataset.aqf; aiQuotaView(); }; });
+    }).catch(fail);
   }
 
   /* ---------- 班级试用：建班级、邀请码、老师；每个班的人数、近 7 天在学和试用人次（class_service.py） ---------- */
@@ -1284,7 +1364,7 @@
 
   /* ---------- 路由：#tab 或 #tab/参数（#learners/12 打开 12 号学员；#learners/f=disabled 先筛选） ---------- */
   var VIEWS = { overview: overview, learning: learningView, funnel: funnelView, compare: compareView, speed: speedView, survey: surveyStats, responses: responses,
-    learners: learnersView, classes: classesView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
+    learners: learnersView, classes: classesView, aiquota: aiQuotaView, invites: invitesView, feedback: feedbackView, content: contentView, books: booksView, announce: announceView, ai: aiView, tasks: tasksView, tests: testsView, errors: errorsView, log: logView };
   var ADMIN_TABS = ['responses', 'learners', 'classes', 'invites', 'feedback', 'errors', 'log', 'tests'];
   var GROUP_HOME = { data: 'overview', people: 'learners', content: 'content', ops: 'ai' };
   function route() {
