@@ -7,10 +7,21 @@ age1…; several: comma-separated) it is kept only encrypted, as flow.env.age (a
 to a server. Restoring /etc/flow.env from such a backup takes that private key, which only the user has, in their
 password manager (the AGE-SECRET-KEY-1… line): ask the user for it, put it in a temporary file (chmod 600), then
   age -d -i <that file> -o /etc/flow.env <backup>/flow.env.age && chmod 600 /etc/flow.env
-and delete the temporary file. Without FLOW_BACKUP_AGE_RECIPIENT, flow.env is copied as before."""
+and delete the temporary file. Without FLOW_BACKUP_AGE_RECIPIENT, flow.env is copied as before.
+
+Which site: FLOW_CHANNEL (as the site itself reads it). 语流 (unset or prod): /www/wwwroot/flow, backups in
+/www/backup/flow/daily, /etc/flow.env, service flow (flow-backup.service, 03:15). The 内测版 (beta, since 2026-11-26):
+/www/wwwroot/flow-beta, /www/backup/flow-beta/daily, /etc/flow-beta.env, service flow-beta (flow-backup-beta.service
+with Environment=FLOW_CHANNEL=beta, 03:35), so its paused accounts are deleted after 30 days like 语流's (a deletion
+waits for a fresh backup, privacy_service.backup_fresh, which reads the site's own data/backup-status.json)."""
 import argparse,datetime,json,os,re,secrets,sqlite3,tarfile,tempfile,time,subprocess,shutil
 from pathlib import Path
-ROOT=Path('/www/wwwroot/flow');BACKUPS=Path('/www/backup/flow/daily');ENV_FILE=Path('/etc/flow.env')
+def channel():
+ return 'beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
+# each site: its code and data, its daily backups, its environment file, its service, the timer stopped while restoring
+SITES={'prod':(Path('/www/wwwroot/flow'),Path('/www/backup/flow/daily'),Path('/etc/flow.env'),'flow','flow-daily'),
+       'beta':(Path('/www/wwwroot/flow-beta'),Path('/www/backup/flow-beta/daily'),Path('/etc/flow-beta.env'),'flow-beta',None)}
+CHANNEL=channel();ROOT,BACKUPS,ENV_FILE,SERVICE,DAILY=SITES[CHANNEL]
 AGE_HEADER=b'age-encryption.org/v1\n'  # how every file age writes begins
 def check(path):
  with sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True) as c:
@@ -40,7 +51,7 @@ def backup(env_required=True):
   # Only remove completed backups created by this tool, keeping the most recent 14.
   completed=sorted([p for p in BACKUPS.glob('flow-*') if (p/'manifest.json').is_file()],key=lambda p:p.stat().st_mtime,reverse=True)
   for old in completed[14:]:shutil.rmtree(old)
-  prune_deploy_copies(channel=channel())
+  prune_deploy_copies(channel=CHANNEL)
   if env_error:
    print(env_error)
    # the database and the code are kept all the same; the daily backup still ends as failed, so someone looks at it
@@ -87,15 +98,13 @@ def save_env(folder):
 def env_note(folder):
  """How to put this backup's flow.env back (restore leaves /etc/flow.env as it is)."""
  if (folder/'flow.env.age').exists():
-  print('这份备份里的 flow.env 是加密的（flow.env.age）：要还原 /etc/flow.env，先找用户从密码管理器拿 age 私钥'
+  print('这份备份里的 flow.env 是加密的（flow.env.age）：要还原 '+str(ENV_FILE)+'，先找用户从密码管理器拿 age 私钥'
         '（AGE-SECRET-KEY-1… 那一行），存进一个临时文件（chmod 600），再执行 '
-        'age -d -i <临时文件> -o /etc/flow.env '+str(folder/'flow.env.age')+' && chmod 600 /etc/flow.env，用完把临时文件删掉。')
+        'age -d -i <临时文件> -o '+str(ENV_FILE)+' '+str(folder/'flow.env.age')+' && chmod 600 '+str(ENV_FILE)+'，用完把临时文件删掉。')
 
 # tools/flow-pull.sh keeps a copy of the database from before each deploy, in one folder for both sites:
 # backup-pull-<YYYYMMDD-HHMMSS> for 语流 (flow), backup-pull-beta-<…> for the 内测版 (flow-beta).
 COPIES={'prod':re.compile(r'backup-pull-\d{8}-\d{6}'),'beta':re.compile(r'backup-pull-beta-\d{8}-\d{6}')}
-def channel():
- return 'beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'prod'
 def dry_default(chan):
  """FLOW_PRUNE_DRY_RUN=1 lists only, =0 deletes; unset: the 内测版 lists only, 语流 deletes."""
  v=os.getenv('FLOW_PRUNE_DRY_RUN','').strip()
@@ -132,9 +141,9 @@ def restore(folder,apply):
  # Stage the selected snapshot before retention rotates the oldest backup.
  with tempfile.TemporaryDirectory(prefix='flow-restore-') as tmp:
   staged=Path(tmp)/'selected.sqlite3';shutil.copy2(source,staged);check(staged)
-  subprocess.run(['systemctl','stop','flow'],check=True)
-  timer_active=subprocess.run(['systemctl','is-active','--quiet','flow-daily.timer'],capture_output=True).returncode==0
-  subprocess.run(['systemctl','stop','flow-daily.timer','flow-daily.service'],check=False,capture_output=True)
+  subprocess.run(['systemctl','stop',SERVICE],check=True)
+  timer_active=bool(DAILY) and subprocess.run(['systemctl','is-active','--quiet',DAILY+'.timer'],capture_output=True).returncode==0
+  if DAILY:subprocess.run(['systemctl','stop',DAILY+'.timer',DAILY+'.service'],check=False,capture_output=True)
   try:
    safety=backup(env_required=False);target=ROOT/'data/flow.sqlite3';temporary=target.with_suffix('.restore');shutil.copy2(staged,temporary);check(temporary)
    import pwd
@@ -144,10 +153,10 @@ def restore(folder,apply):
     if extra.exists():extra.unlink()
    temporary.replace(target)
    print('数据库已恢复；恢复前副本：'+str(safety))
-   print('程序及 /etc/flow.env 未更换；若需回滚代码，请使用对应 source.tar.gz 并核对配置。');env_note(folder)
+   print('程序及 '+str(ENV_FILE)+' 未更换；若需回滚代码，请使用对应 source.tar.gz 并核对配置。');env_note(folder)
   finally:
-   if timer_active:subprocess.run(['systemctl','start','flow-daily.timer'],check=True)
-   subprocess.run(['systemctl','start','flow'],check=True)
+   if timer_active:subprocess.run(['systemctl','start',DAILY+'.timer'],check=True)
+   subprocess.run(['systemctl','start',SERVICE],check=True)
 if __name__=='__main__':
  parser=argparse.ArgumentParser();parser.add_argument('action',choices=['backup','restore','prune-deploy']);parser.add_argument('folder',nargs='?');parser.add_argument('--apply',action='store_true')
  parser.add_argument('--channel',choices=['prod','beta']);parser.add_argument('--dry-run',action='store_true');args=parser.parse_args()

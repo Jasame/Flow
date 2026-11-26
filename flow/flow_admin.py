@@ -256,7 +256,7 @@ TAP_LABEL = {
     'words-plan': '单词 · 词书计划', 'words-confuse': '单词 · 辨析', 'words-mistake': '单词 · 错题本', 'words-test': '单词 · 测词汇量', 'words-import': '单词 · 导入',
     'words-stats': '单词 · 展开统计', 'confuse-how': '词汇辨析 · 展开怎么区分', 'read-gains': '读 · 展开这篇的收获', 'listen-preread': '听 · 展开读前生词',
     'study-origin': '学习页 · 看来源', 'notice-install': '今日 · 提醒：放到桌面',
-    'me-radar': '我的 · 能力雷达', 'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
+    'me-growth': '我的 · 我的进步', 'me-report': '我的 · 这周的报告', 'me-mistake': '我的 · 错题本',
     'me-level': '我的 · 学习目标和水平', 'me-voice': '我的 · 朗读声音', 'me-text': '我的 · 字号和行距', 'me-remind': '我的 · 每天提醒', 'me-install': '我的 · 添加到桌面',
     'trial-level': '试读之后 · 选学习目标',
     'welcome-start': '第一次打开 · 选好方向和目标，开始学习', 'welcome-login': '第一次打开 · 已有账号，登录', 'notice-test': '今日 · 提醒：去能力里测一下',
@@ -311,7 +311,7 @@ def overview(c):
             'user_limit': chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'),
             'users_at_limit': (q('SELECT COUNT(*) FROM ai_usage WHERE day=? AND user_id>0 AND count>=?', day, chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT'))
                                if chat_service.daily_limit('FLOW_AI_USER_DAILY_LIMIT') else 0),
-            'model': os.getenv('FLOW_AI_MODEL', ''),
+            'model': ai_model_text(),
         },
         'survey_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.SURVEY_ID),
         'trial_responses': q('SELECT COUNT(*) FROM survey_responses WHERE survey=? AND hidden=0', survey.TRIAL_ID),
@@ -328,6 +328,22 @@ def overview(c):
         'server': server_label(),
         'generated_at': now,
     }
+
+
+def ai_model_text():
+    """The models the tasks use, for the overview (B7's routes, ai_routes.routes: console over server over the default;
+    FLOW_AI_MODEL is gone from both sites since 2026-11-26): the one most tasks use, and how many use another."""
+    try:
+        import ai_routes
+        names = [v.get('route') or ai_routes.default_model() for v in ai_routes.routes().values()]
+    except Exception:  # noqa: BLE001 - the overview shows the rest without it
+        names = []
+    names = [x for x in names if x] or [x for x in [os.getenv('FLOW_AI_MODEL', '').strip()] if x]
+    if not names:
+        return ''
+    top = max(sorted(set(names)), key=names.count)
+    others = len(set(names)) - 1
+    return top + (f'（另有 {others} 种模型用在个别任务上，见「AI 用量、费用和质量」）' if others else '（各项任务都用它）')
 
 
 def _class_numbers(c):
