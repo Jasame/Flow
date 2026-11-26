@@ -1350,3 +1350,10 @@
   - #533 test_history：老卡那条测试自己去掉 rid（#528 和 #531 合在一起后 main 红了）（测试）
 - 自检：DEPLOYED，装了 7 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45882578928
+
+### b164 · 2026-11-27 03:32
+- main `ae84b0b`，构建 `2fccf20`
+- 新合并的 PR（自 b163 起）：
+  - #532 练习记录：练完的反馈留下来，以后还能再看（听和说、开局和考试、后台和班级、操作指南）
+- 自检：DEPLOYED，装了 6 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45884217787
