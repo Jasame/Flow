@@ -248,8 +248,8 @@ def save_settings(update, by, drop_none=False):
 # only (语流's console never shows it); 认识语流 on the 内测版 (app.about_parts) shows 「加入内测」 with it and 「即将开放」
 # without, at once, no release. Any whole https link is kept for now: Huawei's docs show the public link only as
 # http://xx.xx.xx?taskId=… (C4, 2026-11-26), so the console shows the link's domain (harmony_test_host) for the
-# operator to check; once the real link is known, check its domain here too. It never expires and stays the same
-# for new versions, so it is pasted once.
+# operator to check; once the real link is known, check its domain here too. Huawei's new console gives an invite
+# link that lasts 30 days (C4, 2026-11-26), so expect to paste a new one about once a month.
 HARMONY_TEST_KEY = 'harmony_test_url'
 
 
