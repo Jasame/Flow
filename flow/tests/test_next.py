@@ -448,14 +448,32 @@ class NextAudioTests(unittest.TestCase):
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
 
+    def test_more_than_one_goal_the_first_the_main_one(self):
+        """学英语为了什么 (2026-11-26): up to three goals; goal is the first, as every reader of the profile expects."""
+        with app.db() as c:
+            nx.save_profile(c, 1, {'goal': 'work', 'target': 'B2'})
+            c.execute('UPDATE next_profiles SET goals=NULL WHERE user_id=1')  # an account from before: one goal
+            self.assertEqual(nx.profile(c, 1)['goals'], ['work'])
+            nx.save_profile(c, 1, {'goals': ['exam', 'daily', 'exam', 'nope', 'work', 'media'], 'target': 'B2'})
+            p = nx.profile(c, 1)
+            self.assertEqual((p['goal'], p['goals']), ('exam', ['exam', 'daily', 'work']))  # known ones, once each, three at most
+            nx.save_profile(c, 1, {'goal': 'daily', 'target': 'B2'})  # an older page sends goal alone: the others stay behind it
+            p = nx.profile(c, 1)
+            self.assertEqual((p['goal'], p['goals']), ('daily', ['daily', 'exam', 'work']))
+            nx.save_profile(c, 1, {'level': 'B1'})  # nothing about goals: kept
+            self.assertEqual(nx.profile(c, 1)['goals'], ['daily', 'exam', 'work'])
+
     def test_stats_say_how_many_skills_are_due_to_be_measured(self):
-        """底栏「能力」 (2026-11-26): its dot follows ability_radar.due_today: nothing before the radar's goals are set,
-        then all six until each is measured."""
+        """底栏「能力」 (2026-11-26): its dot counts the skills measured before and due again (B9: not the ones never
+        measured, which the radar says 去测 by; nothing before the radar's goals are set)."""
+        ar, now = __import__('ability_radar'), time.time()
         with app.db() as c:
             nx.save_profile(c, 1, {'level': 'B1'})
             self.assertEqual(nx.stats(c, 1)['radar_due'], 0)
-            __import__('ability_radar').set_goals(c, 1, {'goals': {k: 'B2' for k, _ in __import__('ability_radar').DIMS}})
-            self.assertEqual(nx.stats(c, 1)['radar_due'], 6)
+            ar.set_goals(c, 1, {'goals': {k: 'B2' for k, _ in ar.DIMS}})
+            self.assertEqual(nx.stats(c, 1)['radar_due'], 0)  # nothing measured yet: no dot
+            ar.record(c, 1, 'reading', 50, now=now - 30 * 86400); ar.record(c, 1, 'listening', 60, now=now - 3 * 86400); c.commit()
+            self.assertEqual(nx.stats(c, 1)['radar_due'], 1)  # reading a month ago: due again; listening this week: not
 
     def test_accent_is_kept_with_the_account(self):
         with app.db() as c:

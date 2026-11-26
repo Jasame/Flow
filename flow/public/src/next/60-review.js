@@ -30,6 +30,28 @@
   function swipeOff() { document.ontouchstart = document.ontouchmove = document.ontouchend = document.ontouchcancel = null; view.onclick = view.onpointerdown = null; activityEnd(); }
   // goOn: 继续复习 past today's share (r28: a day of words has a cap in minutes), or the extra new words of 再学 10 个
   // part 'other': 其他复习 (练习 → 复习; review-split-plan.md): mistakes, saved sentences and patterns, apart from the words
+  // The word in one place and on one line (the owner, 2026-11-26: 「单词要固定在一个位置…最好是一行展示完毕，字体太大就按设备
+  //尺寸缩放」): the box keeps the height of one line at the full size, so what is under it stays put too; a word wider than
+  // the screen gets a smaller size, down to 60% of it, and only past that wraps (a long phrase)
+  function fitWords(root) {
+    root.querySelectorAll('.review:not(.vtest) .wordbig').forEach(el => {
+      el.style.fontSize = ''; el.style.minHeight = ''; el.classList.add('one-line');
+      const full = parseFloat(getComputedStyle(el).fontSize), w = el.clientWidth;
+      if (!w || !full) return;
+      el.style.minHeight = Math.ceil(full * 1.15) + 'px';
+      if (el.scrollWidth <= w) return;
+      const least = Math.round(full * 0.6);
+      let size = Math.max(least, Math.floor(full * w / el.scrollWidth));
+      el.style.fontSize = size + 'px';
+      while (el.scrollWidth > w && size > least) { size -= 1; el.style.fontSize = size + 'px'; }  // a pixel of rounding left over
+      if (el.scrollWidth > w) el.classList.remove('one-line');
+    });
+  }
+  if (!fitWords.on) {
+    fitWords.on = true;
+    let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => fitWords(view), 120); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitWords(view)).catch(() => {});
+  }
   async function reviewView(goOn, part) {
     if (!S.user) return needLogin('登录后才能复习。');
     document.body.classList.add('reviewing');
@@ -72,7 +94,8 @@
     const actions = (html, over) => `<div class="ractions">${over || ''}${html}${foot()}</div>`;
     // the word itself plays too (like the speaker beside its phonetics); a tap on it answers nothing
     const sayBtn = (label, big) => `<button class="icon-btn ${big ? 'big' : 'say-btn'}" id="sayW" type="button" aria-label="${label}（AI 朗读）">${ICON.speak}</button>`;
-    const wordHTML = (cls) => `<div class="wordbig tapsay${cls || ''}">${esc(c.text)}</div><div class="ph">${esc(c.phonetic || '')}${sayBtn('播放读音')}</div>`;
+    // the word's own letters play it (not the whole row: a tap beside it is a tap on the card, 「点哪儿都行」)
+    const wordHTML = (cls) => `<div class="wordbig${cls || ''}"><span class="tapsay">${esc(c.text)}</span></div><div class="ph">${esc(c.phonetic || '')}${sayBtn('播放读音')}</div>`;
     let undo = null;  // the latest rating, while it can be taken back (撤销)
     // the answer shown and not yet rated: 撤销 turns the card back (a slip on the front, a tap or a button, sent nothing)
     let peek = null;
@@ -94,6 +117,7 @@
     }
     let c, t0, claim;
     const bar = () => {
+      fitWords(view);
       const rp = document.getElementById('rp'); if (rp) rp.style.width = (doneIds.size / Math.max(1, uniq.size) * 100) + '%';
       const u = document.getElementById('undo'); if (u) u.onclick = takeBack;
       const eb = document.getElementById('easyBtn'); if (eb) eb.onclick = () => known();
@@ -111,7 +135,7 @@
       return esc(example).replace(/[A-Za-z']+/g, w => (k < want.length && w.toLowerCase() === want[k]) ? (k++, `<span class="gap">${' '.repeat(Math.max(3, w.length))}</span>`) : w);
     };
     const sentenceOf = x => x.context && x.context.toLowerCase().includes(x.text.toLowerCase()) ? { text: x.context, form: x.text } : (x.examples && x.examples[0]) || null;
-    const meaningHTML = x => x.meaning ? `<div class="mean-q">${esc(x.meaning).replace(/；|;/g, '<br>')}</div>` : '';
+    const meaningHTML = x => x.meaning ? `<div class="mean-q" data-zh>${esc(x.meaning).replace(/；|;/g, '<br>')}</div>` : '';
 
     // Mistakes come back on the forgetting curve too: answer the question again, fix the phrase, say the sound.
     function mistakeAsk() {
@@ -138,7 +162,7 @@
           <div class="row center"><button class="btn primary" id="fixGo">确定</button><button class="btn ghost" id="fixNo">想不起来</button></div>`;
       } else {
         body = `${tag}<div class="wordbig">${esc(c.text)}</div><div class="row center">${sayBtn('听', true)}</div>
-          ${c.meaning ? `<div class="mean-q small">${esc(c.meaning)}</div>` : ''}
+          ${c.meaning ? `<div class="mean-q small" data-zh>${esc(c.meaning)}</div>` : ''}
           <div class="row center">${recBtn('sndMic', '读一遍')}<span class="muted tiny" id="sndOut">${S.user ? '点 ● 读一遍，AI 听你读得准不准' : ''}</span></div>
           ${actions(`<div class="choice">${KNOW.order([['读准了', 'good', 'good'], ['还不稳', '', 'hard'], ['不会读', 'again', 'again']]).map(([t, cls, r]) => `<button class="${cls}" data-self="${r}">${t}</button>`).join('')}</div>`)}`;
       }
@@ -163,8 +187,8 @@
           }
           view.querySelectorAll('[data-o]').forEach(x => { if (Number(x.dataset.o) === r.answer) x.classList.add('right'); });
           if (!r.correct) b.classList.add('wrong');
-          after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small">${esc(r.explanation || '')}</div>
-            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted">${esc(c.meaning || '')}</div>` : ''}
+          after(r.correct ? 'good' : 'again', `<div class="${r.correct ? 'ok' : 'bad'}">${r.correct ? '✓ 换了一道题也答对了' : '这题没答对'}</div><div class="small" data-zh>${esc(r.explanation || '')}</div>
+            ${!r.correct && c.variant.kind === 'word' ? `<div class="tiny muted" data-zh>${esc(c.meaning || '')}</div>` : ''}
             ${!r.correct && c.node ? `<a class="link small" href="#/graph/${encodeURIComponent(c.node.id)}">回到「${esc(c.node.title)}」看一遍讲解 →</a>` : ''}`);
         });
         keys({ 1: () => view.querySelector('.qopt:nth-child(1)').click(), 2: () => view.querySelector('.qopt:nth-child(2)').click(), 3: () => view.querySelector('.qopt:nth-child(3)').click(), 4: () => view.querySelector('.qopt:nth-child(4)').click() });
@@ -184,11 +208,11 @@
         const done = v => {
           view.querySelectorAll('#fixGo,#fixNo').forEach(b => b.remove()); inp.disabled = true;
           const ok = !!v && norm(v) === norm(c.text);
-          if (ok || !v) return after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small">${esc(c.meaning)}</div>` : ''}`);
+          if (ok || !v) return after(ok ? 'good' : 'again', `<div class="${ok ? 'ok' : 'bad'}">${ok ? '✓ 改对了' : '应该是'}：<b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small" data-zh>${esc(c.meaning)}</div>` : ''}`);
           // Not the same words: often a correct other wording. The learner compares and decides; no loop over one word.
           const ms = Date.now() - t0;
           view.querySelector('.review').insertAdjacentHTML('beforeend', `<div class="stack-s enter"><div class="small"><span class="muted">你写的：</span>${esc(v)}</div>
-            <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted">${esc(c.meaning)}</div>` : ''}
+            <div class="small"><span class="muted">参考改法：</span><b>${esc(c.text)}</b></div>${c.meaning ? `<div class="small muted" data-zh>${esc(c.meaning)}</div>` : ''}
             <div class="row center"><button class="btn" id="fixSame">我写的也对</button><button class="btn primary" id="fixMiss">没写对，记下了</button></div></div>`);
           document.getElementById('fixSame').onclick = () => rate('good', ms); document.getElementById('fixMiss').onclick = () => rate('again', ms);
         };
@@ -236,7 +260,7 @@
           : actions(`<div class="choice">${KNOW.order(choices.map((t, k) => [t, ['good', '', 'again'][k], ['know', 'fuzzy', 'forgot'][k]])).map(([t, cls, how], k) => `<button class="${cls}" data-claim="${how}">${t}${TOUCH ? '' : `<small>${['←', '↓', '→'][k]}</small>`}</button>`).join('')}</div>`)}</div>`;
       // 「认识」 moved to the right (2026-11-25): said once to those who reviewed before, so a habit does not answer wrong
       if (m !== 'spell' && first.veteran && seenOld && KNOW.side() === 'right' && tipSeen('know-side', 'flow-know-tip') === false) {
-        view.querySelector('.review').insertAdjacentHTML('afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
+        (view.querySelector('.review .ph') || view.querySelector('.review')).insertAdjacentHTML(view.querySelector('.review .ph') ? 'afterend' : 'afterbegin', `<div class="know-tip" id="knowTip" role="note"><span class="small">「认识」换到右边了，想换回去：我的 → 设置</span><button class="btn small" type="button" id="knowTipOk">知道了</button></div>`);
         document.getElementById('knowTipOk').onclick = () => { TIPS.mark('know-side'); const t = document.getElementById('knowTip'); if (t) t.remove(); };
       }
       bar(); swipe = null;
@@ -311,15 +335,15 @@
     }
     function answerHTML() {
       if (!detailed()) return `${wordHTML()}
-        ${c.meaning ? `<div class="mean-a">${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
+        ${c.meaning ? `<div class="mean-a" data-zh>${esc(c.meaning).replace(/；|;/g, '<br>')}</div>` : ''}${rootsHTML(c)}${examplesHTML({ ...c, examples: (c.examples || []).slice(0, 2) })}`;
       // 详细 (B9's sheet, words-modes/): the meaning by part of speech, the roots, the examples as many as 简洁 shows (two)
       // and the rest one tap away, the confusable group (词汇辨析) with how to tell them apart, a grey line of how well it is held
       const pos = (c.meaning || '').split(/；|;/).map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^([a-z]+\.)\s*(.*)$/);
         return m ? `<b>${esc(m[1])}</b><span>${esc(m[2])}</span>` : `<span class="all">${esc(x)}</span>`; }).join('');  // a grid: the 词性 column as wide as its widest (B9, r36 audit)
       const g = (c.confuse || [])[0], n = (c.context ? 1 : 0) + (c.examples || []).length, open = 2;
-      return `${wordHTML()}${pos ? `<div class="mean-a mean-pos">${pos}</div>` : ''}${rootsHTML(c)}
+      return `${wordHTML()}${pos ? `<div class="mean-a mean-pos" data-zh>${pos}</div>` : ''}${rootsHTML(c)}
         <div class="ex-wrap${n > open ? ' fold' : ''}">${examplesHTML(c)}${n > open ? `<button class="ex-more" type="button" id="exMore">再看 ${n - open} 句 ⌄</button>` : ''}</div>
-        ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small">${esc(g.how)}</p></details>` : ''}
+        ${g ? `<details class="conf-wrap"><summary class="conf-line"><span>易混：${g.words.map(w => `<b>${esc(w)}</b>`).join(' / ')}</span><span class="how">怎么区分 ›</span></summary><p class="small" data-zh>${esc(g.how)}</p></details>` : ''}
         ${extrasHTML(c)}
         <div class="mem-line">${esc(memLine())}</div>`;
     }
@@ -376,7 +400,8 @@
         for (let k = 1; k <= a.length; k++) for (let j = 1; j <= b.length; j++) d[k][j] = Math.min(d[k - 1][j] + 1, d[k][j - 1] + 1, d[k - 1][j - 1] + (a[k - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
       const r = !got ? 'again' : got === want ? 'good' : (want.length > 4 && dist(got, want) === 1) ? 'hard' : 'again';
       const msg = r === 'good' ? '<div class="ok">✓ 拼对了</div>' : r === 'hard' ? `<div class="warn">差一点：你写的是 <s>${esc(v)}</s></div>` : got ? `<div class="bad">你写的是 <s>${esc(v)}</s></div>` : '';
-      view.innerHTML = `${top(true)}<div class="review open-card">${msg}${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
+      view.innerHTML = `${top(true)}<div class="review open-card">${answerHTML()}${actions('<div class="choice one"><button class="primary" id="go">下一个</button></div>')}</div>`;
+      const ph = view.querySelector('.open-card .ph'); if (ph && msg) ph.insertAdjacentHTML('afterend', msg);  // under the word: the word keeps its place
       bar(); bindExamples(view, c); bindExtras(view, c); sayable(); CLIP.word(c);
       const em = document.getElementById('exMore'); if (em) em.onclick = () => { em.closest('.ex-wrap').classList.remove('fold'); em.remove(); };
       document.getElementById('go').onclick = () => rate(r, ms); keys({ Enter: () => rate(r, ms), ' ': () => rate(r, ms) });

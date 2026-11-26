@@ -16,11 +16,11 @@
     if (e && mt) { (mt._looked = mt._looked || new Map()).set(e.lemma, { word: e.lemma, meaning: meaning.split('；').slice(0, 2).join('；').slice(0, 40), sentence }); if (mt._onLook) mt._onLook(); }
     openSheet(`<div class="stack">
       ${wordHead(e ? e.word : word, (e ? e.phonetic : '') + (e && e.lemma !== word.toLowerCase() ? ' · 原形 ' + e.lemma : ''))}
-      ${here ? `<div class="here"><span class="pill green">在这篇里</span> ${esc(here.meaning)}</div>` : ''}
-      <div class="mean${here ? ' dict' : ''}">${e ? esc(meaning).replace(/；|;/g, '<br>') : '<span class="muted">词典里没有这个词，可以先收藏，复习时再查。</span>'}</div>
+      ${here ? `<div class="here"><span class="pill green">在这篇里</span> <span data-zh>${esc(here.meaning)}</span></div>` : ''}
+      <div class="mean${here ? ' dict' : ''}"${e ? ' data-zh' : ''}>${e ? esc(meaning).replace(/；|;/g, '<br>') : '<span class="muted">词典里没有这个词，可以先收藏，复习时再查。</span>'}</div>
       ${e && e.example ? `<div class="small muted text">${esc(e.example)}</div>` : ''}
       ${e && e.confusable && e.confusable.length ? e.confusable.map(g => `<div class="cf-hint"><div><span class="pill amber">容易混</span> <b class="en">${esc(g.words.join(' / '))}</b></div>
-        <div class="tiny muted">${esc(g.how)}</div><a class="link small" href="#/words/confuse/${encodeURIComponent(g.id)}" data-close>辨析练习 →</a></div>`).join('') : ''}
+        <div class="tiny muted" data-zh>${esc(g.how)}</div><a class="link small" href="#/words/confuse/${encodeURIComponent(g.id)}" data-close>辨析练习 →</a></div>`).join('') : ''}
       <div class="card sunk small text">${esc(sentence)}</div>
       <div class="row"><button class="btn primary" id="saveW">${ICON.star.replace('<svg', '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"')}收藏这个词</button><button class="btn" id="saveS">收藏整句</button><button class="btn" id="exS">✦ AI 讲解整句</button></div>
       <button class="btn ghost" data-close>关闭</button></div>`, card => {
@@ -45,7 +45,7 @@
       const x = r.result;
       openSheet(`<div class="stack explain enter"><div class="row between"><div class="kicker">AI 讲解</div>${aiTag()}<span class="say-pair"><button class="icon-btn say-btn" id="sayS" type="button" aria-label="朗读这句（AI 朗读）">${ICON.speak}</button>${aiVoiceNote('AI 合成', 'span')}</span></div>
         <div class="text" id="sheetTitle">${esc(sentence)}</div>
-        <div class="tr">${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
+        <div class="tr" data-zh>${esc(x.translation)}</div>${x.structure ? `<div class="small muted">${esc(x.structure)}</div>` : ''}
         ${x.points.map(p => `<div class="pt"><b>${esc(p.text)}</b><span class="small">${esc(p.note)}</span>${p.node ? `<span>${nodeChip({ id: p.node, title: p.node_title || p.node, status: 'met' })}</span>` : ''}</div>`).join('')}
         ${x.pattern ? `<div class="card sunk stack-s"><div class="kicker">可模仿的句型</div><div class="frame">${esc(x.pattern.frame)}</div>${x.pattern.example ? `<div class="text small">${esc(x.pattern.example)}</div>` : ''}<div><button class="btn small" id="savePat">收藏这个句型</button></div></div>` : ''}
         <button class="btn ghost" data-close>关闭</button></div>`, card => {

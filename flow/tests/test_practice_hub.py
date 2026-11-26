@@ -23,16 +23,17 @@ class PracticeHubTests(unittest.TestCase):
         tiles = re.findall(r"\['(#/[^']*)', '([^']+)'", hub)
         self.assertGreaterEqual(len(tiles), 13)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here; 能力雷达 is its own tab (2026-11-26)
         # 复习 on top (方案 1, 2026-11-25): 错题和句型复习 and 错题本 in a block of their own, not among 单词's rows
-        self.assertNotIn("['#/cards/mistake', '错题本'", hub)
-        for href in ('href="#/review/other"', 'href="#/cards/mistake"'):
+        words = hub[hub.index("['单词'"):hub.index("['考试和测评'")]
+        self.assertNotIn('#/cards/mistake', words)  # 错题本 is in 复习 (reviewGroup), not among 单词's rows
+        for href in ("'#/review/other'", "'#/cards/mistake'"):
             self.assertIn(href, hub)
-        self.assertIn('${reviewBlock(st)}', hub)
+        self.assertIn('reviewGroup(st)', hub)
         for href, title in tiles:
             self.assertIn(href[2:].split('/')[0], known, title)
         # r20: four tabs; the grammar map has no tab of its own and is the 语法 group's wide card in the hub
         self.assertNotIn('data-nav="graph"', html)
         self.assertEqual(re.findall(r'data-nav="([a-z]+)"', html), ['today', 'practice', 'radar', 'cards', 'me'])  # 能力 (2026-11-26)
-        self.assertIn("['#/graph', '知识图谱', '44 个语法点按顺序连成路线，点亮一个学一个', 'map']", hub)
+        self.assertIn("['#/graph', '知识图谱', '44 个语法点按顺序连成路线，点亮一个学一个', 'graph']", hub)  # B9's batch 1: a row like the rest (its icon 'graph')
         for name in ('graph', 'mix', 'placement'):
             self.assertIn(f"name === '{name}') {{ setNav('practice')", shell)
         # 我的 is a grouped list: progress, settings, account and help; practice lives in its tab, not in a list here

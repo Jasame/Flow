@@ -60,11 +60,13 @@
   async function meView() {
     if (!S.meta) S.meta = await api('/api/next/meta');
     const p = (S.home && S.home.profile) || S.guest || {}, u = S.user, st = S.home && S.home.stats;
-    const lv = S.meta.levels.find(l => l.id === p.level), goal = S.meta.goals.find(g => g.id === p.goal);
+    const lv = S.meta.levels.find(l => l.id === p.level);
+    // 学英语为了什么: every goal chosen, the main one first (2026-11-26; an older profile has goal only)
+    const goalNames = ((p.goals && p.goals.length ? p.goals : p.goal ? [p.goal] : [])).map(id => (S.meta.goals.find(g => g.id === id) || {}).label).filter(Boolean);
     const installed = HOME_APP;  // the home-screen app, an install, or one of Flow's apps: nothing to add to the desktop
     const groups = [
       u && ['进步', [grow('#/growth', '我的进步', '', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
-      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
+      ['设置', [grow('#/welcome/edit', '学习目标和水平', [goalNames.length && esc(goalNames.join('、')), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
         u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
         u ? grow('meAi', 'AI 用量', '<span class="spin"></span>', 'meAiV', 'me-ai') : '',
@@ -89,7 +91,7 @@
       ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
-        <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
+        <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}${BETA ? ' <span class="beta-pill" aria-label="内测版">内测</span>' : ''}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
         ${st ? `<div class="me-nums">${[[st.habit ? st.habit.done : st.week.filter(d => d.active).length, '本周学习天数'], [st.materials_done, '学完的材料'], [st.cards, '单词与表达']].map(([n, l]) => `<div><b>${n}</b><span class="tiny muted">${l}</span></div>`).join('')}</div>`
           : u ? '' : `<div class="stack-s"><span class="muted small">登录后才能保存进度、收藏表达和使用 AI。</span><div><button class="btn primary small" id="lg">登录 / 注册</button></div></div>`}</div>
       ${u ? '<div id="meTeach"></div>' : ''}

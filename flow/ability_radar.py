@@ -203,6 +203,15 @@ def radar(c, uid, now=None):
             'note': '雷达图上 100 分 = 稳定达到你设定的目标等级。分数是根据测评和平时练习做出的估计，用来安排学习，不是考试成绩。'}
 
 
+def retest_due(c, uid, now=None):
+    """底栏「能力」's dot (B9, 2026-11-26): the skills measured before and due again (more than RETEST days ago). One never
+    measured is not counted (the radar page says 去测 by it), nor anything before the radar's goals are set."""
+    now = now or time.time()
+    if not c.execute('SELECT 1 FROM next_goals WHERE user_id=?', (uid,)).fetchone():
+        return 0
+    return sum(1 for _, at, _ in _assessed(c, uid, now).values() if at < now - RETEST * DAY)
+
+
 def due_today(c, uid, now=None):
     """A re-test step for today's plan: only for learners who have set goals, when a skill is unmeasured or a month old."""
     now = now or time.time()

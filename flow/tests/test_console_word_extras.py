@@ -76,6 +76,10 @@ class ConsoleWordExtras(unittest.TestCase):
         st, body = self.call('/word-extras/put-back', {'id': self.review})
         self.assertEqual(st, 409); self.assertIn('审稿', body['error'])
         self.assertEqual(self.call('/word-extras/take-down', {'id': 99999, 'why': 'x'})[0], 404)
+        st, body = self.call('/word-extras/take-down', {'id': self.review, 'why': 'x'})  # the review's reason stays
+        self.assertEqual(st, 409); self.assertIn('已经藏起来', body['error'])
+        with app.db() as c:
+            self.assertEqual(json.loads(c.execute('SELECT flagged FROM vocab_extras WHERE id=?', (self.review,)).fetchone()[0]), {'model': 'qwen-plus'})
         self.assertEqual(self.call('/word-extras/take-down', {'id': self.ok, 'why': 'x'}, who=PEEK)[0], 403)
         js = (Path(app.ROOT).parent / 'xmc-admin' / 'admin.js').read_text(encoding='utf-8')
         self.assertIn("'/word-extras/take-down': '下架这一条单词搭配'", js)  # 正式版 asks first
