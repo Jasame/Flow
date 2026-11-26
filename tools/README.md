@@ -214,6 +214,16 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
     workflows for outside contributors' pull requests; one that changes anything under `.github/` (workflows,
     actions, settings files) is declined, whatever it says it does: its own workflow would run with what it wrote in
     it. Ask for the change without `.github/`, and a session here makes that part.
+11. **A squash never takes back someone else's work** (2026-11-26: #456 was squashed with `git reset --soft
+    origin/main` after another session's fetch had moved origin/main, and took #450 and its test out of main).
+    - Squash onto the base you worked from, worked out once: `base=$(git merge-base HEAD origin/main)`, then
+      `git reset --soft "$base"`. Never onto `origin/main` itself: any session's `git fetch` can move it under you.
+      To catch up with main, merge it in (`git merge origin/main`) instead of squashing onto it.
+    - Before pushing, read what the PR will change: `git diff --stat origin/main...HEAD`, then the lines it removes.
+      A removed line you did not write means stop and look.
+    - `tools/msi-run.sh` runs `tools/check_undo.py` first and sends nothing when the branch removes most of what a pull
+      request merged in the last 48 hours added and puts back what that one had replaced. Set `FLOW_ALLOW_UNDO=1`
+      only when taking it back is the point (and say so in the PR).
 
 ## 推之前跑哪些测试 (what to run before pushing)
 

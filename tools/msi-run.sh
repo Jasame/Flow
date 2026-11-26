@@ -76,6 +76,11 @@ GIT_INDEX_FILE=$idx git add -A
 tree=$(GIT_INDEX_FILE=$idx git write-tree)
 branch=$(git branch --show-current || true)
 snap=$(git commit-tree "$tree" -p HEAD -m "msi-run snapshot of ${branch:-HEAD} at $(git rev-parse --short HEAD)")
+# Not taking back another pull request by accident (tools/check_undo.py; 2026-11-26: #456, squashed onto an origin/main
+# that had moved, took #450 out of main again). FLOW_ALLOW_UNDO=1 when it is on purpose.
+if ! python3 tools/check_undo.py --head "$snap"; then
+  if [ "${FLOW_ALLOW_UNDO:-}" != 1 ]; then echo "msi-run: not sending; see above (FLOW_ALLOW_UNDO=1 if it is on purpose)" >&2; exit 2; fi
+fi
 id="$(date +%Y%m%d-%H%M%S)-$(printf '%s' "${branch:-head}" | tr -c 'A-Za-z0-9._-' '-' | cut -c1-40)-$$"
 
 "${SSH[@]}" "$HOST" 'set -e; mkdir -p ~/msi-run; [ -d ~/msi-run/flow.git ] || git clone -q --bare https://github.com/Jasame/Flow.git ~/msi-run/flow.git'
