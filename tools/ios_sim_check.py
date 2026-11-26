@@ -800,11 +800,12 @@ def run_more(p, local):
             j.line = { kind: 'quote', id: 'q:sim', label: '名人名言', en: 'Stay hungry, stay foolish.', say: 'Stay hungry, stay foolish.', zh: '求知若饥，虚心若愚', note: '', source: 'Steve Jobs' };
             return new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }); }) : F(u, o); return 'quote'; })()"""
         p.js(quote); p.js(SLOW_TTS); p.go('#/practice', 0.5); p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
-        label = p.js("(document.querySelector('#view .lc-head .pill') || {}).textContent")
-        if label not in ('名人名言', '公版名句'):  # the quote's label was renamed 公版名句 (a quote day shows the real one)
+        label = p.js("(document.querySelector('#lineCard .lc-src') || {}).textContent || ''")  # its source, then 公版名句 / 名人名言
+        if '名人名言' not in label and '公版名句' not in label:  # the quote's label was renamed 公版名句 (a quote day shows the real one)
             skip(g, '今日好句 (名人名言)', f'the page kept its own line ({label})')
         else:
-            # the card folds (12-daily-line.js #lcFold): open it first, or 听一遍 is not there to tap
+            # 列表 (r39): a row under 还有时间的话 that opens in place (12-daily-line.js #lcFold): open both, or 听一遍 is not there to tap
+            p.js("(d => { if (d) d.open = true; })(document.querySelector('#view .tv-fold'))")
             if p.js("(b => !!b && b.getAttribute('aria-expanded') === 'false')(document.getElementById('lcFold'))"):
                 p.tap('#lcFold', 0.6)
             p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 20, 0.3); st = p.js(LS); s = shot(f'{g}-line-quote')

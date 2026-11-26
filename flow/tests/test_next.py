@@ -448,6 +448,16 @@ class NextAudioTests(unittest.TestCase):
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
 
+    def test_the_look_of_today_is_kept_with_the_account(self):
+        with app.db() as c:
+            self.assertEqual(nx.set_today_view(c, 1, {'view': 'cards'})[1], 400)  # no profile yet: nothing to keep it on
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['today_view'], 'list')  # 列表 by default (the user, 2026-11-26)
+            self.assertEqual(nx.set_today_view(c, 1, {'view': 'grid'})[1], 400)
+            self.assertEqual(nx.post(c, 1, '/api/next/today-view', {'view': 'cards'}), ({'today_view': 'cards'}, 200))
+            nx.save_profile(c, 1, {'level': 'B2'})  # other settings saved later keep it
+            self.assertEqual(nx.profile(c, 1)['today_view'], 'cards')
+
     def test_accent_is_kept_with_the_account(self):
         with app.db() as c:
             nx.save_profile(c, 1, {'level': 'B1'})

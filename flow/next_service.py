@@ -33,6 +33,9 @@ MINUTES = (5, 10, 15, 20, 30, 45, 60)
 # Pre-generated Kokoro narration (see tools/gen_audio.py): audio/<voice>/<material>.m4a + .json timings.
 # 主题色 (我的 → 外观): the accent the pages are drawn in; green is 配色 A, indigo the optional blue (99-accent.css)
 ACCENTS = ('green', 'indigo')
+# 今日的样子 (r39, the user's pick 2026-11-26: the learner chooses, the list by default): 列表 (the plan, its button,
+# 还有时间的话 folded under it) or 卡片 (one screen, six cards side by side). Kept with the account, like 主题色.
+TODAY_VIEWS = ('list', 'cards')
 VOICES = {'us-f': '美音 · 女声', 'us-m': '美音 · 男声', 'uk-f': '英音 · 女声', 'uk-m': '英音 · 男声'}
 # Which ids can have narration files: the v5 corpus and, since the r27 content line, the older materials too (简版:
 # graded-*, graph-* and the first theme-level texts), so WeChat on Android, which has no browser voice, can play them.
@@ -94,6 +97,8 @@ CREATE TABLE IF NOT EXISTS next_explains(pack TEXT NOT NULL, sentence TEXT NOT N
         c.execute('ALTER TABLE next_profiles ADD COLUMN level_source TEXT')
     if 'accent' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 主题色, kept with the account
         c.execute("ALTER TABLE next_profiles ADD COLUMN accent TEXT NOT NULL DEFAULT 'green'")
+    if 'today_view' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:  # 今日的样子, kept with the account
+        c.execute("ALTER TABLE next_profiles ADD COLUMN today_view TEXT NOT NULL DEFAULT 'list'")
     if 'personalize' not in {r[1] for r in c.execute('PRAGMA table_info(next_profiles)')}:
         # 按我的学习记录推荐 (我的 → 设置; 个保法第二十四条, 算法推荐规定第十七条): 1 = on (the default), 0 = off
         c.execute('ALTER TABLE next_profiles ADD COLUMN personalize INTEGER NOT NULL DEFAULT 1')
@@ -381,6 +386,7 @@ def profile(c, uid):
             'exam': r['exam'] if 'exam' in r.keys() else None, 'exam_date': r['exam_date'] if 'exam_date' in r.keys() else None,
             'target': r['target'] if 'target' in r.keys() else None, 'level_source': (r['level_source'] if 'level_source' in r.keys() else None) or 'self',
             'accent': r['accent'] if 'accent' in r.keys() and r['accent'] in ACCENTS else 'green',
+            'today_view': r['today_view'] if 'today_view' in r.keys() and r['today_view'] in TODAY_VIEWS else 'list',
             'personalize': bool(r['personalize']) if 'personalize' in r.keys() else True}
 
 
@@ -472,6 +478,17 @@ def set_voice(c, uid, data):
     if c.execute('UPDATE next_profiles SET voice=?, updated=? WHERE user_id=?', (voice, time.time(), uid)).rowcount:
         c.commit()
     return {'voice': voice}, 200
+
+
+def set_today_view(c, uid, data):
+    """POST /api/next/today-view {view: 'list' | 'cards'}: 今日的样子, from the switch on 今日 or 我的 → 外观."""
+    v = data.get('view')
+    if v not in TODAY_VIEWS:
+        return {'error': '没有这种样子'}, 400
+    if not c.execute('UPDATE next_profiles SET today_view=?, updated=? WHERE user_id=?', (v, time.time(), uid)).rowcount:
+        return {'error': '请先设置学习目标和水平'}, 400
+    c.commit()
+    return {'today_view': v}, 200
 
 
 def set_accent(c, uid, data):
@@ -1928,6 +1945,8 @@ def post(c, uid, path, data):
         return set_voice(c, uid, data)
     if path == '/api/next/accent':
         return set_accent(c, uid, data)
+    if path == '/api/next/today-view':
+        return set_today_view(c, uid, data)
     if path == '/api/next/progress':
         if not _pack_row(c, uid, str(data.get('pack', ''))):
             return {'error': '材料不存在'}, 404
