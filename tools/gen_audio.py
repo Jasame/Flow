@@ -32,6 +32,7 @@ ALT = {('us', 'f'): ('af_bella', 'en-us'), ('us', 'm'): ('am_adam', 'en-us'), ('
 FEMALE = set('Nadia Sara Amara Ella Chloe Sofia Lena Hannah Amira Yuqi Ruby Mei Tara Leila Xiaowen Mira Maya Priya Ines Giulia Mum Zoe Anna Mia Rosa Nina Lind Ana Farah Elif Mariana Ruth Bea Hana Esther Claire Marta'.split())
 MALE = set('Tom Jun Ravi Daniel Arjun Kenji Dev Ben Ollie Hao Luca Dad Jake Leo Diego Kwame Josh Marco Leon Tomasz Rohan Yusuf Femi'.split()) | {'Mr Patel'}
 LABEL = re.compile(r'([A-Z][a-z]+(?: [A-Z][a-z]+)?):\s+')
+TAG = re.compile(r'[A-Z]:\s+')  # interview tags (Q:, A:): shown on the page, not read, and no change of voice
 WORD = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 GAP = 0.3
 
@@ -115,6 +116,8 @@ def render(job):
         if m and m.group(1) in speakers:
             current = speakers[m.group(1)]
             start_char = m.end()
+        elif TAG.match(s):  # Q: … : the question in the same voice, without the letter (2026-11-26: 15 interviews said "Q")
+            start_char = TAG.match(s).end()
         spoken = s[start_char:].strip()
         if not WORD.search(spoken):
             timeline.append({'s': round(clock, 3), 'e': round(clock, 3), 'w': []})

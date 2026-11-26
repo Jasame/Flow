@@ -102,7 +102,7 @@
     }
 
     function translateMode() {
-      const ls = lines().map(s => s.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/, ''));
+      const ls = lines().map(s => s.replace(/^(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|[A-Z]):\s+/, ''));
       const good = ls.map((s, i) => [s, i]).filter(([s]) => (s.match(/[A-Za-z]+/g) || []).length >= 8);
       let k = Math.max(0, good.findIndex(([, i]) => i === m.dictation_index)), dir = load('flow-next-trans-dir') || 'zh2en';
       async function render() {
