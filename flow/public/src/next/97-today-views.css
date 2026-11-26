@@ -69,12 +69,13 @@
 .tv-big{margin:6px 0 0;font:600 24px/1.3 var(--sans);color:var(--ink)}
 .tv-ttl{margin:6px 0 0;font:600 20px/1.35 var(--sans);color:var(--ink)}
 .tv-dc .tv-sub{margin-top:6px}
-.tv-p{margin:12px 0 0;font-size:15.5px;line-height:1.65;color:var(--ink2)}
+.tv-dc .tv-p{margin:12px 0 0;font-size:15.5px;line-height:1.65;color:var(--ink2)}  /* .tv-dc: over 好句's own .lc-zh margin */
 .tv-clamp{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .tv-quote{margin:14px 0 0;font-family:var(--serif);font-size:24px;line-height:1.42;color:var(--ink);overflow-wrap:anywhere}
 .tv-quote.long{font-size:20px}
 .tv-quote b{font-weight:600;background:linear-gradient(transparent 62%,var(--mark) 0)}
 .tv-mid{margin:auto 0}
+.tv-mid+.tv-act{margin-top:0}  /* 这周's dots in the middle of the space above 看明细 */
 .tv-st{margin-top:10px;min-height:0;overflow:auto}
 .tv-dc .tv-step{min-height:56px}
 .tv-dc .tp-back{margin-bottom:10px}
@@ -97,7 +98,8 @@
 .tv-foot .lc-sh{margin-bottom:4px}
 .tv-rows{margin-top:10px;min-height:0;overflow:auto}
 .tv-en{margin:14px 0 0;font-family:var(--serif);font-size:17px;line-height:1.6;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.tv-dc{-webkit-touch-callout:none}  /* a long press opens 调整顺序, not the link menu */
+/* a long press opens 调整顺序: not the link menu, not a text selection (the finger is still down when it opens) */
+.tv-dc,.tv-grid,.tv-edit-head,.tv-edit-hint{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .tv-more+.tv-edit,.tv-fold .tv-edit{justify-self:center;color:var(--muted);font-weight:400}
 
 /* 调整顺序: small white tiles in two columns; the one held lifts, a grey space where it was */

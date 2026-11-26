@@ -59,9 +59,11 @@
     return { p, must, extra, wk, next, readId, art, more1, left };
   }
   // A step: its number (✓ when done), title, about how long; the next one in ink, the others quieter. No green.
+  // The words step is 背单词 here (the user's pick, B9's spec 第 4 版): how many to review and learn shows on the words page.
+  const stepName = (s, f) => s.key === 'read' && f.art ? f.art.title : /^单词(：|$)/.test(s.title || '') ? '背单词' : s.title;
   function stepsHTML(f) {
     return `<ol class="tv-steps">${f.must.map((s, k) => `<li><a class="tv-step${s.done ? ' done' : ''}${s === f.next ? ' next' : ''}" href="${esc(s.href)}">`
-      + `<span class="n" aria-hidden="true">${s.done ? '✓' : k + 1}</span><span class="t">${esc(s.key === 'read' && f.art ? f.art.title : s.title)}</span>`
+      + `<span class="n" aria-hidden="true">${s.done ? '✓' : k + 1}</span><span class="t">${esc(stepName(s, f))}</span>`
       + `<span class="m">${s.done ? '已完成' : s.minutes ? `约 ${s.minutes} 分钟` : ''}</span></a></li>`).join('')}</ol>`;
   }
   // the one green button: the plan's next step; once it is done, 再学一篇
@@ -171,7 +173,7 @@
     // as tall as the screen allows: the deck, its dots and the tab bar on one screen (shorter on a phone held sideways)
     const fit = () => {
       const tabs = document.querySelector('.tabs'), tb = tabs && getComputedStyle(tabs).position === 'fixed' ? tabs.getBoundingClientRect().top : innerHeight;
-      const room = tb - (dk.getBoundingClientRect().top + scrollY) - 44;  // measured from the page's top: 今日 opens there
+      const room = tb - (dk.getBoundingClientRect().top + scrollY) - 60;  // from the page's top (今日 opens there); the dots and 编辑 under it
       dk.style.setProperty('--dk-h', Math.max(180, Math.min(560, Math.round(room))) + 'px');  // a phone held sideways: short, its button still on the screen
     };
     // where card k sits: in the middle on a phone (one card a screen); first from the left when two or three fit side
