@@ -1,3 +1,3 @@
-117dacf4c087a320d2e444b921748269e557759d 905aad88ed3cfcddd9f6c4e57ef52379a91a1bbb114025ae6e69b4742528ae1a e2e light ref=build-0e477b67b76e tag=b108 tools=e07e9179c07ca1092a9fdce25ea2559cbb18d22b5010fe24fc31ff5779d1ce02
-# b108 main: Merge pull request #389 from Jasame/weekly-mail-from-remind = build of 0e477b67b76e
+2087e7e61eedd3ccf994ccd679678295028c4693 d6cd039141e44621b58f7d55e7c3159b82ec269e93ac460e866f9d78280fe31a e2e light ref=build-369a9591c97d tag=b109 tools=e07e9179c07ca1092a9fdce25ea2559cbb18d22b5010fe24fc31ff5779d1ce02
+# b109 main: Merge pull request #385 from Jasame/updates-r37 = build of 369a9591c97d
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
