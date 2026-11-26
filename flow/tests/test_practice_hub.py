@@ -47,8 +47,8 @@ class PracticeHubTests(unittest.TestCase):
 
     def test_the_built_script_carries_the_hub_and_the_guide(self):
         js = (ROOT / 'public' / 'next.js').read_text(encoding='utf-8')
-        self.assertIn('async function practiceView()', js); self.assertIn('async function guideView(id)', js)
-        self.assertIn('function practiceTip(radar, due)', js)
+        self.assertIn('async function practiceView(fresh)', js); self.assertIn('async function guideView(id)', js)
+        self.assertIn('function practiceTip(radar, words)', js)
 
 
 class WeeklyReportTests(unittest.TestCase):

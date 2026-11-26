@@ -3227,6 +3227,20 @@ def sprint_run(pw):
             check(dev, f'{size} hub: the score trend has four sets and three parts, inside the screen', tr == [4, True, 3], tr)
             check(dev, f'{size}: no script errors', not errs, errs[:3])
             ctx.close()
+        # 练习's 复习单词 (B9's audit 第 1 条): today's new words are said as new, not 「到期」 (this learner: new words,
+        # few or no reviews), the dot there while today's words wait; a tip about words says the same
+        ctx, pg, errs = context(390, 844, True)
+        st = pg.evaluate("fetch('/api/next/home').then(r => r.json())").get('stats') or {}
+        go(pg, '#/practice'); pg.wait_for_timeout(400)
+        pr = pg.evaluate("""() => { const r = document.querySelector('#view .pc-row[href="#/review"]'), g = document.querySelector('#pSuggest .pc-go');
+          return { label: r && r.getAttribute('aria-label'), dot: !!(r && r.querySelector('.pc-dot')), tip: (document.querySelector('#pSuggest .pc-tip-b') || {}).textContent || '', go: g ? g.getAttribute('href') : '' }; }""")
+        d, n = st.get('due') or 0, st.get('new') or 0
+        want = f'复习单词，{d} 个到期，{n} 个新词' if d and n else f'复习单词，有 {d} 项到期' if d else f'复习单词，今天还有 {n} 个新词' if n else None
+        tip_ok = pr['go'] != '#/review' or ('等你复习' in pr['tip'] if d else pr['tip'] == f'今天还有 {n} 个新词')
+        check(dev, "练习: 复习单词 says today's new words as new words (not 「到期」), with its dot; a tip about words says the same",
+              n > 0 and pr['label'] == want and pr['dot'] and tip_ok, (d, n, pr))
+        check(dev, 'no script errors (练习 with new words)', not errs, errs[:3])
+        ctx.close()
         # light and dark: contrast, names and labels on the new pages
         for theme in ('light', 'dark'):
             ctx, pg, errs = context(390, 844, True, theme)
@@ -4267,6 +4281,14 @@ def review_side_run(pw):
                    tabShown: !document.getElementById('otherBadge').hidden }; }""")
         check(dev, '练习 → 复习 first: 错题和句型 with a dot (2 due, said to a screen reader) and 错题本 (only there); the 「练习」 tab has a dot, and says 2',
               rb['first'] and rb['rows'] == [['#/review/other', '错题和句型', '错题和句型，有 2 项到期', True], ['#/cards/mistake', '错题本', None, False]] and rb['mistake'] == 1 and rb['tab'] == '练习，有 2 项' and rb['dotText'] == '' and rb['tabShown'], rb)
+        # 「复习单词」's dot (the owner, 2026-11-26: it stayed with nothing left to review): there while words are due, gone
+        # the moment the last one is done, with the 「单词」 tab's, from the review's own counts (home blocked meanwhile)
+        dots = """() => { const r = document.querySelector('#view .pc-row[href="#/review"]'), b = document.getElementById('dueBadge');
+          return { row: !!(r && r.querySelector('.pc-dot')), label: r ? r.getAttribute('aria-label') : null, tab: !b.hidden }; }"""
+        d0 = pg.evaluate(dots)
+        check(dev, '练习: 复习单词 has a dot while words are due (2, said to a screen reader), and so has the 「单词」 tab',
+              d0 == {'row': True, 'label': '复习单词，有 2 项到期', 'tab': True}, d0)
+        pg.route('**/api/next/home*', lambda r: r.abort())
         go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         seen = set()
         for k in range(6):
@@ -4274,6 +4296,11 @@ def review_side_run(pw):
             seen.add((pg.text_content('.review .wordbig') or '').strip()); pg.click('.ractions [data-claim="know"]'); pg.wait_for_selector('[data-rate="good"]', timeout=4000)
             pg.click('[data-rate="good"]'); pg.wait_for_timeout(500)
         check(dev, '复习 (单词) shows the words only', seen == {'borrow', 'lend'}, sorted(seen))
+        pg.wait_for_selector('.done-card', timeout=6000)
+        go(pg, '#/practice'); pg.wait_for_selector('#view .pc-row[href="#/review"]', timeout=6000)
+        d1 = pg.evaluate(dots); pg.unroute('**/api/next/home*')
+        check(dev, '练习 right after the last word: no dot on 复习单词 nor on the 「单词」 tab (no fresh home data needed)',
+              d1 == {'row': False, 'label': None, 'tab': False}, d1)
         go(pg, '#/review/other'); pg.wait_for_timeout(600)
         o = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', text: document.getElementById('view').textContent })")
         check(dev, '#/review/other: 复习错题和句型, under 练习, a mistake or the pattern first', o['h1'] == '复习错题和句型' and '练习' in o['nav'] and ('划线' in o['text'] or '回忆这个句型' in o['text'] or 'went' in o['text']), {k: v[:120] for k, v in o.items()})
@@ -4282,6 +4309,9 @@ def review_side_run(pw):
         mb = pg.evaluate("({ h1: (document.querySelector('main h1') || {}).textContent, back: !!document.querySelector('#view a[href=\"#/practice\"]'), nav: (document.querySelector('.tabs a.on, .tabs a[aria-current]') || {}).textContent || '', review: (document.getElementById('mbReview') || {}).textContent || '', rows: [...document.querySelectorAll('#listSlot .xrow .x')].map(x => x.textContent), wordPage: !!(document.getElementById('vStats') || document.querySelector('#view .tools') || document.querySelector('#view [data-f]')) })")
         check(dev, '错题本 is its own page: ← 练习, 错题本, 练习 lit, 复习到期的 1 道 (the mistakes due, as its 共 1 道), the mistakes only, no word page around it',
               mb['h1'] == '错题本' and mb['back'] and '练习' in mb['nav'] and '复习到期的 1 道' in mb['review'] and mb['rows'] == ['went'] and not mb['wordPage'], mb)
+        # the mistake that is due says so, not the card state 待学 (B9's audit 第 9 条); › apart for the English table
+        mst = pg.evaluate("[...document.querySelectorAll('#clist .xrow .st')].map(x => [x.textContent.trim(), x.firstChild && x.firstChild.nodeType === 3 ? x.firstChild.textContent : ''])")
+        check(dev, '错题本: the mistake due says 该复习了 (not 待学), its words in a text of their own', mst == [['该复习了 ›', '该复习了']], mst)
         check(dev, 'no script errors (单词 and 其他复习 apart)', not errs, errs[:3])
         ctx.close()
         # 复习时的轻触震动 (语流 C1): in the app (has('haptic')), turning a card is 'select' and the rating says how it went;
@@ -4687,8 +4717,11 @@ def backlog_run(pw):
         pg.goto(BASE + '/#/cards', wait_until='networkidle'); settle(pg)
         o = pg.evaluate("fetch('/api/next/vocab').then(r => r.json())")
         note = pg.text_content('#newPaused') if pg.query_selector('#newPaused') else ''
-        check(dev, 'reviews piled up (60 > 3 x 10): no new words today, and the word page says why',
-              o['new_paused'] and o['due'] >= 60 and note.strip() == '到期的词比较多，今天先复习，新词明天继续。', (o['due'], o['new'], o['new_paused'], note))
+        # the 新词 row still holds the learner's own saved words (3): the line says it is the book's new words that wait
+        # (B9's audit 第 6 条: 「新词 3 个」 beside 「新词明天继续」)
+        newrow = pg.evaluate("[...document.querySelectorAll('#view .wp-today .wp-row')].map(r => r.textContent.replace(/\\s+/g, '')).find(t => t.startsWith('新词')) || ''")
+        check(dev, 'reviews piled up (60 > 3 x 10): no new book words today, and the word page says the book\'s new words wait (saved ones still come)',
+              o['new_paused'] and o['due'] >= 60 and note.strip() == '到期的词比较多，今天先复习，词书的新词明天继续。' and newrow == f"新词{o['new']}个", (o['due'], o['new'], o['new_paused'], note, newrow))
         home = pg.evaluate("fetch('/api/next/home').then(r => r.json())")
         step = next((x for x in (home.get('path') or {}).get('steps', []) if x.get('key') == 'review'), {})
         check(dev, "today's word step says new words wait", '新词明天继续' in step.get('sub', ''), step)

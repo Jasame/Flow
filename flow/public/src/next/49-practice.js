@@ -25,8 +25,9 @@
       ['#/exam', '考试练习', '中考高考、四六级、考研、专四专八、雅思，限时做', 'exam'],
       ['#/placement', '语法起点小测', '16 题定出你的语法起点', 'flag']]]];
   // A row: the icon, the name, a dot when something is due (its number in the row's name for a screen reader)
-  function practiceRow([href, title, line, icon], n, tap) {
-    return `<a class="pc-row" href="${href}"${tap ? ` data-tap="${tap}"` : ''}${n ? ` aria-label="${title}，有 ${n} 项到期"` : ''}>${fi(icon)}
+  // said: what a screen reader hears instead of 「有 N 项到期」 (复习单词: its new words are not due, B9's audit 第 1 条)
+  function practiceRow([href, title, line, icon], n, tap, said) {
+    return `<a class="pc-row" href="${href}"${tap ? ` data-tap="${tap}"` : ''}${n ? ` aria-label="${said || `${title}，有 ${n} 项到期`}"` : ''}>${fi(icon)}
       <span class="pc-name">${title}${/AI/.test(line) ? `<span class="pc-sub">${line}</span>` : ''}</span>${n ? '<i class="pc-dot" aria-hidden="true"></i>' : ''}</a>`;
   }
   const practiceGroup = (name, rows) => `<section class="pc-card" aria-label="${name}"><h2 class="pc-h">${name}</h2>${rows}</section>`;
@@ -38,25 +39,32 @@
     const n = st ? st.other_due || 0 : 0;
     return practiceGroup('复习', practiceRow(['#/review/other', '错题和句型', '', 'retry'], n, 'practice-review-other') + practiceRow(['#/cards/mistake', '错题本', '', 'bookx'], 0));
   }
-  async function practiceView() {
-    const st = S.home && S.home.stats, due = st ? (st.due || 0) + (st.new || 0) : 0;
+  async function practiceView(fresh) {
+    // today's words as the review gives them (today's share, the same as the 单词 tab's dot): reviews due and new words
+    const st = S.home && S.home.stats, words = { due: st ? st.due || 0 : 0, new: st ? st.new || 0 : 0 }, due = words.due + words.new;
+    const said = words.due && words.new ? `复习单词，${words.due} 个到期，${words.new} 个新词` : words.due ? '' : `复习单词，今天还有 ${words.new} 个新词`;
     const col = side => (side === 'left' ? reviewGroup(st) : '') + PRACTICE.filter(g => g[1] === side)
-      .map(([name, , items]) => practiceGroup(name, items.map(x => practiceRow(x, x[4] === 'due' ? due : 0)).join(''))).join('');
+      .map(([name, , items]) => practiceGroup(name, items.map(x => x[4] === 'due' ? practiceRow(x, due, '', said) : practiceRow(x, 0)).join(''))).join('');
     view.innerHTML = `<h1 class="h1">练习</h1>
-      <div id="pSuggest">${practiceTip(null, due)}</div>
+      <div id="pSuggest">${practiceTip(null, words)}</div>
       <div class="pc-cols"><div class="pc-col">${col('left')}</div><div class="pc-col">${col('right')}</div></div>
       ${tipSeen('guide') === false ? '<a class="guide-cta link" href="#/guide" data-tip-seen="guide">第一次用？看操作指南 ›</a>' : ''}`;  // 一次性 (08-tips.js)
+    // the dots from fresher home data (words come due during the day; a review just done elsewhere): drawn again quietly,
+    // once (fresh: drawn from data just fetched)
+    if (S.user && !fresh) { const drawnFor = location.hash; refreshHome().then(changed => { if (changed) redrawQuietly(drawnFor); }).catch(() => {}); }
     if (S.user) api('/api/next/radar').then(r => {
-      const el = document.getElementById('pSuggest'); if (el && r && r.gap) el.innerHTML = practiceTip(r, due);
+      const el = document.getElementById('pSuggest'); if (el && r && r.gap) el.innerHTML = practiceTip(r, words);
     }).catch(() => { /* the plain suggestion stays */ });
   }
   // 今天建议: the skill furthest from the learner's goal (能力雷达), else the words due, else today's plan. A white card
   // (its icon the one accent tile on the page) and the page's one green button under it.
   const TIP_ICON = { '#/library': 'layers', '#/easy': 'read', '#/vocab/plan': 'cal', '#/mix': 'shuffle', '#/speak': 'chat', '#/': 'docpen', '#/review': 'stack' };
-  function practiceTip(radar, due) {
-    const d = radar && radar.dims.find(x => x.id === radar.gap);
+  // words: {due, new} of today's share; only the due ones are 「等你复习」, new words are said as new (B9's audit 第 1 条)
+  function practiceTip(radar, words) {
+    const d = radar && radar.dims.find(x => x.id === radar.gap), w = words || { due: 0, new: 0 };
     const [href, head, sub, go, icon] = d ? [d.href, d.tip, `${d.label}离你的目标最远，先练它`, `去练${d.label}`, TIP_ICON[d.href] || 'target']
-      : due ? ['#/review', `有 ${due} 个词等你复习`, '先复习再学新的，记得最牢。', '开始复习', 'stack']
+      : w.due ? ['#/review', `有 ${w.due} 个词等你复习`, w.new ? `复习完还有 ${w.new} 个新词。` : '先复习再学新的，记得最牢。', '开始复习', 'stack']
+      : w.new ? ['#/review', `今天还有 ${w.new} 个新词`, '背完今天的新词，再去练别的。', '开始背新词', 'stack']
       : ['#/', '先做今天的计划', '今日页已经按你的水平排好了顺序。', '打开今日', 'target'];
     return `<section class="pc-tip" aria-labelledby="pcTipH"><div class="pc-tip-t"><h2 class="pc-tip-h" id="pcTipH">今天建议</h2><b class="pc-tip-b">${esc(head)}</b><span class="pc-tip-s">${esc(sub)}</span></div>
       <span class="pc-tip-i" aria-hidden="true">${fi(icon)}</span></section>

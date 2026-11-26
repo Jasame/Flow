@@ -1107,14 +1107,19 @@ def stats(c, uid):
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
-    vc = vocab_service.counts(c, uid, now)  # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md)
+    # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md). Today's share under the word
+    # cap, as the review and the 单词 page count it: with the share done, no dot (the owner, 2026-11-26: the review said
+    # nothing was due while 「复习单词」 and the 「单词」 tab still had their dot, counted from every word due today)
+    vc = vocab_service.counts(c, uid, now, cap=vocab_service.word_cap(c, uid, now))
     oc = vocab_service.other_counts(c, uid, now)
     return {
         'due': vc['due'], 'new': vc['new'], 'minutes': vc['minutes'], 'vocab_plan': bool(vocab_service.plan(c, uid)),
         'other_due': oc['due'], 'other_minutes': oc['minutes'],
         # 底栏「能力」's dot (2026-11-26): the skills measured before and due again (ability_radar.retest_due)
         'radar_due': __import__('ability_radar').retest_due(c, uid, now),
-        'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],
+        'cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=?', (uid,)).fetchone()[0],  # every card, mistakes and patterns too
+        # words and phrases only: the 单词 page's 「共 N 个」 (B9's audit 第 7 条: 我的 said all cards beside it)
+        'word_cards': c.execute('SELECT COUNT(*) FROM next_cards WHERE user_id=? AND ' + vocab_service.WORDS, (uid,)).fetchone()[0],
         'materials_done': c.execute("SELECT COUNT(DISTINCT pack) FROM next_progress WHERE user_id=? AND step='check'", (uid,)).fetchone()[0],
         'reviews_week': c.execute('SELECT COUNT(*) FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)).fetchone()[0],
         'week': [{'day': d, 'active': d in days} for d in week],

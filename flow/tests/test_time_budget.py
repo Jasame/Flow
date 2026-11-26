@@ -239,7 +239,7 @@ class BackTests(Db):
         or as given."""
         real = vs.counts.__wrapped__ if hasattr(vs.counts, '__wrapped__') else vs.counts
 
-        def old(c, uid, now=None):
+        def old(c, uid, now=None, cap=None):  # cap: nx.stats passes the word cap since 2026-11-26; the old counts had none
             r = real(c, uid, now)
             return {k: v for k, v in r.items() if k not in ('catch_up', 'later', 'cap')}
         with patch.object(vs, 'counts', counts or old):
