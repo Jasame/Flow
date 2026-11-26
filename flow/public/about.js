@@ -561,17 +561,29 @@ document.documentElement.classList.add('js');
     }), { threshold: [0, 0.45, 0.8] }).observe(stage);
   }
 
-  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this button. The page never carries the AppTest link: the button
-     asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学). Signed in
-     with a link: 「加入内测」 opens it; signed in, no link yet: 即将开放 stays; not signed in: 「登录内测版后显示」 goes to
-     the site to sign in. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
+  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this box. The page never carries the AppTest invite code (or
+     link): it asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学).
+     Signed in with a code: the code and 「复制」; with a link: 「加入内测」 opens it; with neither: 即将开放 stays; not
+     signed in: 「登录内测版后显示」 goes to the site to sign in. 语流 (flowlang.cn) has no such box. ---------- */
   function harmony() {
-    const b = $('[data-harmony]'); if (!b || !window.fetch) return;
+    const box = $('[data-harmony]'); if (!box || !window.fetch) return;
+    const b = $('.dl-btn', box), codeBox = $('.hm-code', box);
     fetch('/api/next/harmony-test', { credentials: 'same-origin', cache: 'no-store' }).then(r => r.json().then(j => [r.status, j], () => [r.status, {}])).then(([st, j]) => {
       if (st === 401) { b.href = '/'; b.removeAttribute('aria-disabled'); b.textContent = '登录内测版后显示'; return; }
-      const u = (st === 200 && j && typeof j.url === 'string') ? j.url : '';
-      if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
-      b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+      if (st !== 200 || !j) return;
+      const code = typeof j.code === 'string' && /^[A-Za-z0-9]{4,32}$/.test(j.code) ? j.code : '';
+      const url = typeof j.url === 'string' && /^https:\/\/[^\s"'<>]+$/.test(j.url) ? j.url : '';
+      if (code) {
+        $('code', codeBox).textContent = code; codeBox.hidden = false; b.hidden = true;
+        const copy = $('.hm-copy', codeBox);
+        copy.addEventListener('click', () => {
+          const done = () => { copy.textContent = '已复制'; setTimeout(() => { copy.textContent = '复制'; }, 1600); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => {});
+          else { const r = document.createRange(); r.selectNodeContents($('code', codeBox)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+        });
+        return;
+      }
+      if (url) { b.href = url; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测'; }
     }).catch(() => { /* 即将开放 stays */ });
   }
 
