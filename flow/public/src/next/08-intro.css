@@ -3,7 +3,8 @@
    place, its mark walking along with the steps. Only transform and opacity move; nothing moves when the system asks for
    less. Colours are the page's own tokens, so 浅色 and 深色 both follow them. */
 .intro{position:fixed;top:0;right:0;bottom:0;left:0;z-index:210;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);
-  padding-top:var(--sat);opacity:0;transition:opacity .26s var(--ease)}
+  padding-top:var(--sat);opacity:0;transition:opacity .26s var(--ease);
+  --strip:calc(62px + var(--sab));--btn-b:calc(62px + var(--sab) + 12px)}
 .intro.in{opacity:1}
 .intro:focus{outline:none}
 .intro-top{display:grid;grid-template-columns:52px minmax(0,1fr) 64px;align-items:center;min-height:52px;padding:0 calc(var(--gut) - 8px)}
@@ -14,27 +15,28 @@
 .intro-skip{font-size:15px;justify-self:end;padding:0 8px}
 /* how far along: a short soft bar, no numbers to count down */
 .intro-prog{justify-self:center;display:block;width:min(180px,46vw);height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
-.intro-prog i{display:block;height:100%;background:var(--ink2);border-radius:2px;transform:scaleX(0);transform-origin:left center;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.intro-prog i{display:block;height:100%;background:var(--green);border-radius:2px;transform:scaleX(0);transform-origin:left center;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
 
-/* the steps: 08-intro.js moves them (both at once, sliding and fading, or with a finger); a place's step keeps its
-   picture, title and sentence from one height (--gtop), and the one shared button (.intro-go) sits under the tallest */
-.intro-stage{flex:1;position:relative;overflow:hidden;margin-bottom:calc(62px + var(--sab));touch-action:pan-y}
-.intro-step{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  box-sizing:border-box;padding:0 28px 5vh;text-align:center;will-change:transform,opacity}
-.intro-step.intro-place{justify-content:flex-start;padding-top:var(--gtop,15vh);padding-bottom:0}
-.intro-probe{visibility:hidden;pointer-events:none;flex-direction:column}
-.intro-probe .intro-body{flex:none}
-.intro-go{position:absolute;left:28px;right:28px;top:60%;z-index:1;opacity:0;visibility:hidden;transition:opacity .2s var(--ease),visibility 0s .2s}
-.intro-go.show{opacity:1;visibility:visible;transition:opacity .2s var(--ease)}
-.intro-go .intro-next{margin-top:0}
+/* the steps: 08-intro.js moves them (both at once, sliding and fading, or with a finger). The one button is in the same
+   place on every step (B9), above the strip where the tab bar's copy sits (on the first three: 注册 / 登录, or what is
+   still to choose); the words and picture just above it, the choices of steps 2 and 3 scrolling above it */
+.intro-stage{flex:1;position:relative;overflow:hidden;touch-action:pan-y}
+.intro-step{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  box-sizing:border-box;padding:0 28px calc(var(--btn-b) + 52px + var(--gap,28px));text-align:center}
+.intro-place .intro-body{min-height:var(--res,0px)}
+.intro-probe{visibility:hidden;pointer-events:none;justify-content:flex-start}
+.intro-probe .intro-body{flex:none;min-height:0}
+.intro-go{position:absolute;left:0;right:0;bottom:var(--btn-b);z-index:2;padding:0 28px}
+.intro-go .intro-next{display:block;max-width:320px;margin:0 auto}
+.intro-under{position:absolute;left:0;right:0;bottom:var(--sab);height:62px;z-index:1;display:flex;align-items:center;justify-content:center}
 .intro-body{width:100%;max-width:360px}
 .intro-art,.intro-wait{width:260px;max-width:72vw;margin:0 auto 28px}
 .intro-art svg{display:block;width:100%;height:auto;overflow:visible}
 .intro-t{margin:0 0 10px;font-size:24px;line-height:1.3;font-weight:650;color:var(--ink)}
 .intro-big{font-size:28px}
 .intro-d{margin:0 auto;max-width:20em;font-size:15.5px;line-height:1.7;color:var(--muted)}
-.intro-next{max-width:320px;min-height:52px;margin:24px auto 0;font-size:16px;border-radius:16px}
-.intro-acct{display:flex;justify-content:center;gap:4px;margin-top:10px}
+.intro-next{max-width:320px;min-height:52px;font-size:16px;border-radius:16px}
+.intro-acct{display:flex;justify-content:center;gap:4px}
 .intro-acct button{background:none;border:0;color:var(--ink2);font:inherit;font-size:15px;min-height:44px;padding:0 12px;cursor:pointer}
 /* 欢迎: the mark of the start animation, its five bars rising */
 .intro-mark{width:80px;height:80px;border-radius:22px;background:var(--brand);display:flex;align-items:center;justify-content:center;gap:6px;margin:0 auto 28px}
@@ -46,13 +48,14 @@
 .intro-mark i:nth-child(4){height:46px;animation-delay:.15s}
 .intro-mark i:nth-child(5){height:26px;animation-delay:.2s}
 /* the steps that ask: from the top, the list scrolls if a small phone needs it (the choices look as on the one-page form) */
-.intro-step.ask{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:left;padding:8px 20px 24px}
+.intro-step.ask{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;text-align:left;padding:8px 20px 16px;bottom:calc(var(--btn-b) + 52px + 12px)}
 .intro-step.ask .intro-d{margin:0;max-width:none;font-size:14.5px}
 .intro-opts{margin-top:18px}
 .intro-h{margin:22px 0 10px;font-size:16px;font-weight:650}
 .intro-exam .chips,.intro-days{display:flex;flex-wrap:wrap;gap:8px}
-.intro-need{min-height:1.5em;margin:8px 0 0;text-align:center;font-size:13.5px;color:var(--muted)}
-.intro-step.ask .intro-next{margin-top:24px}
+.intro-need{margin:0;text-align:center;font-size:13.5px;color:var(--muted)}
+.intro .wg .opt[aria-pressed=true] .d,.intro .wg .opt[aria-checked=true] .d{color:var(--ink2)}
+.intro .chip[aria-checked=true],.intro .chip[aria-pressed=true]{color:var(--ink)}
 /* a goal picked: a small check drawn in its corner (the learner's own choice: the accent); 主要 springs in */
 .intro-opts .ck{position:absolute;right:10px;bottom:10px;width:16px;height:16px;fill:none;stroke:var(--fill);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:0}
 .intro-opts .opt[aria-pressed=true] .ck{opacity:1}
@@ -64,7 +67,7 @@
 .intro-wait span{font-size:13.5px;color:var(--muted);background:var(--paper);border-radius:99px;padding:6px 12px}
 
 /* the tab bar's copy, where the real one is; its soft mark moves under the place of the step */
-.intro-tabs{position:absolute;left:0;right:0;bottom:0;display:flex;padding:6px 8px calc(6px + var(--sab));background:var(--paper);
+.intro-tabs{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;padding:6px 8px calc(6px + var(--sab));background:var(--paper);
   opacity:0;transform:translateY(100%);transition:opacity .32s var(--ease),transform .32s var(--ease)}
 .intro-tabs.show{opacity:1;transform:none}
 .intro-pill{position:absolute;left:8px;top:6px;bottom:calc(6px + var(--sab));width:calc((100% - 16px) / 5);border-radius:12px;background:var(--sunk);
@@ -117,7 +120,7 @@
 .intro-step.seen .ip.open{animation:introOpen .4s var(--ease) .3s both}
 @keyframes introOpen{from{opacity:0;transform:scaleY(.5)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){
-  .intro,.intro-step,.intro-prog i,.intro-tabs,.intro-pill,.intro-tab,.intro-go{transition:none}
+  .intro,.intro-step,.intro-prog i,.intro-tabs,.intro-pill,.intro-tab{transition:none}
   .intro-opts .ck path,.intro-opts .main:not([hidden]){animation:none;stroke-dashoffset:0}
   .intro-art .ip,.intro-step.seen .ip,.intro-step.seen .ip.draw,.intro-step.seen .draw,.intro-step.seen .grow-in,.intro-step.seen .grow-x,.intro-step.seen .swipe,.intro-step.seen .intro-mark i,
   .intro-tabs.reveal .intro-pill{animation:none;opacity:1;transform:none}

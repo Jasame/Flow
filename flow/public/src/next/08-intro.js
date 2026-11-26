@@ -33,6 +33,25 @@
     growth: `<svg viewBox="0 0 280 200"><g class="ip"><rect class="fr" x="40" y="4" width="200" height="66" rx="16"/><path class="lns" d="M60 24h40"/><rect class="hl" x="60" y="38" width="96" height="18" rx="9"/></g>
       <g class="ip d1"><rect class="fr" x="40" y="80" width="200" height="62" rx="14"/><path class="lns" d="M60 100h56M60 122h76M190 100h30M196 122h24"/></g>
       <g class="ip d2"><rect class="fr" x="40" y="152" width="200" height="44" rx="14"/><rect class="bar" x="58" y="168" width="164" height="12" rx="6"/><rect class="fill grow-x" x="58" y="168" width="112" height="12" rx="6"/></g></svg>`,
+    // 今日 as a list (the default, #442): 这周 with its seven days, the plan with its steps (the next one meant), the
+    // one button; at the top right the 列表 | 卡片 switch
+    today: `<svg viewBox="0 0 280 200"><g class="ip"><rect class="fr" x="44" y="4" width="192" height="192" rx="20"/></g>
+      <g class="ip d1"><rect class="bar" x="168" y="16" width="56" height="18" rx="9"/><rect class="hl" x="170" y="18" width="26" height="14" rx="7"/></g>
+      <g class="ip d1">${[0, 1, 2, 3, 4, 5, 6].map(k => `<circle class="${k < 3 ? 'fill' : 'bar'}" cx="${66 + k * 16}" cy="52" r="5"/>`).join('')}</g>
+      <g class="ip d2"><rect class="bar" x="58" y="68" width="164" height="86" rx="14"/><rect class="hl" x="64" y="76" width="152" height="22" rx="11"/>
+        <path class="lns" d="M90 87h70M90 115h86M90 137h60"/>${[87, 115, 137].map(y => `<circle class="dot" cx="76" cy="${y}" r="5"/>`).join('')}</g>
+      <rect class="btn ip d3" x="58" y="164" width="164" height="20" rx="10"/></svg>`,
+    // 周报 (#465): the week in one sentence over seven dots (the days studied filled), a block a subject, the button
+    report: `<svg viewBox="0 0 280 200"><g class="ip"><rect class="fr" x="44" y="4" width="192" height="52" rx="16"/><path class="lns" d="M62 22h110"/>
+        ${[0, 1, 2, 3, 4, 5, 6].map(k => `<circle class="${k === 1 || k === 4 ? 'bar' : 'fill'} pop" cx="${68 + k * 18}" cy="40" r="5"/>`).join('')}</g>
+      <g class="ip d1"><rect class="fr" x="44" y="64" width="192" height="50" rx="14"/><path class="lns" d="M62 80h50M62 98h120"/></g>
+      <g class="ip d2"><rect class="fr" x="44" y="122" width="192" height="44" rx="14"/><path class="lns" d="M62 138h60M62 154h96"/></g>
+      <rect class="btn ip d3" x="44" y="174" width="192" height="20" rx="10"/></svg>`,
+    // 使用习惯: six two-way switches in two columns, the text size a slider at the bottom
+    habits: `<svg viewBox="0 0 280 200"><g class="ip">${[0, 1, 2].map(r => [0, 1].map(c => { const x = 44 + c * 98, y = 4 + r * 44, on = (r + c) % 2 ? x + 48 : x + 9;
+        return `<rect class="fr" x="${x}" y="${y}" width="94" height="38" rx="12"/><rect class="bar" x="${x + 8}" y="${y + 16}" width="78" height="16" rx="8"/><rect class="hl" x="${on}" y="${y + 17}" width="37" height="14" rx="7"/>`; }).join('')).join('')}</g>
+      <g class="ip d2"><rect class="fr" x="44" y="138" width="192" height="58" rx="14"/><path class="lns" d="M62 154h40"/><path class="axis" d="M70 178h140"/>
+        <circle class="hl knob" cx="80" cy="178" r="9"/></g></svg>`,
   };
   // 等合并 (A0, 19:5x): a step whose page is still in a pull request keeps its place, said plainly, until it is merged
   const introWait = pr => `<div class="intro-wait"><span>等 ${esc(pr)} 合并后补上</span></div>`;
@@ -44,15 +63,15 @@
       { id: 'goals', setup: true, ask: true },
       { id: 'aim', setup: true, ask: true },
       { id: 'tabs', tab: -1, t: '底下五个地方', d: '今日、练习、能力、单词、我的。每天打开先看「今日」，别的随时点过去。', art: INTRO_ART.tabs },
-      { id: 'today', tab: 0, wait: '#442', t: '每天从「今日」开始', d: '今天的计划从上往下做，做完一项打一个勾；也能换成卡片的样子，长按调整顺序。' },
+      { id: 'today', tab: 0, t: '每天从「今日」开始', d: '今天的计划从上往下做，做完一项打一个勾。右上角能换成卡片的样子，长按一张卡片可以调整顺序。', art: INTRO_ART.today },
       { id: 'practice', tab: 1, t: '练习：想练哪样点哪样', d: '语法、听和读、说和写、单词、考试分成几块。最上面「今天建议」告诉你先练什么。', art: INTRO_ART.practice },
       { id: 'exam', tab: 1, t: '考试练习', d: '中考高考、四六级、考研、专四专八、雅思，每套 12–20 分钟限时做。设好「我的考试」就排在最前面。', art: INTRO_ART.exam },
       { id: 'radar', tab: 2, t: '能力：看看差在哪', d: '听力、阅读、词汇、语法、口语、写作六项，每项测 3–8 分钟。离目标最远的那项，每天会多练一点。', art: INTRO_ART.radar },
       { id: 'words', tab: 3, t: '单词和错题本', d: `每天要复习的和新词都在「单词」，${left ? '左' : '右'}滑认识。做错的题会进「错题本」，过几天再考你一次。`, art: INTRO_ART.words(left) },
       { id: 'me', tab: 4, t: '我的', d: '学习目标、朗读声音、提醒都在这里。「账号和隐私」「帮助」收在最下面，点开才展开。', art: INTRO_ART.me },
       { id: 'growth', tab: 4, t: '我的进步', d: '只和上个月的自己比：学了几天、读了多少词、快到哪个里程碑。在「我的」最上面点开。', art: INTRO_ART.growth },
-      { id: 'report', tab: 4, wait: '#465', t: '周报', d: '最近 7 天学了什么、哪里进步了，一页看完。' },
-      { id: 'habits', tab: 4, wait: '使用习惯', t: '使用习惯', d: '「认识」放哪边、字号、单词读音这些，在「我的 → 使用习惯」一处改。' },
+      { id: 'report', tab: 4, t: '周报', d: '最近 7 天学了几天、学了什么、哪里进步了，一页看完，还能存成一张图分享。在「我的」最上面点开。', art: INTRO_ART.report },
+      { id: 'habits', tab: 4, t: '使用习惯', d: '今日的样子、主题色、「认识」放哪边、字号这些，都在「我的 → 使用习惯」一页里改。', art: INTRO_ART.habits },
     ];
     return setup ? all : all.filter(s => !s.setup);
   }
@@ -78,7 +97,8 @@
     el.innerHTML = `<div class="intro-top"><button class="intro-back" type="button" data-intro="back" aria-label="上一步" data-tap="intro-back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <span class="intro-prog" aria-hidden="true"><i></i></span>
         <button class="intro-skip" type="button" data-intro="skip" data-tap="intro-skip">跳过</button></div>
-      <div class="intro-stage"><div class="intro-go"><button class="btn primary block intro-next" type="button" data-intro="next" data-tap="intro-next">下一步</button></div></div>
+      <div class="intro-stage"><div class="intro-go"><button class="btn primary block intro-next" type="button" data-intro="next" data-tap="intro-next">下一步</button></div>
+        <div class="intro-under" aria-live="polite"></div></div>
       <div class="intro-tabs" aria-hidden="true"><span class="intro-pill"></span>${tabs}</div>`;
     document.body.appendChild(el); document.body.classList.add('introing');
     el.addEventListener('click', introClick);
@@ -105,15 +125,15 @@
     const ask = INTRO.steps[INTRO.i].ask;
     if (!ask && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); if (e.key === 'ArrowRight') introNext(); else introBack(); return; }
     if (e.key !== 'Tab') return;  // the focus stays in it while it is open
-    const bs = [...el.querySelectorAll('.intro-top button, .intro-step.cur button, .intro-go.show button')].filter(b => !b.hidden && !b.disabled && b.offsetParent !== null);
+    const bs = [...el.querySelectorAll('.intro-top button, .intro-step.cur button, .intro-go button, .intro-under button')].filter(b => !b.hidden && !b.disabled && b.offsetParent !== null);
     if (!bs.length) return;
     const k = bs.indexOf(document.activeElement);
     e.preventDefault(); bs[(k + (e.shiftKey ? bs.length - 1 : 1) + bs.length) % bs.length].focus();
   }
 
-  // The places' steps keep their picture, title and sentence in one block from the same height, and share one button
-  // under it, so the button never moves from step to step (the user: where the eye and the thumb already are): the
-  // block's height is the tallest of them on this screen, the block and the button together in the middle.
+  // The places' steps keep their picture, title and sentence in one block of the same height (the tallest of them on
+  // this screen), just above the one button, so the picture starts at the same place from step to step and the words
+  // are never far from the button (the user, 13:3x: the button where the eye and the thumb already are).
   function introLayout() {
     const el = INTRO.el; if (!el) return;
     const stage = el.querySelector('.intro-stage'), probe = document.createElement('div');
@@ -122,14 +142,15 @@
     stage.appendChild(probe);
     INTRO.res = Math.max(...[...probe.querySelectorAll('.intro-body')].map(b => b.offsetHeight), 0);
     probe.remove();
-    const top = Math.max(12, Math.round((stage.clientHeight - (INTRO.res + 24 + 52)) / 2 - innerHeight * 0.04));
-    stage.style.setProperty('--gtop', top + 'px');
-    el.querySelector('.intro-go').style.top = top + INTRO.res + 24 + 'px';
+    stage.style.setProperty('--res', INTRO.res + 'px');
+    // the room left over goes mostly above the block; under it, toward the button, 28 to 96 px
+    const free = stage.clientHeight - (62 + 12 + 52) - INTRO.res - 28;
+    stage.style.setProperty('--gap', Math.round(Math.max(28, Math.min(96, 28 + free * 0.4))) + 'px');
   }
   // one step's page (not yet the current one: no ids, not wired)
   function introMake(i) {
     const s = INTRO.steps[i], page = document.createElement('section');
-    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (introTour(s) ? ' intro-place' : '');
+    page.className = 'intro-step' + (s.ask ? ' ask' : '') + (introTour(s) ? ' intro-place' : '') + (s.id === 'hello' ? ' intro-hello' : '');
     page.dataset.k = String(i);
     page.innerHTML = introStepHTML(s);
     introArtPrep(page);
@@ -148,12 +169,13 @@
     });
   }
   // the step now on screen: its ids and wiring, the top bar, the tab bar's mark, the shared button, the focus
-  function introSettle(page, first) {
+  function introSettle(page, first, keep) {
     const el = INTRO.el, steps = INTRO.steps, s = steps[INTRO.i], n = steps.length, last = INTRO.i === n - 1;
     save('flow-intro-at', { id: s.id, who: introWho() });  // closed here, the next opening goes on from this step
-    el.querySelectorAll('.intro-step').forEach(p => { if (p !== page) p.remove(); });
+    el.querySelectorAll('.intro-step').forEach(p => { if (p !== page && !p.classList.contains('leaving')) p.remove(); });
     page.classList.add('cur', 'seen'); page.removeAttribute('aria-hidden');
-    page.style.transition = page.style.transform = page.style.opacity = '';
+    if (!keep) page.style.transition = page.style.transform = page.style.opacity = '';
+    page.style.willChange = '';  // (only while it moves, B9)
     el.querySelectorAll('#introT, #introD').forEach(x => x.removeAttribute('id'));
     const t = page.querySelector('.intro-t'), d = page.querySelector('.intro-d');
     if (t) t.id = 'introT'; if (d) d.id = 'introD';
@@ -162,17 +184,25 @@
     // them); how far along, a bar (no numbers to count down)
     el.querySelector('.intro-back').hidden = INTRO.i === 0 || !introCanGo(INTRO.i - 1);
     introBars(INTRO.i, null, 0);
-    // the shared button: on the places' steps; its label on the last
-    const go = el.querySelector('.intro-go'), tour = introTour(s);
-    go.classList.toggle('show', tour);
-    go.querySelector('button').textContent = last ? (INTRO.again ? '看完了' : '开始学习') : '下一步';
-    go.querySelector('button').tabIndex = tour ? 0 : -1;
+    // the one button, the same place on every step (B9): its words, and under it 注册 / 登录 or what is still to choose
+    const b = el.querySelector('.intro-go .intro-next');
+    b.textContent = last ? (INTRO.again ? '看完了' : '开始学习') : s.id === 'hello' ? '开始' : '下一步';
+    introUnder();
     // the focus: on the dialog when it opens (a screen reader hears its name; no ring drawn on a button), then on the
-    // step's button, so 下一步 is one Enter away
-    const b = tour ? go.querySelector('button') : page.querySelector('.intro-next');
-    if (first) el.focus({ preventScroll: true }); else if (b) b.focus({ preventScroll: true });
+    // button, so 下一步 is one Enter away
+    if (first) el.focus({ preventScroll: true }); else b.focus({ preventScroll: true });
     if (!first || INTRO.i) announce(`第 ${INTRO.i + 1} 步，共 ${n} 步：${t ? t.textContent : ''}。${d ? d.textContent : ''}`);
     introDemo(page);
+  }
+  // under the button: 注册 and 登录 on 欢迎 (a guest), what is still to choose on 学英语为了什么
+  function introUnder() {
+    const el = INTRO.el; if (!el) return;
+    const s = INTRO.steps[INTRO.i], u = el.querySelector('.intro-under'), b = el.querySelector('.intro-go .intro-next');
+    const st = INTRO.st, ok = s.id !== 'goals' || introGoalsOk();
+    b.disabled = !ok || INTRO.busy;
+    const html = s.id === 'hello' && !S.user ? '<div class="intro-acct"><button type="button" data-intro="reg" data-tap="intro-reg">注册账号</button><button type="button" data-intro="login" data-tap="intro-login">已有账号？登录</button></div>'
+      : s.id === 'goals' && !ok ? `<p class="intro-need">${!st.goals.length ? '先选一个' : '再选一个考试'}</p>` : '';
+    if (u.dataset.was !== html) { u.innerHTML = html; u.dataset.was = html; }
   }
   // the progress bar and the tab bar's mark: at step i, or part of the way (p, 0–1) to step j while a finger drags
   function introBars(i, j, p) {
@@ -199,14 +229,16 @@
     'grow-in': () => [{ transform: 'scale(.82)' }, { transform: 'none' }],
     'grow-x': () => [{ transform: 'scaleX(.55)' }, { transform: 'none' }],
     open: () => [{ transform: 'scaleY(.7)', opacity: 0.6 }, { transform: 'none', opacity: 1 }],
+    knob: () => [{ transform: 'none' }, { transform: 'translateX(64px)', offset: 0.45 }, { transform: 'translateX(64px)', offset: 0.6 }, { transform: 'none' }],
   };
   function introDemo(page) {
     clearInterval(INTRO.demo); INTRO.demo = 0;
     if (REDUCED || !page.querySelector('.intro-art')) return;
     const parts = Object.keys(INTRO_DEMO).map(k => [k, page.querySelector('.intro-art .' + k)]).filter(x => x[1] && x[1].animate);
     if (!parts.length) return;
-    const play = () => parts.forEach(([k, x]) => x.animate(INTRO_DEMO[k](x.classList.contains('l')), { duration: k === 'swipe' ? 1300 : 700, easing: INTRO_EASE }));
-    INTRO.demo = setInterval(() => { if (INTRO.el && page.isConnected) play(); else clearInterval(INTRO.demo); }, 4000);
+    const play = () => parts.forEach(([k, x]) => x.animate(INTRO_DEMO[k](x.classList.contains('l')), { duration: k === 'swipe' || k === 'knob' ? 1300 : 700, easing: INTRO_EASE }));
+    let n = 0;
+    const id = INTRO.demo = setInterval(() => { if (INTRO.el && page.isConnected && ++n <= 2) play(); else clearInterval(id); }, 4000);
   }
   // can a step be reached from this one: not past the choices before they are made (下一步 saves them), not back into
   // them once saved
@@ -220,8 +252,24 @@
 
   // to step j: both at once, the one on screen out to one side and the new one in from the other, sliding and fading
   // (300 ms, fast then slow); from where a finger left them (from: the offset in px), or from the start
+  // where a moving step is now (its translateX in px)
+  function introX(x) {
+    const t = getComputedStyle(x).transform, M = window.DOMMatrix || window.WebKitCSSMatrix;
+    try { return t && t !== 'none' && M ? new M(t).m41 : 0; } catch (e) { return 0; }
+  }
+  // a turn still playing ends where it is: the one leaving goes on out quickly, the one arriving is the current one
+  function introCut() {
+    const a = INTRO.anim; if (!a) return;
+    INTRO.anim = null; clearTimeout(a.t);
+    const xo = introX(a.out), oo = Number(getComputedStyle(a.out).opacity);
+    a.out.classList.add('leaving'); introPlace(a.out, xo, oo); a.out.offsetWidth;  // eslint-disable-line no-unused-expressions
+    introPlace(a.out, a.outTo, 0, 140); setTimeout(() => a.out.remove(), 160);
+    const xi = introX(a.in), oi = Number(getComputedStyle(a.in).opacity);
+    introPlace(a.in, xi, oi); introSettle(a.in, false, true);
+  }
   function introGo(j, from) {
     if (!INTRO.el || INTRO.busy || j < 0 || j >= INTRO.steps.length || j === INTRO.i) return;
+    introCut();
     const stage = INTRO.el.querySelector('.intro-stage'), cur = stage.querySelector('.intro-step.cur'), dir = j > INTRO.i ? 1 : -1, W = stage.clientWidth;
     let nb = from && from.nb;
     if (!nb) {
@@ -233,15 +281,14 @@
     }
     const moved = from ? Math.abs(from.dx) : 0, v = from ? Math.abs(from.v) : 0;
     const ms = REDUCED ? 0 : Math.round(Math.max(160, Math.min(INTRO_MS, v > 0.5 ? (W - moved) / v : INTRO_MS * (1 - moved / W) + 80)));
-    const go = INTRO.el.querySelector('.intro-go'), keep = introTour(INTRO.steps[INTRO.i]) && introTour(INTRO.steps[j]);
-    if (!keep) go.classList.remove('show');  // (the shared button stays put between two places' steps)
-    INTRO.busy = true;
     introPlace(cur, -dir * W, 0, ms); introPlace(nb, 0, 1, ms);
     INTRO.i = j; introBars(j, null, 0);
-    setTimeout(() => { INTRO.busy = false; if (INTRO.el) introSettle(nb, false); }, ms + 20);
+    const a = INTRO.anim = { out: cur, in: nb, outTo: -dir * W };
+    a.t = setTimeout(() => { if (INTRO.anim === a) INTRO.anim = null; cur.remove(); if (INTRO.el) introSettle(nb, false); }, ms + 20);
   }
   function introPlace(x, px, o, ms) {
     x.style.transition = ms ? `transform ${ms}ms ${INTRO_EASE}, opacity ${ms}ms ${INTRO_EASE}` : 'none';
+    x.style.willChange = REDUCED ? '' : 'transform, opacity';
     x.style.transform = `translateX(${Math.round(px)}px)`; x.style.opacity = String(o);
   }
   function introBack() { if (introCanGo(INTRO.i - 1)) introGo(INTRO.i - 1); }
@@ -253,7 +300,8 @@
     let d = null;
     const W = () => stage.clientWidth;
     stage.addEventListener('touchstart', e => {
-      if (INTRO.busy || e.touches.length > 1) { d = null; return; }
+      if (INTRO.busy || e.touches.length > 1 || e.touches[0].clientX < 20) { d = null; return; }
+      introCut();
       const p = e.touches[0]; d = { x0: p.clientX, y0: p.clientY, lock: '', dx: 0, dir: 0, nb: null, can: false, pts: [[p.clientX, performance.now()]] };
     }, { passive: true });
     stage.addEventListener('touchmove', e => {
@@ -296,13 +344,11 @@
     stage.addEventListener('touchcancel', () => end(true));
   }
   function introStepHTML(s) {
-    const next = (label, dis) => `<button class="btn primary block intro-next" type="button" data-intro="next" data-tap="intro-next"${dis ? ' disabled' : ''}>${label}</button>`;
     if (s.id === 'hello') {
       return `<div class="intro-body"><div class="intro-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
         <h2 class="intro-t intro-big">欢迎来到语流</h2>
         <p class="intro-d">每天十来分钟，听、读、说、背单词，跟着计划一点点往前走。先用半分钟定个目标。</p>
-        ${next('开始')}
-        ${S.user ? '' : `<div class="intro-acct"><button type="button" data-intro="reg" data-tap="intro-reg">注册账号</button><button type="button" data-intro="login" data-tap="intro-login">已有账号？登录</button></div>`}</div>`;
+</div>`;
     }
     const M = S.meta || {}, st = INTRO.st;
     if (s.id === 'goals') {
@@ -313,7 +359,7 @@
           <span class="l">${esc(g.label)}</span><span class="d">${esc((M.goal_hints || {})[g.id] || '')}</span><span class="main" hidden>主要</span><svg class="ck" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6.5"/></svg></button>`).join('')}</div>
         <div class="intro-exam" id="introExam" hidden><h3 class="intro-h" id="introExamH">准备哪个考试？</h3>
           <div class="chips" role="radiogroup" aria-labelledby="introExamH">${(M.exams || []).map(x => `<button class="chip" type="button" role="radio" data-ie="${esc(x.id)}" aria-checked="${x.id === st.exam}">${esc(x.short)}</button>`).join('')}</div></div>
-        ${next('下一步', !st.goals.length)}<p class="intro-need" id="introNeed" aria-live="polite">${st.goals.length ? '' : '先选一个'}</p></div>`;
+</div>`;
     }
     if (s.id === 'aim') {
       return `<div class="intro-body wg"><h2 class="intro-t">想达到什么水平？</h2>
@@ -322,7 +368,7 @@
           <b>${esc(x.id)}</b><span class="d">${esc(x.label)}</span><span class="rec" hidden>推荐</span></button>`).join('')}</div>
         <h3 class="intro-h" id="introDaysH">一周大概能学几天？</h3>
         <div class="chips intro-days" role="radiogroup" aria-labelledby="introDaysH">${[2, 3, 4, 5, 6, 7].map(d => `<button class="chip" type="button" role="radio" data-id="${d}" aria-checked="false">${d} 天</button>`).join('')}</div>
-        ${next('下一步')}</div>`;
+</div>`;
     }
     return `<div class="intro-body">${s.wait ? introWait(s.wait) : `<div class="intro-art" aria-hidden="true">${s.art}</div>`}
       <h2 class="intro-t">${esc(s.t)}</h2><p class="intro-d">${esc(s.d)}</p></div>`;
@@ -343,8 +389,7 @@
         });
         page.querySelectorAll('[data-ie]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.ie === st.exam)));
         page.querySelector('#introExam').hidden = !hasExam();
-        page.querySelector('.intro-next').disabled = !st.goals.length || (hasExam() && !st.exam);
-        page.querySelector('#introNeed').textContent = !st.goals.length ? '先选一个' : hasExam() && !st.exam ? '再选一个考试' : '';
+        if (INTRO.el && INTRO.steps[INTRO.i].id === 'goals') introUnder();
       };
       page.querySelectorAll('[data-ig]').forEach(b => b.onclick = () => {
         const g = b.dataset.ig;
@@ -378,7 +423,7 @@
       const st = INTRO.st, exam = st.goals.includes('exam') ? st.exam : '';
       const prof = { goal: st.goals[0], goals: st.goals, target: st.target, level: S.placed || below(st.target), level_source: S.placed ? 'placed' : 'guess',
                      themes: [], minutes: 10, exam, exam_date: '', weekly_goal: st.days };
-      const b = INTRO.el.querySelector('.intro-step.cur .intro-next'); INTRO.busy = true; if (b) b.disabled = true;
+      const b = INTRO.el.querySelector('.intro-go .intro-next'); INTRO.busy = true; b.disabled = true;
       try { await welcomeSave(prof, false); } catch (x) { INTRO.busy = false; if (b) b.disabled = false; toast(x.message); return; }
       INTRO.busy = false;
       if (location.hash !== '#/') location.hash = '#/';

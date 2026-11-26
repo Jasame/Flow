@@ -2832,14 +2832,14 @@ def updates_run(pw):
 # ---- 新手引导 v2 (08-intro.js, 08-tour.js, tour_service.py): one step at a time over the whole screen; a new learner
 # first 欢迎, 学英语为了什么 and 想到什么水平, then one step per place of the app with a copy of the tab bar walking along
 INTRO_JS = """() => { const t = document.querySelector('.intro'); if (!t) return null;
-  const s = t.querySelector('.intro-step.cur'), b = s && (s.querySelector('.intro-next') || t.querySelector('.intro-go.show .intro-next')), r = b ? b.getBoundingClientRect() : null;
+  const s = t.querySelector('.intro-step.cur'), b = t.querySelector('.intro-go .intro-next'), r = b ? b.getBoundingClientRect() : null;
   return {title: s && s.querySelector('.intro-t').textContent, next: b && b.textContent.trim(), dis: !!b && b.disabled,
           role: t.getAttribute('role'), modal: t.getAttribute('aria-modal'), named: !!document.getElementById(t.getAttribute('aria-labelledby') || '-'),
           focus: t.contains(document.activeElement), btn: r && Math.round(r.top), H: innerHeight,
           inside: !!r && r.top >= 0 && r.bottom <= innerHeight - 56, wide: document.scrollingElement.scrollWidth > innerWidth + 1,
           tab: [...t.querySelectorAll('.intro-tab.on')].map(x => x.textContent.trim()).join(''), pill: getComputedStyle(t.querySelector('.intro-pill')).opacity,
           bar: t.querySelector('.intro-tabs').classList.contains('show'), back: !t.querySelector('.intro-back').hidden,
-          art: !!s.querySelector('.intro-art svg'), wait: !!s.querySelector('.intro-wait'), acct: [...s.querySelectorAll('.intro-acct button')].map(x => x.textContent),
+          art: !!s.querySelector('.intro-art svg'), wait: !!s.querySelector('.intro-wait'), acct: [...t.querySelectorAll('.intro-under .intro-acct button')].map(x => x.textContent),
           bg: getComputedStyle(t).backgroundColor, motion: getComputedStyle(t).transitionDuration,
           day: document.documentElement.classList.contains('tour-day')}; }"""
 # the places, in the order of the tab bar (今日, 周报 and 使用习惯 wait for their pull requests: a plain 等合并 there)
@@ -2850,8 +2850,8 @@ TOUR_JS = """() => { const t = document.querySelector('.tour'); if (!t) return n
   return {n: (t.querySelector('.tour-n') || {}).textContent, title: (t.querySelector('#tourT') || {}).textContent, text: (t.querySelector('#tourD') || {}).textContent,
           inside: r.left >= 0 && r.top >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5,
           hole: [Math.round(h.left), Math.round(h.top), Math.round(h.width), Math.round(h.height)]}; }"""
-# the button that goes on: a step's own (欢迎 and the choices), else the one the places' steps share
-INTRO_NEXT = '.intro-step.cur .intro-next, .intro-go.show .intro-next'
+# the button that goes on: one for every step, in one place (B9)
+INTRO_NEXT = '.intro-go .intro-next'
 # a guest who has seen (or skipped) the steps: the checks of the one-page start form (start_run and others)
 NO_INTRO = "try { localStorage.setItem('flow-intro', JSON.stringify('skip')); } catch (e) {}"
 
