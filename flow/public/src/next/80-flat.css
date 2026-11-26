@@ -71,14 +71,14 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 .tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .ring{--p:0%;flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
   background:radial-gradient(closest-side,var(--bg) 78%,transparent 80% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
-.ring b{font-size:13px;font-variant-numeric:tabular-nums}
+.ring b{font-size:13.5px;font-variant-numeric:tabular-nums}
 .go-next{min-height:56px;font-size:17px;border-radius:16px;justify-content:space-between;padding:0 20px;box-shadow:0 6px 18px rgba(0,0,0,.12);box-shadow:0 6px 18px color-mix(in srgb,var(--green) 28%,transparent)}
 .go-next span{font-size:20px}
 .tp-done{display:flex;align-items:center;gap:12px}.tp-done .done-ring{width:44px;height:44px;margin:0}
 .plist{display:grid;gap:2px;background:var(--paper);border-radius:var(--r);padding:6px}
 .prow{display:grid;grid-template-columns:32px minmax(0,1fr) 14px;gap:12px;align-items:center;padding:12px 10px;border-radius:12px;text-decoration:none;color:inherit}
 .prow:hover{background:var(--sunk)}
-.prow .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--sunk);color:var(--muted)}
+.prow .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13.5px;background:var(--sunk);color:var(--muted)}
 .prow.next .num{background:var(--fill);color:var(--on-fill)}
 .prow.next b{color:var(--green-ink)}
 .prow.done .num{background:var(--green-soft);color:var(--green-ink)}

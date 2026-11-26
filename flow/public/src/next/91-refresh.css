@@ -46,7 +46,7 @@
 .gfoot{margin:6px 12px 0}
 .grow.danger{grid-template-columns:minmax(0,1fr);justify-items:center;color:var(--red);font-weight:600}
 /* a folded card: its summary is the heading, a chevron turns when it opens */
-details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px}
+details.fold>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;list-style:none;padding:0 26px 0 0;color:inherit;position:relative;min-height:24px;font-size:15.5px}
 details.fold>summary::-webkit-details-marker{display:none}
 details.fold>summary::after{content:"";position:absolute;right:6px;top:6px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s var(--ease)}
 details.fold[open]>summary::after{transform:rotate(225deg);top:10px}
@@ -104,7 +104,7 @@ details.preread>summary .tiny{flex-basis:100%}
 /* 每周目标 on 今日: a button (a tap changes the goal); today's day marked; the goal reached in green */
 .wk .week span.today{outline:1.5px solid var(--green);outline-offset:1px}
 /* 存到手机 on a material's page */
-.offk{display:inline-flex;align-items:center;font-size:13px;min-height:24px}
+.offk{display:inline-flex;align-items:center;font-size:13.5px;min-height:24px}
 .offk .offi{width:15px;height:15px;margin-right:3px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .origin .offk{margin-left:4px}  /* on the source line: the icon sets it apart from 怎么写的 */
 .offk.on{color:var(--green-ink)}

@@ -415,16 +415,59 @@ class FiveMinuteTests(Db):
             self.assertTrue(s in GUIDE, s)
 
 
+class MineTests(Db):
+    """练我自己的材料 (r29): 今日's third row, next_service.mine."""
+    BODY = ('Our group will present a plan to recycle more on campus. First, we counted the bins in every building. '
+            'Then we asked students why they throw bottles away. Most said the bins were too far. Our plan puts small bins '
+            'near every classroom and a big one by the gate. We hope the school will try it for one month.')
+
+    def article(self, c, title, extra=''):
+        import import_service as im
+        with patch('tts_service.start_pack', lambda *a: None):
+            body, st = im.save(c, self.uid, {'title': title, 'text': self.BODY + extra})
+        self.assertEqual(st, 200, body)
+        return body['id']
+
+    def test_none_then_the_newest_then_the_one_in_progress_then_the_next_unfinished(self):
+        with app.db() as c:
+            self.assertEqual(nx.mine(c, self.uid), {'count': 0, 'item': None})
+            old = self.article(c, '小组展示：校园回收计划')
+            time.sleep(0.01)
+            new = self.article(c, 'Interview answers', ' I also want to add one more idea.')
+            m = nx.mine(c, self.uid)
+            self.assertEqual((m['count'], m['item']['id'], m['item']['started']), (2, new, False))
+            c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,'read',?)", (self.uid, old, time.time())); c.commit()
+            m = nx.mine(c, self.uid)['item']
+            self.assertEqual((m['id'], m['title'], m['started'], m['steps']), (old, '小组展示：校园回收计划', True, ['read']))
+            self.assertTrue(m['words'] > 40)
+            c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,'output',?)", (self.uid, old, time.time())); c.commit()
+            self.assertEqual(nx.mine(c, self.uid)['item']['id'], new)  # finished: the next one not finished
+            c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,'output',?)", (self.uid, new, time.time())); c.commit()
+            self.assertEqual(nx.mine(c, self.uid), {'count': 2, 'item': None})  # all done: 今日 asks for a new one
+            self.assertIn('mine', nx.home(c, self.uid))
+
+    def test_with_the_records_switch_off_simply_the_newest(self):
+        with app.db() as c:
+            old = self.article(c, 'Old notes')
+            time.sleep(0.01)
+            new = self.article(c, 'New notes', ' One more line here.')
+            c.execute("INSERT INTO next_progress(user_id,pack,step,created) VALUES(?,?,'read',?)", (self.uid, old, time.time())); c.commit()
+            self.assertEqual(nx.mine(c, self.uid, {'personalize': False})['item']['id'], new)
+            self.assertEqual(nx.mine(c, self.uid, {'personalize': True})['item']['id'], old)
+
+
 class PageTests(unittest.TestCase):
     def test_the_page_shows_must_extra_this_weeks_task_and_the_over_line(self):
         for s in ('还有时间的话', '本周任务', 'tp-extra', 'tp-week', 'tp-over', '剩下的可以留到明天', 'must_minutes', 'left_minutes', 'tp-back', '欢迎回来', '之后几天慢慢补上',
                   "data-tap=\"home-more-grammar\"", '做 4 道语法题'):
             self.assertTrue(s in JS, s)
-        for s in ('.tp-extra', '.tp-week', '.tp-over', '.tp-back'):
+        for s in ('function mineRowHTML', 'data-tap="home-mine"', 'data-tap="home-start"', '今天的练习', 'class="tp-count"', '贴课本或讲义进来练'):
+            self.assertTrue(s in JS, s)
+        for s in ('.tp-extra', '.tp-week', '.tp-over', '.tp-back', '.mine-card', '.tp-count'):
             self.assertTrue(s in CSS, s)
 
     def test_the_guide_explains_the_budget(self):
-        for s in ('还有时间的话', '本周任务', '超过你定的', '仿写一句', '摸底，可以跳过', '几天没来，回来那天', '先复习最容易忘的 40 个', '大约 5 天补完'):
+        for s in ('## 我的材料', '开始今天的练习', '贴课本或讲义进来练', '还有时间的话', '本周任务', '超过你定的', '仿写一句', '摸底，可以跳过', '几天没来，回来那天', '先复习最容易忘的 40 个', '大约 5 天补完'):
             self.assertTrue(s in GUIDE, s)
 
 

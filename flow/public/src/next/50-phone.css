@@ -4,7 +4,7 @@
 #reader [data-ex]{padding:8px 5px;margin:-8px -2px;min-width:28px}
 @media (max-width:420px){
   main{padding:14px 14px 32px}
-  .h1{font-size:23px}
+  .h1{font-size:24px}
   .text{font-size:18px;line-height:1.72}
   .line{grid-template-columns:36px minmax(0,1fr);gap:8px;padding:8px}
   .line .icon-btn{width:36px;height:36px}
