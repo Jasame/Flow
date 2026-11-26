@@ -130,6 +130,7 @@
     }
     q = q || ''; page = page || 1; f = f || '';
     const [o, list] = await Promise.all([api('/api/next/vocab'), api('/api/next/cards?q=' + encodeURIComponent(q) + '&page=' + page + '&f=' + f)]);
+    wordCounts(o);  // today's share, the same as 今天要背 below: the tab's dot follows it (02-shell.js)
     const n = o.due + o.new;
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const maxF = Math.max(1, ...o.forecast), maxC = Math.max(1, ...o.calendar.map(d => d.n));
@@ -142,7 +143,7 @@
     // tool tiles, the stats a fold, a three-way switch by the search, one word a row. Every entry and state of before stays.
     const row = (icon, label, val) => `<div class="wp-row">${fi(icon)}<span>${label}</span><b>${val}</b></div>`;
     const note = (o.catch_up ? `<p class="wp-note" id="catchUp">补积压：还剩 ${o.catch_up.left} 个，大约 ${o.catch_up.days} 天补完。最容易忘的排在前面，补完之前先不加新词。</p>`
-      : o.new_paused ? '<p class="wp-note" id="newPaused">到期的词比较多，今天先复习，新词明天继续。</p>' : '');
+      : o.new_paused ? '<p class="wp-note" id="newPaused">到期的词比较多，今天先复习，词书的新词明天继续。</p>' : '');
     const book = o.book ? `<a class="wp-blk wp-book" href="#/vocab/plan">${fiTile('book')}
         <span class="wp-bk"><span class="wp-bk-t"><b>《${esc(o.book.title)}》</b><span class="wp-num">${o.book.started} / ${o.book.size - (o.book.skipped || 0)}</span></span>
           <span class="vbar"><i data-w="${o.book.started / Math.max(1, o.book.size - (o.book.skipped || 0)) * 100}"></i></span>
@@ -276,9 +277,11 @@
       : esc(c.meaning || c.context || SOURCE[c.source] || '');
     // one word a row (B9's 第一批): the English left in the serif, its meaning grey on the right; how well it is held is in
     // its sheet (a tap on the row)
-    // 错题本 (mistakes): two lines — the question (serif), its kind and where it came from — and on the right 待学 or when it is due
+    // 错题本 (mistakes): two lines — the question (serif), its kind and where it came from — and on the right when it is
+    // due (a mistake is due the moment it is made: 该复习了, not the card state 待学, B9's audit 第 9 条); › apart, so
+    // the English table finds the words alone
     const MK = { fix: '改错', question: '理解题', sound: '发音' };
-    const mrow = c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="m">${[MK[c.kind] || '错题', c.context ? esc(c.context) : ''].filter(Boolean).join(' · ')}</span></span><span class="st">${c.state === 'new' ? '待学' : dueText(c.due)} ›</span></button>`;
+    const mrow = c => `<button class="xrow" type="button" data-card="${c.id}"><span class="t"><span class="x">${esc(c.text)}</span><span class="m">${[MK[c.kind] || '错题', c.context ? esc(c.context) : ''].filter(Boolean).join(' · ')}</span></span><span class="st">${dueText(c.due)}<span aria-hidden="true"> ›</span></span></button>`;
     return `${list.items.length ? `<div class="xlist wp-list${mistakes ? ' wp-mlist' : ''}" id="clist">${list.items.map(c => mistakes ? mrow(c) : `<button class="xrow" type="button" data-card="${c.id}"><span class="x">${esc(c.text)}</span><span class="m"${c.source === 'mistake' ? '' : ' data-zh'}>${sub(c)}</span></button>`).join('')}</div>`
         : `<div class="empty"><p>${none}</p>${q ? `<div class="row center">${f && FILT[f] ? '<button class="btn small" type="button" id="sfAll">在全部里找</button>' : ''}<button class="btn small" type="button" id="sfClear">清除搜索</button></div>` : ''}</div>`}
       ${pages > 1 ? `<div class="pager"><button class="btn small" id="pv" ${page <= 1 ? 'disabled' : ''}>上一页</button><span class="muted small">${page} / ${pages}</span><button class="btn small" id="nx" ${page >= pages ? 'disabled' : ''}>下一页</button></div>` : ''}`;

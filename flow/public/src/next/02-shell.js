@@ -121,6 +121,15 @@
     b.hidden = !n; b.textContent = '';
     const a = b.closest('a'); if (a) { if (n) a.setAttribute('aria-label', `${name}，有 ${n} 项${what || ''}`); else a.removeAttribute('aria-label'); }
   }
+  // Today's words as the review or the 单词 page just counted them (today's share, 'more' = 继续复习 past it): kept in
+  // the home data, so 练习's 「复习单词」 and the 「单词」 tab lose their dot the moment the last word is done (the owner,
+  // 2026-11-26: the dot stayed with nothing left to review). 继续复习's counts are everything due: not today's share.
+  function wordCounts(o) {
+    const st = S.home && S.home.stats;
+    if (!st || !o || o.due == null || o.more) return;
+    st.due = o.due; st.new = o.new || 0; if (o.minutes != null) st.minutes = o.minutes;
+    setDueBadge();
+  }
   function setDueBadge() {
     const st = S.home && S.home.stats, due = st ? st.due + st.new : 0, other = st ? st.other_due || 0 : 0;
     tabCount('dueBadge', due, '单词');
@@ -416,7 +425,7 @@
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav(a === 'other' ? 'practice' : 'cards'); await reviewView(a === 'more', a === 'other' ? 'other' : 'words'); }
       else if (name === 'library') { setNav('practice'); await libraryView(); }
-      else if (name === 'practice') { setNav('practice'); await practiceView(); }
+      else if (name === 'practice') { setNav('practice'); await practiceView(fresh); }
       else if (name === 'guide') { setNav('practice'); await guideView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'me') { setNav('me'); if (a === 'habits') habitsView(); else await meView(a); }  // #/me/account, #/me/help: that fold open; 使用习惯 (81-habits.js)
       else if (name === 'invite') { setNav('me'); await joinRoute(decodeURIComponent(a || '')); }

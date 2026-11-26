@@ -430,6 +430,32 @@ class WordCapTests(unittest.TestCase):
         n = vs.counts(self.c, 1, self.now, cap=5)
         self.assertEqual((n['due'], n['new'], n['minutes'], n['later']), (0, 0, 0, 20))
 
+    def test_home_counts_todays_share_as_the_review_does(self):
+        # 「复习单词」 and the 「单词」 tab's dot come from nx.stats: the share the review gives, not every word due (the
+        # owner, 2026-11-26: the review said nothing was due and the dot stayed)
+        self.plan(5)
+        for k in range(30):
+            self.review(f'w{k}', 5)
+        self.c.commit()
+        with patch.object(vs.time, 'time', lambda: self.now), patch.object(nx.time, 'time', lambda: self.now):
+            st, q = nx.stats(self.c, 1), vs.queue(self.c, 1)
+            self.assertEqual((st['due'], st['new']), (q['due'], q['new'])); self.assertLess(st['due'], 30)
+            self.answered(60)  # today's share done: 今天的单词做完了, the rest later
+            st, q = nx.stats(self.c, 1), vs.queue(self.c, 1)
+            self.assertEqual((st['due'] + st['new'], q['due'] + q['new'], q['later']), (0, 0, 30))
+
+    def test_home_word_count_is_the_word_pages(self):
+        # 我的's 「N 个词」 (B9's audit 第 7 条): words and phrases only, as the 单词 page's 「共 N 个」; cards counts all
+        self.plan(5)
+        for k in range(3):
+            self.review(f'w{k}', 5)
+        self.c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,state,source) "
+                       "VALUES(1,'He go home.','he go home.','','','fix',?,?,'new','mistake')", (self.now - 60, self.now - 60))
+        self.c.commit()
+        with patch.object(vs.time, 'time', lambda: self.now), patch.object(nx.time, 'time', lambda: self.now):
+            st, o = nx.stats(self.c, 1), vs.overview(self.c, 1)
+        self.assertEqual((st['word_cards'], st['cards']), (o['total'], o['total'] + 1)); self.assertGreaterEqual(o['total'], 3)  # + today's book words
+
     def test_new_words_come_in_the_time_the_reviews_leave(self):
         self.plan(5, daily=10)
         self.assertEqual(vs.introduce(self.c, 1, self.now), 10)  # nothing due: 5 minutes hold 10 new words (3 answers each)
