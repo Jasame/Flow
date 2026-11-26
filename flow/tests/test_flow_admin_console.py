@@ -163,6 +163,19 @@ class LearnerTests(Console):
         self.assertEqual(self.console('/learner?id=9999')[0], 404)
         self.assertEqual(self.console('/overview')[1]['active_7d'], 1)  # a material step counts as active
         self.assertEqual(self.console('/overview')[1]['never_started'], 1)
+        # what the learner wrote never shows (隐私和数据: 看不到作文内容): a 改错卡 holds a corrected piece of their essay,
+        # and an article they imported is theirs, its title too
+        with app.db() as c:
+            c.execute("INSERT INTO next_cards(user_id,text,norm,meaning,context,kind,created,due,lapses,source) VALUES(?,?,?,?,?,'fix',?,?,5,'mistake')",
+                      (uid, 'my grandmother has gone', 'fix:x', '时态', 'Last summer my grandmother went to Beijing.', now, now))
+            c.execute("INSERT INTO lab_packs(id,owner,origin,content,created) VALUES('own-1',?,'import',?,?)",
+                      (uid, json.dumps({'title': '我的日记：和外婆去北京'}, ensure_ascii=False), now))
+            c.execute("INSERT INTO next_progress VALUES(?,?,?,?)", (uid, 'own-1', 'read', now))
+            c.commit()
+        one = self.console(f'/learner?id={uid}')[1]
+        self.assertEqual([m['text'] for m in one['mistakes']], ['ubiquitous'])
+        self.assertIn('自己导入的文章', [m['title'] for m in one['materials']])
+        self.assertNotIn('外婆', json.dumps(one, ensure_ascii=False)); self.assertNotIn('grandmother', json.dumps(one, ensure_ascii=False))
 
     def test_stopping_an_account_signs_it_out_and_keeps_it_out_until_restored(self):
         cookie = self.register('xiaolin')

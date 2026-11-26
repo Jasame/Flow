@@ -1426,7 +1426,8 @@ def rewrite(c, uid, data):
             __import__('vocab_service').record_use(c, uid, r.get('word_use') or [], now)
             import skills_service as sk
             sk.log(c, uid, 'writing', 'rewrite', {'natural': 1.0, 'minor': 0.7, 'rewrite': 0.35}[r['verdict']], level, p['id'], commit=False)
-            sk.mistakes_from_changes(c, uid, r['changes'], answer, 'writing', p['id'])
+            __import__('progress_service').note_evidence(c, uid, answer, r['changes'], 'rewrite', rid, data.get('assisted'), now)
+            sk.mistakes_from_changes(c, uid, r['changes'], answer, 'writing', p['id'], request_id=rid, kind='rewrite', assisted=data.get('assisted'))
         for ch in r['changes']:
             ch['node_title'] = meta.get(ch['node'], {}).get('title') if ch['node'] else None
         r['used_well'] = [n if isinstance(n, dict) else {'id': n, 'title': meta.get(n, {}).get('title', n)} for n in r['used_well']]
