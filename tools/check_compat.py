@@ -181,6 +181,10 @@ CSS_SELECTORS = [(':has()', '15.4', re.compile(r':has\(')), ('nesting with &', '
 # @supports not (container-type: …) block that shows something else there (语流 A0, 2026-11-25: about.css's phone)
 CQ_UNITS = re.compile(r'\d(?:cqw|cqh|cqi|cqb|cqmin|cqmax)\b')
 CQ_FALLBACK = re.compile(r'@supports\s+not\s*\(\s*container-type\s*:')
+# properties Safari reads only with -webkit- (None: no Safari yet), or only from that version on without it: the rule
+# needs the -webkit- one too (2026-11-26, 语流 B8 #364: user-select:none alone left 盲听's hidden sentence copyable)
+PREFIXED = {'user-select': None, 'text-size-adjust': None, 'line-clamp': None, 'box-decoration-break': None,
+            'backdrop-filter': '18', 'appearance': '15.4', 'mask': '15.4', 'mask-image': '15.4'}
 
 
 def css_findings(src):
@@ -223,11 +227,14 @@ def css_findings(src):
             if s and not ok:
                 found.append((pre_start + s.start(), what, ver))
         seen = {}                        # property -> it has had a value Safari 15.0 knows
+        props = {d.split(':', 1)[0].strip().lower() for d in body.split(';') if ':' in d}
         off = body_start
         for decl in body.split(';'):
             if ':' in decl:
                 prop, value = decl.split(':', 1)
                 prop = prop.strip().lower()
+                if prop in PREFIXED and '-webkit-' + prop not in props and not ok:
+                    found.append((off + decl.index(prop), f'{prop} with no -webkit-{prop} in the same rule', PREFIXED[prop]))
                 newer = [(what, ver, pat.search(value)) for what, ver, pat in CSS_VALUES if pat.search(value)]
                 if not cq_ok and CQ_UNITS.search(value):
                     newer.append(('container query units (cqw, cqh …)', '16', CQ_UNITS.search(value)))
@@ -255,10 +262,11 @@ def main(argv):
         for line, col, what, ver in (css_findings(text) if f.suffix == '.css' else findings(text)):
             bad += 1
             rel = f.relative_to(ROOT) if f.is_absolute() and ROOT in f.parents else f
-            print(f'{rel}:{line}:{col}: {what}: Safari {ver} and later only (iOS 15 must work)\n    {lines[line - 1].strip()[:160]}')
+            when = f'Safari {ver} and later only' if ver else 'no Safari reads it without -webkit-'
+            print(f'{rel}:{line}:{col}: {what}: {when} (iOS 15 must work)\n    {lines[line - 1].strip()[:160]}')
     if bad:
         print(f'check_compat: {bad} thing(s) Safari 15.0 cannot run; rewrite them (in CSS: a plain value for the same '
-              f'property first), or mark a line that is safe with // compat-ok: <why> (in CSS /* compat-ok: <why> */)')
+              f'property first, -webkit-x next to x), or mark a line that is safe with // compat-ok: <why> (in CSS /* compat-ok: <why> */)')
         return 1
     print(f'check_compat: {len(files)} scripts and stylesheets, nothing newer than Safari 15.0 without a fallback')
     return 0

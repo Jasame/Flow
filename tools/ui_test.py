@@ -3729,6 +3729,14 @@ def review_side_run(pw):
         check(dev, '太简单: a tap 6 px under its box is still 太简单 (its 44 px), not the card\'s 认识', below['hit'] == 'easyBtn' and bar3 and not turned and len(bodies) == n_rated, [below, bar3, turned])
         if bar3:
             pg.click('.easy-bar button'); pg.wait_for_timeout(700)
+        # leaving while an answer is being saved (the save made slow here): nothing of the review is drawn over the next page
+        pg.evaluate("""() => { const f = window.fetch; window.fetch = (u, o) => String(u).endsWith('/api/next/review') && o && o.method === 'POST'
+          ? new Promise(r => setTimeout(r, 900)).then(() => f(u, o)) : f(u, o); }""")
+        pg.wait_for_timeout(700); pg.click('.ractions [data-claim="know"]'); pg.wait_for_timeout(700); pg.click('.ractions [data-rate="good"]')
+        pg.evaluate("location.hash = '#/cards'"); pg.wait_for_timeout(1800)
+        left_ok = pg.evaluate("() => [!!document.querySelector('#listSlot'), !document.querySelector('#view .review'), (document.querySelector('#view h1') || {}).textContent]")
+        check(dev, 'leaving while an answer is saved: the next page stays, no review card drawn over it', left_ok[0] and left_ok[1], left_ok)
+        go(pg, '#/review'); pg.wait_for_selector('[data-claim]', timeout=8000)
         pg.evaluate("localStorage.setItem('flow-know-side', 'left')"); pg.reload(wait_until='load'); pg.wait_for_selector('[data-claim]', timeout=8000); pg.wait_for_timeout(700)
         tap_card(pg, 0); z6 = pg.evaluate(ZONE_JS)
         check(dev, '点卡片作答 with 「认识」 on the left: the left third is 认识, and the back is mirrored too (没错 · 模糊 · 记错了)', z6['back'] and z6['rates'] == ['good', 'hard', 'again'], z6)

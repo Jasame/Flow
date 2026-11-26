@@ -11,12 +11,13 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
     case frugal = "frugal"                   // Low Power Mode, iOS 27's reduced resources: less ahead of time (Frugal)
     case reviewActivity = "review-activity"  // the word review's progress on the lock screen (ReviewActivities)
     case siri = "siri"                       // Siri and the Shortcuts app: open 复习 / 今天这篇, say the counts (Intents)
+    case wordSearch = "word-search"          // the learner's words in the iPhone's search (WordSearch)
 
     enum Group: String, CaseIterable {
         case listen = "锁屏听读"
         case feel = "手感和省电"
         case glance = "不打开 App 也能学"
-        case ask = "Siri 和专注模式"
+        case ask = "Siri、系统搜索和专注模式"
 
         /// under the group's switches: what has no switch of its own
         var footer: String? {
@@ -37,7 +38,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .lockScreenStudy, .smartResume, .offlinePacks: .listen
         case .haptics, .frugal: .feel
         case .reviewActivity: .glance
-        case .siri: .ask
+        case .siri, .wordSearch: .ask
         }
     }
 
@@ -50,6 +51,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .frugal: "省电时少做事"
         case .reviewActivity: "复习进度的实时活动"
         case .siri: "快捷指令和 Siri"
+        case .wordSearch: "在系统搜索里找生词"
         }
     }
 
@@ -63,6 +65,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .frugal: "开了低电量模式、或者系统提示要省着用时，少提前下载录音和文章，等用到再下"
         case .reviewActivity: "复习单词时，锁屏和灵动岛上显示「12 / 30」，切到别的 App 也看得到。锁屏上别人也看得到这个数字"
         case .siri: "对 Siri 说「\(Self.appName)开始复习」「\(Self.appName)还有多少词要复习」「用\(Self.appName)打开今天这篇」，「快捷指令」App 里也有这三个。只打开语流的页面、读这台手机上的数字"
+        case .wordSearch: "在主屏往下拉的搜索里输入单词或表达，直接打开语流里那张卡。只把你的词和中文意思存进这台手机的系统搜索，不上传；关掉就删"
         }
     }
 
@@ -71,6 +74,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .lockScreenStudy, .smartResume, .haptics, .frugal, .siri: true
         case .offlinePacks: false  // it takes room on the phone: the learner turns it on
         case .reviewActivity: false  // others can see the lock screen: the learner turns it on
+        case .wordSearch: false  // the learner's words in the phone's search: the learner turns it on
         }
     }
 
@@ -82,7 +86,7 @@ nonisolated enum Feature: String, CaseIterable, Identifiable, Sendable {
             if #available(iOS 27, *) { return true }
             #endif
             return false
-        case .smartResume, .offlinePacks, .haptics, .frugal, .reviewActivity, .siri:
+        case .smartResume, .offlinePacks, .haptics, .frugal, .reviewActivity, .siri, .wordSearch:
             return true
         }
     }
