@@ -1215,3 +1215,11 @@
   - #499 推之前检查分支有没有把最近合进 main 的 PR 整段倒回；README 加压提交的规矩（发版和构建）
 - 自检：DEPLOYED，装了 24 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45838667606
+
+### b147 · 2026-11-26 22:46
+- main `7a1dd9d`，构建 `bbd366f`
+- 新合并的 PR（自 b146 起）：
+  - #501 服务器变动：15 篇采访体换新录音；总账改正 r39 一句（发版和构建）
+  - #502 老用户在「选方向和目标」那一页登录以后直接进今日，不再问一遍（开局和考试）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 166/166，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45842215555
