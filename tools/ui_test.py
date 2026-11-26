@@ -2558,6 +2558,16 @@ def privacy_run(pw):
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
+        # feedback #1 (2026-11-25): the page open while the consent goes (another device withdrew it): 单词 shows the
+        # consent page, not 「重试」 alone; one line, the tick and one button, the rest in small type
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session', {credentials: 'same-origin'})).json();
+            await fetch('/api/account/storage', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json',
+              'X-CSRF-Token': s.user.csrf}, body: JSON.stringify({agree: false})}); location.hash = '#/cards'; }""")
+        pg.wait_for_selector('#stoF', timeout=8000); settle(pg)
+        calm = ('这个账号已暂停' in (pg.text_content('h1') or '') and pg.is_visible('#stoF [type=submit]') and not pg.is_visible('text=重试')
+                and pg.is_visible('#stoDel') and pg.locator('.sto-why').count() == 1 and not pg.is_visible('.sto-why .hint >> nth=1'))
+        pg.screenshot(path=str(OUT / 'privacy-storage-withdrawn-open.png'))
+        check(dev, '数据存放: withdrawn while a page is open, the next page is the short consent page, never 「重试」 alone', calm)
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
