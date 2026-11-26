@@ -51,7 +51,7 @@
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">AI 用量</h2>
       <div class="aiq-num"><b>${a.used}</b><span class="muted">${a.limit != null ? ` / ${a.limit} 次` : ' 次'}</span><span class="small muted">今天</span></div>
       ${a.limit ? `<progress class="aiq-bar${a.level !== 'ok' ? ' low' : ''}" max="${a.limit}" value="${Math.min(a.used, a.limit)}" aria-label="今天用了 ${a.used} 次，共 ${a.limit} 次"></progress>` : ''}
-      <p class="small">${esc(a.note)}${until ? `预计 ${until.getMonth() + 1} 月 ${until.getDate()} 日恢复。` : ''}</p>
+      <p class="small">${esc(a.note)}${until ? `预计 ${until.getMonth() + 1} 月 ${until.getDate()} 日恢复。` : ''}${a.stopped === 'paused' ? ' <a class="link" href="#/feedback" data-close>去问题反馈</a>' : ''}</p>
       ${a.by_kind && a.by_kind.length ? `<ul class="aiq-kinds">${a.by_kind.map(k => `<li><span>${esc(k.label)}</span><span class="muted">${k.count} 次</span></li>`).join('')}</ul>` : ''}
       <p class="tiny muted">用到 AI 的批改、讲解、出题和对话，每次算一次；大家共用的讲解和例句、没有成功的那次不算。AI 朗读另有字数上限，不算在这里。${a.adjusted ? '你的额度由管理员调整过。' : ''}</p>
       <button class="btn ghost" data-close type="button">完成</button></div>`);
