@@ -167,6 +167,30 @@ class NextHttpTests(unittest.TestCase):
         self.assertEqual(json.loads(self.call('/api/next/home')[1])['level'], 'B2')
         self.assertEqual(self.call('/api/next/nothing')[0], 404)
 
+    def test_the_word_index_for_the_phones_search_is_the_learners_own_words_in_one_go(self):
+        # 语流 C1 (iOS 专属 7): the whole list at once, versioned; not the mistakes, saved sentences or sentence patterns
+        self.assertEqual(self.call('/api/next/cards/index')[0], 401)
+        self.assertEqual(self.call('/api/login', {'username': 'learner', 'password': 'correct horse battery'})[0], 200)
+        csrf = json.loads(self.call('/api/session')[1])['user']['csrf']
+        self.assertEqual(self.call('/api/next/profile', {'level': 'B2', 'themes': ['science']}, csrf)[0], 200)
+        long = '确认' * 30
+        with app.db() as c:
+            uid = c.execute("SELECT id FROM users WHERE username='learner'").fetchone()[0]
+            for k, (text, kind, meaning, source) in enumerate([('confirm', 'word', 'v. 确认, 证实；批准', 'book'), ('make up for', 'phrase', '弥补', ''),
+                                                               ('lengthy', 'word', long, 'book'), ('q:1', 'word', '阅读理解错题', 'mistake'),
+                                                               ('I wish I could go.', 'sentence', '我希望我能去。', ''), ('so … that', 'phrase', '句型｜例：so tired that…', '')]):
+                c.execute('INSERT INTO next_cards(user_id,text,norm,meaning,kind,source,created,due) VALUES(?,?,?,?,?,?,?,?)',
+                          (uid, text, text.lower(), meaning, kind, source, 1000 + k, 0))
+            c.commit()
+        st, body = self.call('/api/next/cards/index'); got = json.loads(body)
+        self.assertEqual(st, 200)
+        self.assertEqual([(w['text'], w['zh']) for w in got['words']], [('lengthy', '确认' * 19 + '确…'), ('make up for', '弥补'), ('confirm', 'v. 确认, 证实')])
+        self.assertTrue(all(isinstance(w['id'], int) for w in got['words']))
+        self.assertEqual(json.loads(self.call('/api/next/cards/index?v=' + got['v'])[1]), {'v': got['v'], 'same': True})  # unchanged: no list
+        self.assertEqual(self.call('/api/next/cards', {'text': 'ponder'}, csrf)[0], 200)
+        again = json.loads(self.call('/api/next/cards/index?v=' + got['v'])[1])
+        self.assertNotEqual(again['v'], got['v']); self.assertEqual(again['words'][0]['text'], 'ponder')
+
     def test_home_carries_the_session_so_the_page_starts_with_one_request(self):
         guest = json.loads(self.call('/api/next/home?level=A2')[1])
         self.assertEqual(guest['session']['user'], None); self.assertEqual(guest['level'], 'A2')

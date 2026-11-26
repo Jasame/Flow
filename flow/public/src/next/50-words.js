@@ -52,6 +52,11 @@
     // should not answer, so there it is off until chosen in 我的 → 设置.
     tap() { try { const v = localStorage.getItem('flow-tap-zones'); return v ? v === '1' : matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } },
     setTap(on) { try { localStorage.setItem('flow-tap-zones', on ? '1' : '0'); } catch (e) { /* private mode */ } },
+    // 复习卡 简洁 / 详细 (words-modes-plan.md; the owner, 2026-11-25): new words and reviews apart, new words detailed (the
+    // first look is the one to take in), reviews simple (quick). Only what is shown changes: the front asks the same
+    // (detailed adds a grey line of tags and history, nothing of the answer), so a rating means the same in both.
+    view(kind) { const d = kind === 'new' ? 'detailed' : 'simple'; try { const v = localStorage.getItem('flow-card-view-' + kind); return v === 'simple' || v === 'detailed' ? v : d; } catch (e) { return d; } },
+    setView(kind, v) { try { localStorage.setItem('flow-card-view-' + kind, v); } catch (e) { /* private mode */ } },
   };
   // 这次什么时候复习 (a trial student, 2026-11-25: not everyone is free at the same hour every day): a time today or
   // tomorrow for the next reminder only (vocab_service.set_once), then every day at the usual hour again. Opened from the

@@ -590,12 +590,26 @@ def run_onescreen(p):
 # 听 → 播放全文 and 读 → 伴读 (LONG, 01-audio-offline.js) on the real WebKit: the natural voice, never the browser's
 # unasked; 暂停 / 继续 / ✕; where it was left kept per text and per step; the lines while waiting and when offline.
 # What only a phone tells (the lock screen's buttons, a phone call) stays in the checklist.
-LS = """(() => { const q = s => document.querySelector(s), b = q('#playAll'), rs = q('#playRestart'), m = q('.mini-player'), now = q('#view .line.now'),
+LS = """(() => { const q = s => document.querySelector(s), b = q('#playAll'), m = q('.mini-player'), now = q('#view .line.now'),
   el = (window.__els || []).filter(a => !a.paused).pop() || (window.__els || []).slice(-1)[0];
-  return { btn: b ? b.textContent.trim() : null, restart: !!rs && !rs.hidden, now: now ? Number(now.dataset.i) : -1,
-    mini: !!m && !m.hidden, lbl: m && !m.hidden ? (m.querySelector('.lbl') || {}).textContent : null, ms: navigator.mediaSession && navigator.mediaSession.playbackState,
+  return { btn: b ? b.textContent.trim() : null, now: now ? Number(now.dataset.i) : -1,
+    mini: !!m && !m.hidden && !m.classList.contains('idle'), lbl: m && !m.hidden && !m.classList.contains('idle') ? (m.querySelector('.lbl') || {}).textContent : null, ms: navigator.mediaSession && navigator.mediaSession.playbackState,
     at: el ? +el.currentTime.toFixed(2) : null, src: el ? (el.currentSrc || el.src || '').replace(location.origin, '').split('?')[0] : null,
     speech: (window.__au || []).filter(e => e.k === 'speech').length, notes: (window.__notes || []).slice(-4) }; })()"""
+# mini: the playing bar. On 听 the bar stays docked when idle (#playAll, 「AI 合成」, the speed, 👁) since #325: not playing.
+# 从头开始 is in 播放设置 (from 「1×」 in the bar, B9's r36 audit F1): opened, looked at, closed
+RS = """(() => { const s = document.querySelector('.mini-player .speed-set'); if (!s) return null; s.click();
+  const b = document.getElementById('playRestart'), on = !!b && !b.hidden, d = document.getElementById('psDone'); if (d) d.click(); return on; })()"""
+
+
+def playset(p, rep):
+    """每句 N 遍 from 播放设置: since #325 a sheet opened from the player bar's speed button (the bar stays, docked, on 听)."""
+    opened = p.tap('.mini-player:not([hidden]) .speed-set', 0.6) and p.tap(f'#sheetCard [data-rep="{rep}"]', 0.3)
+    if not opened:  # the bar has no speed button while a single sentence repeats (停止): stop that first
+        raise RuntimeError(f'播放设置 did not open to set 每句 {rep} 遍')
+    p.tap('#psDone', 0.5)
+
+
 RD = """(() => { const b = document.querySelector('#readAlong'), s = document.querySelector('#reader .sent.now');
   return { btn: b ? b.textContent.trim() : null, now: s ? Number(s.dataset.si) : -1, speech: (window.__au || []).filter(e => e.k === 'speech').length }; })()"""
 SILENT = "(window.__els || []).every(a => window.__muted(a))"  # every element the page played was muted underneath
@@ -628,10 +642,12 @@ def run_unify(p, aid, recorded, extra=None):
     local test server's learner: extra = {'other': a second import, 'fresh': a third never played, 'scene': a 口语情景 id})."""
     g = 'unify-' + ('recorded' if recorded else 'no-recording')
     kind = '有录音的文章' if recorded else '没有录音的文章'
+    p.js("localStorage.removeItem('flow-next-loop')")  # 每句 1 遍, 句后不停: a run stopped half-way may have left 3 遍 (6 sentences × 3 > the wait)
     p.reload(); fresh_listen(p, aid)
-    tip = p.js("(document.querySelector('#view .listen-tip') || {}).textContent || ''")
-    if recorded == ('还没有录音' in tip):
-        check(g, f'{kind}: the page says so', False, tip); return
+    # a recording gives the length in minutes at the foot (21-study-listen.js); the 「AI 合成」 line is in the bar since #325
+    foot = p.js("(document.querySelector('#view .section.row .muted.small') || {}).textContent || ''")
+    if recorded != ('分钟' in foot):
+        check(g, f'{kind}: the page says so', False, foot); return
     # 1① 播放全文: sentence by sentence, the natural voice, a line while a sentence is being made
     t0 = time.time(); p.tap('#playAll', 0.2)
     p.until(LS + '.now >= 2', 45, 0.3); st = p.js(LS); s = shot(f'{g}-playing')
@@ -658,17 +674,17 @@ def run_unify(p, aid, recorded, extra=None):
           {'paused': d['lbl'], 'resumed': e['lbl'], 'closed': f['mini'], 'kept': kept, 'was at': k2})
     # 3① back on the page later: 「从第 N 句继续」 and 从头开始
     p.go('#/', 0.8); p.go(f'#/m/{aid}/listen', 1.2); p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.4)
-    h = p.js(LS); s = shot(f'{g}-continue-from')
-    check(g, f'{kind}: back on the page — 「从第 {(kept or 0) + 1} 句继续」 with 从头开始 beside it, nothing playing',
+    h = p.js(LS); s = shot(f'{g}-continue-from'); h['restart'] = p.js(RS, gesture=True); time.sleep(0.4)
+    check(g, f'{kind}: back on the page — 「从第 {(kept or 0) + 1} 句继续」, 从头开始 in 播放设置, nothing playing',
           h['btn'] == f'从第 {(kept or 0) + 1} 句继续' and h['restart'] and not h['mini'], h, s)
     # 3② the app opened again (the page loaded anew): the same
     p.reload(); p.go(f'#/m/{aid}/listen', 1.2); p.js("document.querySelector('[data-mode=\"listen\"]:not([aria-pressed=true])')?.click()"); time.sleep(0.4)
-    h2 = p.js(LS)
+    h2 = p.js(LS); h2['restart'] = p.js(RS, gesture=True); time.sleep(0.4)
     check(g, f'{kind}: after the app loads again — still 「从第 N 句继续」', h2['btn'] == h['btn'] and h2['restart'], h2)
     p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
     # 3③ 从第 N 句继续 starts there; 从头开始 at the first
     p.tap('#playAll', 0.3); p.until(LS + '.now >= 0', 30, 0.3); x = p.js(LS)
-    p.tap('.mini-player .close', 0.5); p.tap('#playRestart', 0.3); p.until(LS + '.now >= 0', 30, 0.3); y = p.js(LS)
+    p.tap('.mini-player .close', 0.5); p.tap('.mini-player .speed-set', 0.5); p.tap('#playRestart', 0.3); p.until(LS + '.now >= 0', 30, 0.3); y = p.js(LS)
     check(g, f'{kind}: 从第 N 句继续 starts at sentence N, 从头开始 at the first', x['now'] == kept and y['now'] == 0, {'continue': x['now'], 'kept': kept, 'restart': y['now']})
     # 2⑤ a word looked up while it reads: it stops there (已暂停), 继续 goes on
     p.until(LS + '.now >= 1', 30, 0.3); w0 = p.js(LS)
@@ -695,9 +711,9 @@ def run_unify(p, aid, recorded, extra=None):
     # 1② a sentence's own speaker, and 每句 3 遍: the natural voice each time
     fresh_listen(p, aid, clear=False); n0 = p.js(SOUNDS)
     p.tap('[data-say="2"]', 0.2); p.until(f'{SOUNDS} > {n0}', 20, 0.3); one = p.js(SOUNDS) - n0
-    p.js("document.querySelector('#view details.playset').open = true"); p.tap('[data-rep="3"]', 0.3)
+    playset(p, 3)
     n1 = p.js(SOUNDS); p.tap('[data-say="1"]', 0.2); p.until(f'{SOUNDS} >= {n1 + 3}', 40, 0.5); three = p.js(SOUNDS) - n1
-    p.tap('[data-rep="1"]', 0.3); p.js("document.querySelector('.mini-player:not([hidden]) .close, .mini-player:not([hidden]) .stop')?.click()")
+    p.js("document.querySelector('.mini-player:not([hidden]) .close, .mini-player:not([hidden]) .stop')?.click()"); time.sleep(0.5); playset(p, 1)
     st = p.js(LS)
     check(g, f'{kind}: a sentence\'s speaker and 每句 3 遍 — the natural voice every time', one >= 1 and three >= 3 and st['speech'] == 0, {'speaker': one, '3 遍': three, 'speech': st['speech']})
     # 1③ 伴读 first, then 听 → 播放全文: the sentences 伴读 made sound at once (one address book)
@@ -722,6 +738,7 @@ def run_unify(p, aid, recorded, extra=None):
     # 3④ heard to the end: 播放全文 again, the place forgotten
     fresh_listen(p, aid); n = p.js("document.querySelectorAll('#view .line').length")
     p.tap('#playAll', 0.3); p.until("(b => b && b.textContent.trim() === '播放全文')(document.querySelector('#playAll'))", 30 + 12 * n, 1); end = p.js(LS)
+    end['restart'] = p.js(RS, gesture=True); time.sleep(0.4)
     check(g, f'{kind}: heard to the end ({n} sentences) — 播放全文 again, the place forgotten, no browser voice',
           end['btn'] == '播放全文' and not end['restart'] and p.js(PROGRESS.format(key=json.dumps(f'listen:{aid}'))) is None and end['speech'] == 0, end)
     # 4 offline (the page told it is offline and its sentence requests fail; the audio files themselves still load):
@@ -784,9 +801,12 @@ def run_more(p, local):
             return new Response(JSON.stringify(j), { headers: { 'Content-Type': 'application/json' } }); }) : F(u, o); return 'quote'; })()"""
         p.js(quote); p.js(SLOW_TTS); p.go('#/practice', 0.5); p.go('#/', 1.5); p.js(HOOK); p.js('window.__au.length = 0; window.__notes.length = 0')
         label = p.js("(document.querySelector('#view .lc-head .pill') || {}).textContent")
-        if label != '名人名言':
+        if label not in ('名人名言', '公版名句'):  # the quote's label was renamed 公版名句 (a quote day shows the real one)
             skip(g, '今日好句 (名人名言)', f'the page kept its own line ({label})')
         else:
+            # the card folds (12-daily-line.js #lcFold): open it first, or 听一遍 is not there to tap
+            if p.js("(b => !!b && b.getAttribute('aria-expanded') === 'false')(document.getElementById('lcFold'))"):
+                p.tap('#lcFold', 0.6)
             p.tap('#lcSay', 0.2); p.until(f'{SOUNDS} >= 1', 20, 0.3); st = p.js(LS); s = shot(f'{g}-line-quote')
             check(g, '今日好句, a 名人名言 (no recording): 听一遍 in the natural voice, 「正在准备朗读…」 while it is made, no browser voice',
                   p.js(SOUNDS) >= 1 and st['speech'] == 0 and '正在准备朗读…' in st['notes'], {'notes': st['notes'], 'sounds': p.js(SOUNDS), 'speech': st['speech']}, s)

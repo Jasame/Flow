@@ -317,7 +317,7 @@ def _speak(text, voice):
         err = e
         raise
     finally:
-        with ai_routes.task('tts'):
+        with ai_routes.task('tts-prewarm' if ai_routes.current() == 'tts-prewarm' else 'tts'):  # the night's prewarm keeps its name
             ai_routes.record('tts', model(), started, [], info={'usage': (len(text), 0, 0, 0), 'served': 'cosyvoice-v3-flash'}, exc=err)
 
 
@@ -634,11 +634,16 @@ def prewarm(c, budget=None):
     if not enabled():
         return {'status': 'off'}
     import ai_routes
-    if ai_routes.over_budget(c):  # the console's daily AI budget is spent: batch work waits for tomorrow (as 例句预生成 does)
+    if ai_routes.batch_stop(c):  # the day's AI budget or tonight's batch ceiling is spent: batch work waits (as 例句预生成 does)
         return {'status': 'over-budget'}
     budget = cap('FLOW_TTS_PREWARM_CHARS') if budget is None else budget
     left = budget - _used(c, -1)
     made = stored = failed = 0
+    with ai_routes.task('tts-prewarm'):  # in the costs under its own name; never counted for the learners' ¥10 stop
+        return _prewarm(c, left, made, stored, failed)
+
+
+def _prewarm(c, left, made, stored, failed):
     for voice in voices_in_use(c):
         for t in fixed_texts():
             if file(voice, name_of(t, voice)):

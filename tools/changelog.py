@@ -12,6 +12,8 @@ REQUEST 第一项是装上去的提交：#60（2026-11-24）以后是构建提�
 「这次带了哪些 PR」= 上一个同类 tag 的 main 提交到这一个之间的「Merge pull request #N」（标题是合并提交的第二行）。
 一个 PR 要是跟着另一个 PR 的分支进了 main（r27 的 #42、#48 跟着 #60），它没有自己的合并提交，这里列不出来：
 正式版的记录要对照 GitHub 上那段时间合并的 PR 补上。
+热修（r34，2026-11-25）是在上一个正式版的提交上挑修复打的，不在 main 上：这种 tag 列的是从 main 分出来以后加的提交，
+不是 PR；下一个从 main 发的版本照常从热修那个提交算起。
 自检结果（e2e）只在那个网站的 /api/deploy-status 里，下一次发布就被盖掉，所以 record 在发布刚完成时把它记下来：
 内测版由 .github/workflows/beta.yml 每次自动发布后调用；语流由发正式版的人在 deploy.sh 之后调用。
 
@@ -58,7 +60,7 @@ AREAS = [
                'flow/survey_service.py', 'flow/account_*', 'flow/auth_service.py', 'flow/feedback_service.py',
                'flow/mail_layout.py', 'flow/public/survey*', 'flow/public/src/next/8[1-3]-*',
                'flow/public/src/next/99-privacy.css', 'flow/public/src/next/99-class.css']),
-    ('AI', ['flow/ai_*', 'flow/aigc_label.py', 'flow/chat_service.py', 'flow/vertex_*', 'flow/search_eval.py', 'flow-gateway/*', 'tools/ai-gateway/*',
+    ('AI', ['flow/ai_*', 'flow/aigc_label.py', 'flow/word_extras.py', 'flow/chat_service.py', 'flow/vertex_*', 'flow/search_eval.py', 'flow-gateway/*', 'tools/ai-gateway/*',
             'flow/public/src/next/99-ai-mark.css']),
     ('内容', ['flow/corpus_data/*', 'flow/content_*', 'flow/corpus_*', 'flow/easy_reading.py', 'tools/narration_pack.py',
             'tools/corpus_validate.py', 'tools/gen_audio.py', 'tools/push_media.py', 'flow/media.py']),
@@ -207,6 +209,31 @@ def checks(d):
     return '；'.join(parts)
 
 
+def on_main(sha):
+    """这个提交在 main 上吗（origin/main 或本地 main 里有它就算）？一个 main 都找不到（比如浅克隆）就当在。"""
+    refs = [r for r in ('origin/main', 'main')
+            if subprocess.run(['git', 'rev-parse', '-q', '--verify', f'{r}^{{commit}}'], cwd=ROOT, capture_output=True).returncode == 0]
+    if not refs:
+        return True
+    return any(subprocess.run(['git', 'merge-base', '--is-ancestor', sha, r], cwd=ROOT, capture_output=True).returncode == 0
+               for r in refs)
+
+
+def fork_point(sha):
+    """热修提交是从 main 的哪个提交分出来的。"""
+    for r in ('origin/main', 'main'):
+        base = git('merge-base', sha, r, check=False)
+        if base:
+            return base
+    return None
+
+
+def picks(a, b):
+    """a（不含）到 b 之间不是合并的提交，按先后：[{sha, subject}]，也就是热修分支上挑过来的修复。"""
+    out = git('log', '--no-merges', '--reverse', '--format=%H%x1f%s', f'{a}..{b}' if a else b)
+    return [dict(sha=sha, subject=subject) for sha, subject in (ln.split('\x1f', 1) for ln in out.splitlines() if ln)]
+
+
 def same_build(tag):
     """装同一个构建的另一类 tag（语流的 r<N> 对应内测版的哪几个 b<N>）。"""
     rel = release(tag)
@@ -226,11 +253,17 @@ def entry(tag, d=None):
     when = rel['when'].strftime('%Y-%m-%d %H:%M')
     if not rel['main']:
         return f'### {tag} · {when}\n- 空请求（测试发布通道），没有装任何东西\n'
-    items = prs(release(prev)['main'] if prev else None, rel['main'])
     built = f'，构建 `{rel["build"][:7]}`' if rel['build'] != rel['main'] else ''
-    lines = [f'### {tag} · {when}', f'- main `{rel["main"][:7]}`{built}']
-    lines.append(f'- 新合并的 PR（自 {prev} 起）：' if prev else '- 合并的 PR：')
-    lines += pr_lines(items)
+    base = None if on_main(rel['main']) else fork_point(rel['main'])
+    if base:
+        lines = [f'### {tag} · {when}', f'- 热修：`{rel["main"][:7]}` 不在 main 上，是从 main 的 `{base[:7]}` 分出来的{built}',
+                 f'- 在 `{base[:7]}` 上加的提交：']
+        lines += [f'  - `{c["sha"][:7]}` {c["subject"]}' for c in picks(base, rel['main'])] or ['  - （没有）']
+    else:
+        items = prs(release(prev)['main'] if prev else None, rel['main'])
+        lines = [f'### {tag} · {when}', f'- main `{rel["main"][:7]}`{built}']
+        lines.append(f'- 新合并的 PR（自 {prev} 起）：' if prev else '- 合并的 PR：')
+        lines += pr_lines(items)
     lines.append(f'- 自检：{checks(d)}')
     run = os.environ.get('GITHUB_RUN_ID')
     if run and os.environ.get('GITHUB_REPOSITORY'):
@@ -271,7 +304,11 @@ def rows(a, b):
         rel, prev = release(t), previous(t)
         if not rel['main']:
             continue
-        nums = ' '.join(f'#{n}' for n in sorted(x['num'] for x in prs(release(prev)['main'] if prev else None, rel['main']))) or '—'
+        base = None if on_main(rel['main']) else fork_point(rel['main'])
+        if base:
+            nums = f'热修：在 `{base[:7]}` 上加了 ' + '、'.join(f'`{c["sha"][:7]}`' for c in picks(base, rel['main']))
+        else:
+            nums = ' '.join(f'#{n}' for n in sorted(x['num'] for x in prs(release(prev)['main'] if prev else None, rel['main']))) or '—'
         e2e = re.sub(r'^[A-Z_]+[^；]*；', '', done.get(t, '（没记）'))
         out.append(f'| {t} | {rel["when"].strftime("%m-%d %H:%M")} | `{rel["main"][:7]}` | {nums} | {e2e} |')
     return '\n'.join(reversed(out))

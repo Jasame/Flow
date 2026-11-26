@@ -73,6 +73,7 @@
       if (d.daily.status === 'failed' || d.daily.status === 'interrupted') todo.push(['#tasks', '今日热点没有生成成功', '去重新生成']);
       if (d.task === 'running') todo.push(['#tasks', '例句预生成正在运行', '看进度']);
       if (d.backup && !d.backup.ok) todo.push(['#tasks', '最近一次备份失败', when(d.backup.created)]);
+      if (isAdmin() && d.paused && d.paused.due) todo.push(['#tasks', d.paused.on ? '暂停满 30 天的账号还没删（备份不在）' : '暂停满 30 天、等待删除的账号', n(d.paused.due) + ' 个']);
       if (ai.users_at_limit) todo.push(['#ai', '今天有账号用满了 AI 次数', n(ai.users_at_limit) + ' 个']);
       var info = [];
       if (d.announce) info.push(['#announce', '学员正在看到公告', esc(d.announce.text.slice(0, 24)) + (d.announce.text.length > 24 ? '…' : '')]);
@@ -907,6 +908,9 @@
       var budPill = bud.level === 'over' ? '<span class="pill danger">超过预算</span>' : bud.level === 'warn' ? '<span class="pill warn">已到 80%</span>' : '';
       // the learners' hard stop (ai_routes.stop_line, default ¥10): their AI and new AI voice wait for 08:00 Beijing
       var stop = d.stop || {}, stopPill = stop.full ? ' <span class="pill danger">学员 AI 已暂停</span>' : '';
+      // tonight's batch ceiling (ai_routes.batch_line, B7's #330, default ¥15): 今日一读, examples and AI voice made ahead,
+      // the nightly check; they stop at the day's budget or at this, whichever comes first
+      var batch = d.batch || null, batchPill = batch && batch.full ? ' <span class="pill warn">批量任务已停</span>' : '';
       var stopLine = stop.line ? '学员硬停 ' + yuan(stop.line) + (stop.full ? '（已到，北京时间早上 8 点恢复）' : '（从早上 8 点起已花 ' + yuan(stop.spent) + '，还差 ' + yuan(Math.max(0, stop.line - stop.spent)) + '）') : '不硬停';
       var ev = d.evals || [], ev0 = ev[0];
       main.innerHTML =
@@ -939,11 +943,14 @@
           '<section class="card"><h2>每日预算和单价</h2><dl class="kv"><dt>每日预算</dt><dd>' + (bud.daily ? yuan(bud.daily) : '不设') + '</dd>' +
             '<dt>到预算时</dt><dd>80% 和 100% 各给管理员发一封邮件；超过后暂停例句预生成和每晚小评测，第二天恢复。学员的请求不受影响。</dd>' +
             '<dt>学员硬停线</dt><dd>' + (stop.line ? yuan(stop.line) + ' · ' + (stop.source === 'console' ? '后台设置' : '默认') : '不硬停 · 后台设置') + stopPill +
-              '<div class="muted small">从北京时间早上 8 点算起，所有付了钱的 AI 调用花到这条线，学员的 AI 和新的 AI 朗读就暂停到第二天早上 8 点；页面上写「今天的 AI 用量已满」，不用 AI 的练习照常。' + (stop.line ? '现在已花 ' + yuan(stop.spent) + '。' : '') + '</div></dd>' +
+              '<div class="muted small">从北京时间早上 8 点算起，学员自己的 AI 调用花到这条线，学员的 AI 和新的 AI 朗读就暂停到第二天早上 8 点；页面上写「今天的 AI 用量已满」，不用 AI 的练习照常。批量任务不算在这里。' + (stop.line ? '现在已花 ' + yuan(stop.spent) + '。' : '') + '</div></dd>' +
+            (batch ? '<dt>批量任务每晚上限</dt><dd>' + (batch.line ? yuan(batch.line) + ' · ' + (batch.source === 'console' ? '后台设置' : '默认') : '不设 · 后台设置') + batchPill +
+              '<div class="muted small">今日一读、例句预生成、AI 朗读预生成和每晚小评测算批量任务，从北京时间早上 8 点算到第二天 8 点。它们有两道闸：今天的每日预算和这条线，到了哪个都停。' + (batch.line ? '这一段已花 ' + yuan(batch.spent) + '。' : '') + '</div></dd>' : '') +
             Object.keys(PF).map(function (k) { return '<dt>' + esc(PF[k].label) + '折扣</dt><dd>' + (PF[k].discount === 1 ? '按标价' : '标价 × ' + PF[k].discount) + '</dd>'; }).join('') +
             Object.keys(cs.prices || {}).map(function (f) { var p = cs.prices[f]; return '<dt>' + esc(p.label) + '</dt><dd><code>' + esc(f) + '</code> 标价：输入 ' + p['in'] + ' · 命中缓存 ' + p.cached + ' · 输出 ' + p.out + ' 元 / 百万 token' + (p.custom ? ' <span class="pill blue">手动设置</span>' : '') + (p.note ? '<div class="muted small">' + esc(p.note) + '</div>' : '') + '</dd>'; }).join('') + '</dl>' +
             (isAdmin() ? '<form class="form" id="budF" style="margin-top:12px"><div class="row"><label><span>每日预算（元，0 = 不设）</span><input class="input" id="budD" type="number" min="0" max="100000" step="0.5" value="' + (bud.daily || 0) + '"></label>' +
               '<label><span>学员硬停线（元，0 = 不硬停，留空 = 默认 ¥10）</span><input class="input" id="budS" type="number" min="0" max="100000" step="0.5" placeholder="10" value="' + (stop.source === 'console' ? stop.line : '') + '"></label>' +
+              (batch ? '<label><span>批量任务每晚上限（元，0 = 不设，留空 = 默认 ¥15）</span><input class="input" id="budT" type="number" min="0" max="100000" step="0.5" placeholder="15" value="' + (batch.source === 'console' ? batch.line : '') + '"></label>' : '') +
               '<label><span>百炼折扣（标价的几成，0.65 = 六五折）</span><input class="input" id="budB" type="number" min="0.05" max="1" step="0.01" value="' + (bl.discount || 1) + '"></label>' +
               '<label class="chk"><input type="checkbox" id="budN"' + (d.nightly ? ' checked' : '') + '> 每晚小评测（约 17 次调用）</label></div>' +
               '<div class="row"><button class="btn primary">保存</button></div></form>' : '') + '</section>' +
@@ -1001,11 +1008,16 @@
         e.preventDefault();
         var v = Number(document.getElementById('budD').value || 0), night = document.getElementById('budN').checked, disc = Number(document.getElementById('budB').value || 1);
         var sv = document.getElementById('budS').value.trim(), sl = sv === '' ? null : Number(sv);
+        var tb = document.getElementById('budT'), tv = tb ? tb.value.trim() : '', tl = tv === '' ? null : Number(tv);
         if (!(v >= 0)) { alert('预算请填 0 或正数。'); return; }
         if (sl !== null && !(sl >= 0)) { alert('硬停线请填 0 或正数，留空用默认 ¥10。'); return; }
         if (sl === 0 && !confirm('设成 0 就不硬停了：AI 花多少都不会自动暂停。确定吗？')) return;
+        if (tl !== null && !(tl >= 0)) { alert('批量任务每晚上限请填 0 或正数，留空用默认 ¥15。'); return; }
+        if (tb && tl === 0 && !confirm('设成 0 就不设批量上限了：批量任务只在花到每日预算时停。确定吗？')) return;
         if (!(disc > 0 && disc <= 1)) { alert('折扣请填 0–1 之间的小数，比如 0.65。'); return; }
-        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', { daily: v, stop: sl, nightly: night, discounts: { bailian: disc } })).then(aiView);
+        var body = { daily: v, stop: sl, nightly: night, discounts: { bailian: disc } };
+        if (tb) body.batch = tl;  // only once the server reports the batch ceiling (#330)
+        busy(bf.querySelector('button'), postJSON('/settings/ai-budget', body)).then(aiView);
       };
       var f = document.getElementById('limF');
       if (f) f.onsubmit = function (e) {
@@ -1064,6 +1076,18 @@
   /* ---------- 后台任务：例句预生成、每日热点、备份 ---------- */
   var TK = { timer: null };
   var TASK_STATE = { idle: ['还没运行过', 'off'], running: ['正在运行', ''], waiting: ['等半价时段', 'off'], done: ['做完了', ''], left: ['停在中途（到了请求上限或连续失败）', 'warn'], budget: ['今天的 AI 预算用完了，明天再跑', 'warn'], stopped: ['已停止', 'off'], 'no-model': ['服务器没有配置 AI 模型', 'danger'], failed: ['出错了', 'danger'], ended: ['已结束', 'off'] };
+  // 数据存放在香港: accounts paused by 不同意 or 撤回; 30 days on they are deleted (privacy_service.purge_paused), but only
+  // once the switch is on (FLOW_PURGE_PAUSED, set by A1 after the user has seen these numbers) and the backup is fresh.
+  function pausedCard(p) {
+    if (!p) return '';
+    return '<section class="card"><h2>暂停的账号</h2><dl class="kv">' +
+      '<dt>暂停中</dt><dd>' + n(p.paused) + ' 个</dd>' +
+      '<dt>满 30 天、等待删除</dt><dd>' + n(p.due) + ' 个' + (p.due_days && p.due_days.length ? '<div class="muted small">暂停日期：' + esc(p.due_days.join('、')) + '</div>' : '') + '</dd>' +
+      '<dt>自动删除</dt><dd>' + (p.on ? '已打开' : '没有打开（只出报告，不删）') + '</dd>' +
+      '<dt>备份</dt><dd>' + (p.backup_ok ? '最近一次在 36 小时内，成功' : '<span class="err">不在或失败：到期的账号先不删</span>') + '</dd></dl>' +
+      '<p class="muted small">不同意或撤回「数据存放在香港」的账号先暂停；页面上写的那一天过完还没有重新同意，就照「注销账号」的方式删除，每删一个记进操作日志（只记账号编号）。这里不显示名字。</p></section>';
+  }
+
   function tasksView() {
     clearTimeout(TK.timer);
     getJSON('/tasks').then(function (d) {
@@ -1095,7 +1119,7 @@
           '<section class="card"><h2>数据库备份</h2>' + (d.backup ? '<dl class="kv"><dt>最近一次</dt><dd>' + (d.backup.ok ? '成功' : '<span class="err">失败</span>') + ' · ' + esc(when(d.backup.created)) + '</dd>' +
             (d.backup.size ? '<dt>大小</dt><dd>' + n(Math.round(d.backup.size / 1048576)) + ' MB</dd>' : '') + (d.backup.error ? '<dt>原因</dt><dd>' + esc(d.backup.error) + '</dd>' : '') + '</dl>' : '<p class="muted">还没有备份记录。</p>') +
             '<p class="muted small">每天自动备份（flow-backup.timer）。</p></section>' +
-        '</div>';
+        '</div>' + pausedCard(d.paused);
       document.getElementById('reload').onclick = tasksView;
       var stop = document.getElementById('exStop');
       if (stop) stop.onclick = function () { if (confirm('停止例句预生成？已经写好的都保留，下次从没写的词接着做。')) busy(stop, postJSON('/tasks/examples/stop', {})).then(tasksView); };

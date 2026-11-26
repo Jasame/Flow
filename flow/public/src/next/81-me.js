@@ -7,9 +7,12 @@
   // 帮助 → 更多: the two rows that are not looked at every week (简洁化, the user's pick 2026-11-25)
   function moreSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">更多</h2><div class="glist">${grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about')}${grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')}
-      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}</div>
+      ${S.user ? grow('meTour', '再看一遍新手引导', '今日的几个主要按钮在哪', '', 'me-tour') : ''}${grow('meTips', '重新显示使用提示', '比如「点词查词」，用到时再说一次', '', 'me-tips')}</div>
       <button class="btn ghost" data-close type="button">关闭</button></div>`, card => {
       const t = card.querySelector('#meTour'); if (t) t.onclick = () => { closeSheet(); tourAgain(); };  // 08-tour.js
+      card.querySelector('#meTips').onclick = async () => {  // 08-tips.js
+        try { await TIPS.reset(); closeSheet(); toast('使用提示会在用到时再出现一次'); } catch (e) { toast(e.message); }
+      };
     });
   }
   // 我的 → 内测版: this 内测 version's number and when it went up, and what changed in it (the ledger's beta entry)
@@ -41,10 +44,12 @@
     const groups = [
       u && ['进步', [grow('#/radar', '能力雷达', '', '', 'me-radar'), grow('#/growth', '我的进步', '', '', 'me-growth'), grow('#/report', '周报', '', '', 'me-report'), grow('#/cards/mistake', '错题本', '', '', 'me-mistake')]],
       ['设置', [grow('#/welcome/edit', '学习目标和水平', [goal && esc(goal.label), p.target && '目标 ' + p.target, lv && (p.target ? '现在 ' : '') + lv.id].filter(Boolean).join(' · ') || '未设置', '', 'me-level'),
-        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '「认识」放在', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
+        u ? grow('meExam', '我的考试', examLabel(p), 'meExamV', 'me-exam') : '', u ? grow('meHabit', '每周目标', `每周 ${(st && st.habit && st.habit.goal) || 4} 天`, 'meHabitV', 'me-habit') : '', u && !u.teacher ? grow('meClass', '班级', '<span class="spin"></span>', 'meClassV', 'me-class') : '', grow('meVoice', '朗读声音', VOICE_LABELS[S.voice] || VOICE_LABELS['us-f'], 'meVoiceV', 'me-voice'), WORD_CLIPS ? grow('meSound', '单词读音方式', soundLabel(), 'meSoundV', 'me-sound') : '', grow('meKnow', '背词', knowLabel(), 'meKnowV', 'me-know'), grow('meText', '外观', lookLabel(), 'meTextV', 'me-text'), grow('meRemind', '每天提醒', '', '', 'me-remind'),
         u ? grow('meMail', '每周进度邮件', weeklyMailLabel(), 'meMailV', 'me-weekly-mail') : '',
+        u && S.home && S.home.profile ? grow('mePers', '按我的学习记录推荐', personalizeLabel(), 'mePersV', 'me-personalize') : '',  // 81-privacy.js
         installed ? '' : grow('meInstall', '添加到桌面', '', '', 'me-install'),
-        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : '']],
+        appSettings() ? grow('meApp', appSettings()[0], appSettings()[1], '', 'me-app-settings') : ''],
+        u && S.home && S.home.profile ? '关掉「按我的学习记录推荐」以后，推荐只按你选的水平和新旧排，不看你的学习记录。' : ''],
       u && ['账号', [grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
         grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。'],
@@ -54,7 +59,12 @@
       BETA && ['内测版', [grow('#/feedback', '问题反馈', '', '', 'me-beta-feedback'),
         IN_FLOW_APP ? '' : grow(MAIN_SITE + '/', '去正式版', 'flowlang.cn', '', 'me-beta-main'), '<div class="beta-new" id="meBetaNew" hidden></div>'],
         '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
-      ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')]],
+      // 安卓 App 1.0.4+ (81-privacy.js appPrivacy): 撤回同意 and the system permissions, for the app stores
+      // and the two lists the stores ask for (隐私和数据, #342), a tap from 我的
+      appPrivacy() && ['隐私', [grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list'), grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list'),
+        grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
+        '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号 → 数据存放」里撤回；要删除，请注销账号。'],
+      ['帮助', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'),grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')], appPrivacy() ? '<span id="meBeian" hidden></span>' : ''],
     ].filter(Boolean);
     view.innerHTML = `<div class="card flat me-head"><div class="me-id">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
         <div class="t"><h1 class="h1">${u ? esc(u.username) : '我的'}</h1><span class="small muted">${lv ? `${esc(lv.label)}（${lv.id}）` : '还没有设置水平'} · 每天 ${p.minutes || 10} 分钟</span></div></div>
@@ -72,7 +82,11 @@
     const me = document.getElementById('meExam'); if (me) me.onclick = () => examGoalSheet(() => meView());
     document.getElementById('meRemind').onclick = () => remindSheet(p.minutes || 10);
     const mm = document.getElementById('meMail'); if (mm) { mm.onclick = weeklyMailSheet; fillMailRow(); }  // 11-progress.js
+    const mp = document.getElementById('mePers'); if (mp) mp.onclick = personalizeSheet;  // 81-privacy.js
     const mi = document.getElementById('meInstall'); if (mi) mi.onclick = installSheet;
+    const mw = document.getElementById('meWithdraw'); if (mw) mw.onclick = withdrawInApp;  // 81-privacy.js
+    const mpm = document.getElementById('mePerms'); if (mpm) mpm.onclick = permissionsSheet;
+    fillBeian();
     const ma = document.getElementById('meApp'); if (ma) ma.onclick = () => FlowApp.call('app.settings').catch(() => toast('打不开 App 的设置页，把语流 App 更新到最新版再试'));
     document.getElementById('meMore').onclick = moreSheet;
     if (BETA) betaInfo();
@@ -129,16 +143,26 @@
     ['compat', '标准', '每个词是一个前面留了一点静音的小音频，大部分单词不会出现在灵动岛上。「连续」没有声音时选这个。']];
   const soundLabel = () => AUDIO.mode() === 'compat' ? `标准 · 前面 ${AUDIO.lead()} 秒` : '连续';
   // 「认识」放在 (KNOW, 50-words.js): which side the 认识 button is on in the review and the vocabulary test
-  const knowLabel = () => KNOW.side() === 'right' ? '右边' : '左边';
+  const knowLabel = () => `认识在${KNOW.side() === 'right' ? '右' : '左'} · 新词${KNOW.view('new') === 'detailed' ? '详细' : '简洁'} · 复习${KNOW.view('review') === 'detailed' ? '详细' : '简洁'}`;
   function knowSheet() {
     const opts = [['right', '右边（默认）', '和大多数背词 App 一样，右手点着顺。往右滑是认识，往左滑是不认识。'], ['left', '左边', '往左滑是认识，往右滑是不认识。']];
-    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">「认识」放在</h2>
-      <div class="choice two" role="radiogroup" aria-labelledby="sheetTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
+    openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">背词设置</h2>
+      <h3 class="zones-h" id="knowTitle">「认识」放在</h3>
+      <div class="choice two" role="radiogroup" aria-labelledby="knowTitle">${opts.map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-know="${k}" aria-checked="${KNOW.side() === k}" aria-pressed="${KNOW.side() === k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">复习单词和测词汇量都跟着变：按钮的位置、滑动的方向，电脑上的按键（1 2 3 和 ← →）也按按钮在屏幕上的位置。只影响这台设备。</p>
       <h3 class="zones-h" id="zonesTitle">点卡片作答</h3>
       <div class="choice two" role="radiogroup" aria-labelledby="zonesTitle">${[[1, '开', '复习卡的左、中、右三块，和下面三个按钮一样（「认识」那边就是认识）。只翻面看答案，翻面后还是点按钮评分；点错了可以「撤销」。'], [0, '关', '只用下面的按钮、滑动和按键。']].map(([k, t, d]) => `<button class="opt" type="button" role="radio" data-zones="${k}" aria-checked="${KNOW.tap() === !!k}" aria-pressed="${KNOW.tap() === !!k}"><b>${t}</b><span class="small muted">${d}</span></button>`).join('')}</div>
       <p class="muted small">手机和平板默认开，用鼠标的电脑默认关。<button class="link small" type="button" id="zonesGuide">下次复习再看一次说明</button></p>
+      <h3 class="zones-h" id="viewTitle">复习卡：简洁还是详细</h3>
+      ${[['new', '背新词'], ['review', '复习']].map(([k, t]) => `<div class="row between view-row"><b class="small">${t}</b><div class="seg" role="radiogroup" aria-label="${t}">${[['simple', '简洁'], ['detailed', '详细']].map(([v, l]) => `<button class="chip small" type="button" role="radio" data-view="${k}:${v}" aria-checked="${KNOW.view(k) === v}" aria-pressed="${KNOW.view(k) === v}">${l}</button>`).join('')}</div></div>`).join('')}
+      <p class="muted small">详细：翻面后多给释义的词性、第 3 个例句、易混词和记忆情况，正面只多一行灰字，不提示答案。详细每张多花一点时间，每天单词的时间不变，能复习的词会少一些。复习时顶上的「简 / 详」也能随时换。</p>
       <button class="btn ghost" data-close type="button">完成</button></div>`, card => {
+      card.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+        const [k, v] = b.dataset.view.split(':'); KNOW.setView(k, v);
+        card.querySelectorAll(`[data-view^="${k}:"]`).forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
+        const lv = document.getElementById('meKnowV'); if (lv) lv.textContent = knowLabel();
+        toast(`${k === 'new' ? '背新词' : '复习'}用${v === 'detailed' ? '详细' : '简洁'}的卡片`);
+      });
       card.querySelectorAll('[data-zones]').forEach(b => b.onclick = () => {
         KNOW.setTap(b.dataset.zones === '1');
         card.querySelectorAll('[data-zones]').forEach(x => { x.setAttribute('aria-checked', String(x === b)); x.setAttribute('aria-pressed', String(x === b)); });
@@ -203,7 +227,10 @@
     if (IN_WECHAT && !/iPhone|iPod/.test(ua) && !ipad) return 'wechat';
     if (/iPhone|iPod/.test(ua) || ipad) return /CriOS|FxiOS|EdgiOS|OPiOS|MicroMessenger|QQ\//.test(ua) ? 'ios-other' : ipad ? 'ipad' : 'iphone';
     if (installPrompt) return 'prompt';
-    return /Android/i.test(ua) ? 'android' : 'desktop';
+    if (/Android/i.test(ua)) return 'android';
+    // HarmonyOS NEXT (鸿蒙 5 and up: 华为浏览器 and other ArkWeb browsers) says OpenHarmony and no Android; without this it
+    // was told to use Chrome or Edge, as on a computer. HarmonyOS 4 and before say Android and keep the Android steps.
+    return /OpenHarmony/i.test(ua) ? 'harmony' : 'desktop';
   }
   addEventListener('appinstalled', () => { save('flow-installed', Date.now()); installPrompt = null; const n = document.getElementById('installNudge'); if (n) n.remove(); });
   // The 今日 notice: a phone browser (not WeChat, not already on the home screen) of a learner who has studied once.
@@ -219,6 +246,7 @@
       'ios-other': ['苹果手机要用 <b>Safari</b> 才能放到桌面：点下面的「复制网址」，打开 Safari，粘贴并前往', `在 Safari 里点底部中间的分享按钮 ${share}，选「<b>添加到主屏幕</b>」`],
       wechat: ['微信里不能放到桌面：点右上角「<b>···</b>」，选「<b>在浏览器打开</b>」', '在浏览器里打开「我的 → 添加到桌面」，按那里的两步做'],
       android: ['点浏览器右上角的 <b>⋮</b>（有的浏览器在底部，是 <b>≡</b>）', '选「<b>添加到主屏幕</b>」或「<b>安装应用</b>」（有的手机叫「添加到桌面」）'],
+      harmony: ['点浏览器的菜单按钮（华为浏览器在底部，是 <b>≡</b>）', '找到「<b>添加到桌面</b>」点一下（有的版本叫「添加至桌面」）'],
       desktop: ['用 Chrome 或 Edge 打开语流，点地址栏右边的「安装」图标', '装好以后，可以从开始菜单或程序坞打开'],
     }[k];
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">把语流放到桌面</h2>

@@ -10,16 +10,8 @@
   .study-head[data-at=listen] .title-en{display:none}
 }
 
-/* 听: one line for 语速 · 复读 · 停顿, the choices folded under it */
-.playset{margin:-6px 0 10px}
-.playset>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;cursor:pointer;list-style:none}
-.playset>summary::-webkit-details-marker{display:none}
-.playset>summary .link{flex:none;font-weight:600}
-.playset>summary .link::after{content:" ▾"}
-.playset[open]>summary .link::after{content:" ▴"}
-.playset .loopbar{margin-top:2px;padding:10px 12px;background:var(--sunk);border-radius:12px}
-.playset .loopbar .chip[aria-pressed=true]{background:var(--green-soft);border-color:var(--green);color:var(--green-ink);font-weight:600}
-.playset .voices{display:flex;flex-wrap:wrap;gap:6px}
+/* 听: 播放设置 (语速 · 复读 · 停顿 · 声音) opens as a sheet from 「1×」 in 精听's bar (21-study-listen.js) */
+.loopbar .voices{display:flex;flex-wrap:wrap;gap:6px}
 .listen-tip{margin:4px 0 10px}
 
 /* 读: 中文导读、改写 and 伴读 in one row; the colour key and the tap hints in one line under it */

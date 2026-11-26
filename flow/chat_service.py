@@ -173,18 +173,21 @@ def request_model(messages,audio=None,grounding=False):
  search=search_provider() if grounding and not audio else None
  hearing=ai_routes.audio_route() if audio and not grounding and audio_provider() else ''
  main=main_on();backup=backup_model()
+ if audio and not grounding and not hearing and not main and audio_provider():
+  hearing=ai_routes.audio_route('next-dialog')  # 2026-11-26: 能力测评·口语 had no route of its own and, with Gemini off, nothing heard it
+ answerer=text_model if text_provider(text_model) else backup  # who answers from a transcript: the task's own text model, quick
  order=[]
  if search:order.append('search')
  elif hearing:order.append('audio')
  elif not audio and not grounding and text_provider(text_model):order.append('text')
  if main:order.append('main')
  elif order[:1]==['text'] and backup and backup!=text_model:order.append('backup')  # 百炼's other model, not Gemini
- elif order[:1]==['audio'] and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order.append('asr')
+ elif order[:1]==['audio'] and answerer and can_write_down() and ai_routes.current() in HEARD_ONLY:order.append('asr')
  elif not order and backup and not audio and not grounding:order.append('backup')
  if getattr(MAIN_ONLY,'on',False):  # run_job's last try after answers it could not take (e.g. Omni twice with nothing heard): another model
   if main:order=['main']
   elif backup and not audio and not grounding:order=['backup']
-  elif hearing and backup and asr_model() and ai_routes.current() in HEARD_ONLY:order=['asr']  # r30 e2e: Omni's heard empty twice
+  elif hearing and answerer and can_write_down() and ai_routes.current() in HEARD_ONLY:order=['asr']  # r30, r35 e2e: Omni's heard empty twice
  if not order:
   from vertex_auth import AIConfigurationError
   raise AIConfigurationError('No AI service for this request')
@@ -193,13 +196,13 @@ def request_model(messages,audio=None,grounding=False):
  last=None
  for i,which in enumerate(order):
   started=time.monotonic();INFO.__dict__.clear()
-  model=(text_model if which=='text' else search[2] if which=='search' else hearing if which=='audio' else backup if which in ('backup','asr')
+  model=(text_model if which=='text' else search[2] if which=='search' else hearing if which=='audio' else backup if which=='backup' else answerer if which=='asr'
          else os.getenv('FLOW_AI_MODEL',''))
   try:
    out=(_request_text_service(messages,text_model,ai_routes.extra_body(text_model)) if which=='text' else
         _request_search_service(messages) if which=='search' else _request_audio_service(messages,audio,hearing) if which=='audio' else
         _request_text_service(messages,backup,ai_routes.extra_body(backup)) if which=='backup' else
-        _request_heard_then_text(messages,audio,backup) if which=='asr' else
+        _request_heard_then_text(messages,audio,answerer) if which=='asr' else
         _request_main(messages,audio,grounding))
    LAST['provider']=which
    ai_routes.record('backup' if which=='asr' else which,model,started,messages,out[0],dict(INFO.__dict__),fallback=i>0)
@@ -219,9 +222,11 @@ def request_model(messages,audio=None,grounding=False):
 # 2026-11-25 (user: 「换成国内已备案模型」; Gemini has no filing in China and a recording sent to it leaves the country):
 # FLOW_MAIN_AI=off keeps the main model (Gemini) out of every learner request. Then a text task that fails on its route
 # goes to FLOW_BACKUP_AI_MODEL (another 百炼 model, e.g. flow-text-qwen-plus), a recording whose audio route fails is
-# written down by FLOW_ASR_AI_MODEL (qwen3-asr-flash) and answered by that backup model (only tasks in HEARD_ONLY: what
-# was said matters, not how it sounded), and run_job's last try asks the backup model. 跟读 and 发音 have no text backup
-# (a score of how it sounded needs the sound); a search has none either.
+# written down (write_down: FLOW_ASR_AI_MODEL when set, else Qwen-Omni told only to write it down, 2026-11-26) and
+# answered by the task's own text model, the backup when it has none (only tasks in HEARD_ONLY: what was said matters,
+# not how it sounded), and run_job's last try asks the backup model. 跟读 and 发音 have no text backup (a score of how
+# it sounded needs the sound); a search has none either. A recording task with no audio route of its own (能力测评·口语)
+# borrows 情景对话's (r35: it had none, and nothing heard it).
 HEARD_ONLY={'next-dialog','next-retell','next-ielts'}
 
 
@@ -318,6 +323,7 @@ def _request_audio_service(messages,audio,model):
  return reply,'stop'
 
 
+SPEECH_PROMPT='You write down English speech. Output only the words the speaker says, as you hear them. If nobody speaks, output nothing.'
 SAID=[{'role':'user','content':'[recording]'}]  # what ai_calls counts for a transcription (the audio is not text)
 WORD_PROMPT='You write down English speech. The recording is one English word. Output only that word, as you hear it.'
 
@@ -349,6 +355,39 @@ def hear_word(audio):
   ai_routes.record('word',model,started,SAID,None,dict(INFO.__dict__),exc);raise
  ai_routes.record('word',model,started,SAID,reply,dict(INFO.__dict__))
  return reply.strip()[:200]
+
+
+def hearer_model():
+ """Qwen-Omni writes a recording down when no speech recognition is set: the task's own audio route, else 情景对话's."""
+ import ai_routes
+ return ai_routes.audio_route() or ai_routes.audio_route('next-dialog')
+
+
+def can_write_down():
+ return bool(asr_model() or (audio_provider() and hearer_model()))
+
+
+def write_down(audio):
+ """What a recording says, or '': speech recognition (FLOW_ASR_AI_MODEL) when one is set, else Qwen-Omni told only to
+ write it down (2026-11-26: the owner chose Omni over qwen3-asr, which has no filing; r35's e2e clip came back from
+ Omni's dialogue prompt with nothing heard three times, and with Gemini off nobody else heard it)."""
+ if asr_model():return transcribe(audio)
+ import ai_routes
+ from vertex_auth import AIConfigurationError
+ model=hearer_model()
+ if not model:raise AIConfigurationError('No audio route to write down a recording')
+ msgs=[{'role':'system','content':SPEECH_PROMPT},{'role':'user','content':'Write down what is said.'}]
+ started=time.monotonic();INFO.__dict__.clear()
+ try:
+  reply,_=_request_audio_service(msgs,audio,model)
+ except ValueError as exc:
+  if str(exc)!='Empty model reply':
+   ai_routes.record('audio',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+  reply=''
+ except Exception as exc:
+  ai_routes.record('audio',model,started,SAID,None,dict(INFO.__dict__),exc);raise
+ ai_routes.record('audio',model,started,SAID,reply,dict(INFO.__dict__))
+ return reply.strip()[:2000]
 
 
 def transcribe(audio,words=None):
@@ -391,7 +430,8 @@ def transcribe(audio,words=None):
 def _request_heard_then_text(messages,audio,model):
  """The audio route failed: write the recording down (transcribe), then ask the text model with what was said in
  place of the recording. The task's prompt asks for what was heard; the transcript is that."""
- heard=transcribe(audio)
+ heard=write_down(audio)
+ if not heard:raise ValueError('Empty model reply')  # nothing said: the text model would only guess
  msgs=[dict(m) for m in messages]
  last=next(i for i in range(len(msgs)-1,-1,-1) if msgs[i].get('role')=='user')
  msgs[last]['content']=str(msgs[last]['content'])+'\n\n（录音已由语音识别转成文字，下面就是学习者说的话；把它当作你听到的内容，照原样转写，不要猜测发音。）\n学习者说：'+(heard or '[听不清]')
