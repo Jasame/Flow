@@ -67,7 +67,11 @@ def record(c, uid, data):
 # first time a page is used, where an instruction used to stay for good (「点词查词…」 on 读), put away with 知道了 and not
 # said again on any phone or computer. 我的 → 帮助 → 更多 →「重新显示使用提示」 brings them all back. Kept in next_tours as
 # 'tip:<name>' rows (no counts: a tip is not a tour); due() and the stats look at TOURS only.
-TIPS = ('read', 'listen')
+# 一次性入口 (the user, 2026-11-26: 「第一次用才需要的按钮，点过一次就不要再出现」) are kept the same way: guide (「第一次用？看
+# 操作指南」 on 今日 and 练习), review-zones / review-zones-back (the review card's left, middle and right, front and back),
+# swipe-tip (「右滑认识」 on the first review), know-side (「『认识』换到右边了」), beta-note / beta-hello (the 内测版's line
+# and its once-only sheet).
+TIPS = ('read', 'listen', 'guide', 'review-zones', 'review-zones-back', 'swipe-tip', 'know-side', 'beta-note', 'beta-hello')
 
 
 def tips(c, uid):
@@ -78,7 +82,8 @@ def tips(c, uid):
 
 
 def tip(c, uid, data):
-    """{tip: name} puts one away; {reset: true} brings them all back."""
+    """{tip: name} puts one away; {tip: name, seen: false} brings that one back (「下次复习时再看一次」); {reset: true}
+    brings them all back."""
     if data.get('reset') is True:
         if uid:
             c.execute("DELETE FROM next_tours WHERE user_id=? AND tour LIKE 'tip:%'", (uid,)); c.commit()
@@ -86,7 +91,9 @@ def tip(c, uid, data):
     name = data.get('tip')
     if name not in TIPS:
         return {'error': '参数不对'}, 400
-    if uid:
+    if uid and data.get('seen') is False:
+        c.execute('DELETE FROM next_tours WHERE user_id=? AND tour=?', (uid, 'tip:' + name)); c.commit()
+    elif uid:
         c.execute('INSERT OR IGNORE INTO next_tours(user_id, tour, result, created) VALUES(?,?,?,?)', (uid, 'tip:' + name, 'seen', time.time())); c.commit()
     return tips(c, uid), 200
 
