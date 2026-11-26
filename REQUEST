@@ -1,3 +1,3 @@
-6835e3d1242ffb11dd007933e6003fdc92eb86b1 c28327d30661a3b23ae9e095fa8ba73d8c04cd50052a5378cc1203c497d8a463 e2e light ref=build-bf1c7e7512fa tag=b148 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
-# b148 main: Merge pull request #506 from Jasame/usage-labels = build of bf1c7e7512fa
+73e9837fe082884dff3ccb13ec86296ddd96114b ca115fb934de961a08c3792fcabfc0bbc7d3acdde21db9e02413946b86ea9e14 e2e light ref=build-286db26906b7 tag=b149 tools=9daef7db87f14af779d8a9065824e676b242acccd14d621453ee03c4a68dbd97
+# b149 main: 今日「调整顺序」：拖动的那一块一直在手指下面 (#507) = build of 286db26906b7
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
