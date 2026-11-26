@@ -116,7 +116,7 @@ class FrontTableTests(unittest.TestCase):
         self.assertGreater(len(rows), 20)
         seen = {}
         for f, zh, en in rows:
-            self.assertTrue(HAN.search(zh), (f, zh))
+            self.assertTrue(HAN.search(zh) or re.search('[《》「」（）]', zh), (f, zh))  # Chinese, or Chinese marks around a part
             self.assertTrue(en.strip(), (f, zh))
             slots = zh.count('{n}') + zh.count('{x}')
             used = {int(i) for i in re.findall(r'\{(\d+)', en)}

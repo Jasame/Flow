@@ -38,8 +38,9 @@
       if (k.indexOf('{x}') < 0) { exact[k] = all[k]; return; }
       const parts = k.split(/(\{[nx]\})/), lit = parts.filter((p, i) => i % 2 === 0 && p);
       const re = new RegExp('^' + parts.map((p, i) => (i % 2 ? (p === '{n}' ? '(\\d+(?:\\.\\d+)?)' : '(.+?)') : p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('') + '$');
-      pats.push({ re, en: all[k], lit: lit.sort((a, b) => b.length - a.length)[0] || '' });
+      pats.push({ re, en: all[k], lit: lit.slice().sort((a, b) => b.length - a.length)[0] || '', size: lit.join('').length });
     });
+    pats.sort((a, b) => b.size - a.size);  // the most specific first: more fixed text, fewer parts left open
     enTable.ready = { exact, pats, outs };
     return enTable.ready;
   }
@@ -61,20 +62,28 @@
       const p = tb.pats[i];
       if (p.lit && s.indexOf(p.lit) < 0) continue;
       const m = p.re.exec(s);
-      if (m) return enFill(p.en, m.slice(1).map(x => (ZH_CHAR.test(x) ? (enLookup(x) || x) : x)));
+      if (m) return enFill(p.en, m.slice(1).map(enPart));
     }
-    if (s.indexOf(' · ') > 0) {
+    if (s.indexOf(' · ') >= 0) {
       const parts = s.split(' · '), out = parts.map(x => (ZH_CHAR.test(x) ? enLookup(x.trim()) : x));
       if (out.every(x => x != null)) return out.join(' · ');
     }
     return null;
+  }
+  // a part a pattern caught: its Chinese looked up too, the spaces and ' · ' around it kept (「 · 新词」 → " · New words")
+  function enPart(x) {
+    if (!ZH_CHAR.test(x)) return x;
+    const m = /^([\s·]*)([\s\S]*?)([\s·]*)$/.exec(x), en = enLookup(m[2]);
+    return en == null ? x : m[1] + en + m[3];
   }
   function enText(zh) { const s = String(zh == null ? '' : zh).replace(/\s+/g, ' ').trim(), en = enLookup(s); return en == null ? zh : en; }
 
   // ---- the page in English as it is drawn
   const EN_ATTRS = ['aria-label', 'placeholder', 'title', 'alt', 'aria-valuetext', 'aria-roledescription'];
   const EN_SET = new WeakMap();  // what this wrote into a text node or an attribute, so it is not looked up again
+  // text left alone: Chinese meant to stay, and what a field holds (a field's placeholder and name are still put into English)
   const enSkip = el => !!(el && el.closest && el.closest('[data-zh],[translate="no"],script,style,textarea,[contenteditable="true"],noscript'));
+  const enKeep = el => !!(el && el.closest && el.closest('[data-zh],[translate="no"]'));
   function enTextNode(n) {
     const v = n.nodeValue;
     if (!v || !ZH_CHAR.test(v) || EN_SET.get(n) === v || enSkip(n.parentElement)) return;
@@ -87,7 +96,7 @@
   }
   function enAttr(el, a) {
     const v = el.getAttribute(a);
-    if (!v || !ZH_CHAR.test(v) || enSkip(el)) return;
+    if (!v || !ZH_CHAR.test(v) || enKeep(el)) return;
     const done = EN_SET.get(el);
     if (done && done[a] === v) return;
     const en = enLookup(v.replace(/\s+/g, ' ').trim());
@@ -97,9 +106,9 @@
   function enTree(root) {
     if (!root) return;
     if (root.nodeType === 3) { enTextNode(root); return; }
-    if (root.nodeType !== 1 || enSkip(root)) return;
+    if (root.nodeType !== 1 || enKeep(root) || /^(SCRIPT|STYLE|NOSCRIPT)$/.test(root.tagName)) return;
     const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
-      acceptNode: x => (x.nodeType === 1 && /^(SCRIPT|STYLE|TEXTAREA|NOSCRIPT)$/.test(x.tagName) || x.nodeType === 1 && (x.hasAttribute('data-zh') || x.getAttribute('translate') === 'no')
+      acceptNode: x => (x.nodeType === 1 && /^(SCRIPT|STYLE|NOSCRIPT)$/.test(x.tagName) || x.nodeType === 1 && (x.hasAttribute('data-zh') || x.getAttribute('translate') === 'no')
         ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
     });
     let n = root;

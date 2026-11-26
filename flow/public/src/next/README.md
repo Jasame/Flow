@@ -47,7 +47,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `70-learner.js` | ability profile, daily plan, level suggestion, microphone; the record key (`recBtn`, `REC_MARK`: 语流's mark, its waves move while recording, `97-rec-key.css`) |
 | `71-import.js` | 我的文章 |
 | `72-sounds.js` | 发音入门 and its listening quiz |
-| `73-report.js` | weekly report and share picture |
+| `73-report.js` | weekly report and share picture; the page in blocks: the week in one sentence with seven dots, a block a subject, rows to open, one full-width button (`97-report.css`) |
 | `80-library.js` | 全部材料, serial stories and their episode list; the page: two ways out, serial stories as cards to swipe, 单篇 with its filters on one line and the level as a switch (`97-library.css`) |
 | `81-me.js` | 我的, email binding |
 | `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |
