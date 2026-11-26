@@ -1,0 +1,14 @@
+/* 周报 这周的一次进步 (r29 第 3 项, the user's pick 2026-11-26): the grammar point, the sentence the AI corrected with
+   the changed part struck out and the correction in green, the sentence written right since with the form in bold
+   green, and one closing line under a rule. Sizes from the seven steps (12 / 13.5 / 15.5 / 17 / 20 / 24 / 28). */
+.wp .wp-t{font-size:17px}
+.wp p{margin:0}
+.wp .wp-s + .small{margin-top:8px}
+.wp .wp-s{margin:0;font-size:17px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.wp .wp-s s{color:var(--muted)}
+.wp .wp-s ins{text-decoration:none;color:var(--ok-ink)}
+.wp .wp-s b{color:var(--ok-ink)}
+.wp .wp-end{padding-top:12px;border-top:1px solid var(--line)}
+.wp-rec{margin:0}
+.try-node{color:var(--ink2)}
+.try-node span{font-weight:600}

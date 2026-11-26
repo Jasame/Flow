@@ -453,13 +453,17 @@ def _interleave(items, rnd):
 
 
 def mix_nodes(c, uid, now=None):
-    """The points today's mixed review is made of: flagged ones first, then those whose re-check has come."""
+    """The points today's mixed review is made of: those that keep coming back in what the learner writes and says
+    (progress_service.recurring, 周报's 还要接着练: 明天的语法复习先练它; only when the records may pick, 按我的学习记录推荐),
+    then flagged ones, then those whose re-check has come."""
     import next_service as nx
     if not uid:
         return []
     states = nx.graph_states(c, uid)
-    watch = [n for n, s in states.items() if s['status'] == 'watch']
-    return watch + [n for n in due(c, uid, now) if n not in watch]
+    first = [x['node'] for x in __import__('progress_service').recurring(c, uid, now) if x['node'] in states] \
+        if nx.follows_records(nx.profile(c, uid)) else []
+    watch = [n for n, s in states.items() if s['status'] == 'watch' and n not in first]
+    return first + watch + [n for n in due(c, uid, now) if n not in watch and n not in first]
 
 
 def mix(c, uid, pair=None, topic=None, level=None, seed=None, exam=None, most=None):

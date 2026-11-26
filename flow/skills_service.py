@@ -521,6 +521,7 @@ def report(c, uid, now=None):
     return {'from': nx._day(week), 'to': nx._day(now), 'days': len(days), 'minutes': minutes, 'materials': materials, 'outputs': outputs,
             'reviews': reviews, 'learned': learned, 'mastered': mastered, 'mistakes_new': new_mistakes, 'mistakes_fixed': fixed,
             'skills': skills, 'watch': watch, 'focus': focus, 'ability': ab['skills'], 'relisten': __import__('relisten_service').week(c, uid, week),
+            'progress': ps.week_progress(c, uid, now),  # 这周的一次进步 and 还要接着练 (r29 第 3 项)
             **_week_more(c, uid, now, week, prev)}
 
 
