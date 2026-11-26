@@ -30,7 +30,8 @@
       <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
         <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点录音键说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
         <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
-      <div class="dlg-go"><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div></div>`;
+      <div class="dlg-go"><button class="btn primary block" id="dlgStart">开始对话</button></div><div id="dlgOut"></div><div id="histFold"></div></div>`;
+    historyFold(document.getElementById('histFold'), 'dialog', 'scene-' + sid);  // 之前练过 (86-history.js): under the main button, gone once the talk starts
     view.querySelectorAll('[data-say]').forEach(b => b.onclick = () => TTS.say(b.dataset.say));
     const chat = view.querySelector('#chat');
     const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
@@ -47,6 +48,7 @@
     view.querySelector('#dlgStart').onclick = async e => {
       if (!S.user) { needLogin('登录后可以和 AI 做情景对话。'); return; }
       const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+      const before = document.getElementById('histFold'); if (before) before.remove();
       const r = await turn({}); if (!r) { btn.disabled = false; btn.textContent = '开始对话'; return; }
       btn.parentNode.remove();
       chat.insertAdjacentHTML('beforeend', `<div class="scene small"><span data-ex>${esc(r.scene)}</span>${r.role ? `（AI 扮演：${esc(r.role)}）` : ''}</div>`);

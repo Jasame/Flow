@@ -780,8 +780,8 @@ def run_device(pw, dev, opts):
       folds: [...document.querySelectorAll('#view details.me-fold')].map(d => [d.querySelector('.fold-n').textContent, d.querySelector('.fold-v').textContent, d.open, getComputedStyle(d.querySelector('.fold-n')).color === getComputedStyle(document.querySelector('#meVoice .t')).color]),
       account: [...document.querySelectorAll('#meFold-account .grow .t')].map(t => t.textContent), icons: [...document.querySelectorAll('.me-list > .grow')].every(r => r.querySelector('.fi-tile')),
       ability: !!document.querySelector('#view #ability'), out: !!document.querySelector('#view #out'), classic: /经典版|classic/.test(document.getElementById('view').innerHTML)})""")
-    check(dev, 'me: 进步 (three tiles) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助 (still open from the tap), then 退出登录; no ability card, no way to the classic site',
-          me['groups'] == ['进步', '设置'] and me['tiles'] == ['我的进步', '周报', '错题本'] and me['icons'] and not me['ability'] and me['out'] and not me['classic']
+    check(dev, 'me: 进步 (four tiles, 练习记录 the fourth) and 设置 (an icon on every row), then the folds 账号和隐私 (open from #/me/account) and 帮助 (still open from the tap), then 退出登录; no ability card, no way to the classic site',
+          me['groups'] == ['进步', '设置'] and me['tiles'] == ['我的进步', '周报', '错题本', '练习记录'] and me['icons'] and not me['ability'] and me['out'] and not me['classic']
           and me['folds'] == [['账号和隐私', '导出、注销、数据存放', True, True], ['帮助', '指南、隐私说明、反馈', True, True]], me)  # 帮助: opened above, still open
     check(dev, 'me: 账号和隐私 has its ten rows, 切换账号 first, 隐私说明 next to 用户协议 (D2)', me['account'] == ['切换账号', '邮箱', '修改密码', '退出所有设备', '年龄段', '数据存放', '用户协议', '隐私说明', '导出我的数据', '注销账号'], me['account'])
     pg.click('#meVoice'); pg.wait_for_selector('#sheet [data-voice]', timeout=4000)
@@ -4644,6 +4644,39 @@ def shell_run(pw):
           return { line: [...document.querySelectorAll('#view .me-head .me-line')].map(e => e.textContent.trim())[1], days: st.habit.done, texts: st.materials_done, words: st.word_cards, total: o.total, cards: st.cards }; }""")
         check(dev, '我的: 「这周学了 N 天 · 累计 N 篇、N 个词」, the words as many as the word page says (not every card)',
               ml['words'] == ml['total'] and ml['line'] == f"这周学了 {ml['days']} 天 · 累计 {ml['texts']} 篇、{ml['words']} 个词", ml)
+        # 练习记录 (the user, 2026-11-27: 「现在看过这个记录就消失了…留存下来，下次复习的时候还能再看一看」): after a 仿写
+        # its feedback is kept: under the practice itself (之前练过), in 我的 → 进步 → 练习记录, and as a page of its own;
+        # deleting says what goes and what stays, and the record is gone from all three
+        go(pg, f'#/m/{PID}/output'); pg.wait_for_selector('#ans', timeout=8000); pg.wait_for_timeout(600)
+        none_yet = pg.locator('#pane .hist-fold').count() == 0
+        pg.fill('#ans', 'I think noise cancelling headphones are useful for work.'); pg.click('#go')
+        pg.wait_for_selector('#finSum, .rw-result, .fb', timeout=15000); pg.wait_for_timeout(600)
+        go(pg, '#/history'); pg.wait_for_selector('#view .hist-row, #view .empty', timeout=8000)
+        rows = pg.evaluate("[...document.querySelectorAll('#view .hist-row')].map(a => [a.getAttribute('href'), a.textContent.replace(/\\s+/g, ' ').trim()])")
+        mine = [r for r in rows if r[0].startswith('#/history/j')]
+        check(dev, '练习记录: nothing under a practice not done before; after a 仿写 the list has it, newest first, under 今天',
+              none_yet and len(mine) == 1 and rows[0] == mine[0] and '仿写' in mine[0][1] and (pg.text_content('#view .hist-day') or '').strip() == '今天', (none_yet, rows[:3]))
+        pg.click('#view .hist-row'); pg.wait_for_selector('#histDel', timeout=8000); pg.wait_for_timeout(300)
+        rec = pg.evaluate("""() => ({ h1: document.querySelector('#view h1').textContent.trim(), ai: !!document.querySelector('#view .ai-mark'), blocks: [...document.querySelectorAll('#view .hist-blk h2')].map(h => h.textContent.trim()),
+          again: (document.querySelector('#view .hist-main') || {getAttribute: () => ''}).getAttribute('href'), solid: document.querySelectorAll('#view .btn.primary').length,
+          foot: document.querySelector('#view .hist-foot').textContent.replace(/\\s+/g, ' ').trim(), sideways: document.documentElement.scrollWidth > innerWidth })""")
+        check(dev, '练习记录, one record: 今天的练习, marked AI 生成, the result first, one solid button (再练一次, back to that practice), how long it is kept',
+              rec['h1'] == '今天的练习' and rec['ai'] and rec['blocks'][:1] == ['这次的结果'] and rec['again'].endswith('/output') and rec['solid'] == 1
+              and rec['foot'].startswith('练习记录保存 180 天；录音不保存。') and not rec['sideways'], rec)
+        go(pg, f'#/m/{PID}/output'); pg.wait_for_selector('#pane .hist-fold', timeout=8000)
+        fold = (pg.text_content('#pane .hist-fold summary') or '').replace('\n', ' ').strip()
+        go(pg, '#/me'); pg.wait_for_function("document.getElementById('meHistV') && document.getElementById('meHistV').textContent.trim()", timeout=8000)
+        tile = pg.text_content('#meHistV').strip()
+        check(dev, '练习记录: the practice page says 之前练过 1 次 · 最近 今天 (folded), 我的 → 进步 has a fourth tile that says 最近 今天',
+              fold.startswith('之前练过') and '1 次 · 最近 今天' in fold and tile == '最近 今天' and pg.locator('#view .me-tiles .me-tile').count() == 4, (fold, tile))
+        go(pg, mine[0][0]); pg.wait_for_selector('#histDel', timeout=8000); pg.click('#histDel'); pg.wait_for_selector('#sheet:not([hidden]) [data-m]', timeout=4000)
+        ask = pg.evaluate("({ text: document.getElementById('sheet').innerText.replace(/\\s+/g, ' '), choices: [...document.querySelectorAll('#sheet [data-m]')].map(b => b.textContent.trim()), green: document.querySelectorAll('#sheet .btn.primary').length })")
+        pg.locator('#sheet [data-m="0"]').first.click(); pg.wait_for_selector('#view .hist-chips', timeout=8000); pg.wait_for_timeout(400)
+        left = pg.locator('#view .hist-row[href^="#/history/j"]').count()
+        go(pg, f'#/m/{PID}/output'); pg.wait_for_selector('#ans', timeout=8000); pg.wait_for_timeout(700)
+        check(dev, '练习记录, 删除这一次: says it cannot be undone and that the score stays; no accent button; then gone from the list and from under the practice',
+              '不能恢复；分数会留着，用来算进步' in ask['text'] and ask['choices'] in (['删除'], ['一起删', '只删这条记录']) and ask['green'] == 0 and left == 0
+              and pg.locator('#pane .hist-fold').count() == 0, (ask, left))
         # a sheet goes with its page: a link, and the browser's back
         go(pg, '#/me'); pg.click('#meVoice'); pg.wait_for_selector('#sheet:not([hidden])', timeout=4000); pg.wait_for_timeout(300)
         # closing slides away (B9): the sheet itself is shut at once, a copy without ids, out of reach, goes down and is gone

@@ -14,7 +14,8 @@
           <span class="muted small">可以打字，也可以点录音键直接说（最长 2 分钟）。AI 会提炼原文要点，看你讲到了哪些，并改出最影响理解的错误。</span></div>
         <textarea id="rtText" data-draft="retell-${esc(id)}" aria-label="用英文复述这篇" rows="6" maxlength="2500" lang="en" data-submit="#rtGo" placeholder="In this article, ..."></textarea>
         <div class="row between"><span class="row">${recBtn('rtMic', '说出来')}<span class="muted tiny" id="rtState">打字或录音都行</span></span><button class="btn primary" id="rtGo">AI 看看我的复述</button></div>
-        <div id="rtOut"></div>`;
+        <div id="rtOut"></div><div class="hist-host"></div>`;
+      historyFold(pane.querySelector('.hist-host'), 'retell', id);  // 之前练过 (86-history.js)
       let blob = null;
       const mic = pane.querySelector('#rtMic'), state = pane.querySelector('#rtState');
       mic.onclick = () => MIC.toggle(mic, 120, b => { blob = b; state.textContent = '已录好一段，可以提交了（会先转写）'; });
@@ -51,7 +52,8 @@
         <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
           <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答…"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend">发送</button></div>
           <div><button class="btn small ghost" id="dlgEnd">结束并总结</button></div></div>
-        <div><button class="btn primary" id="dlgStart">开始对话</button></div><div id="dlgOut"></div>`;
+        <div><button class="btn primary" id="dlgStart">开始对话</button></div><div id="dlgOut"></div><div class="hist-host"></div>`;
+      historyFold(pane.querySelector('.hist-host'), 'dialog', id);  // 之前练过 (86-history.js)
       const chat = pane.querySelector('#chat');
       const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
       // 8 lines a round (output_service.DIALOG_LINES): then only 结束并总结, which the server takes whatever the length
@@ -115,7 +117,8 @@
           <div class="card flat stack-s"><div class="row between"><span class="kicker">第 ${k + 1} / ${good.length} 句</span><button class="link small" id="trNext">换一句</button></div>
             <div class="text" id="trSrc" data-zh>${dir === 'en2zh' ? esc(en) : '<span class="spin"></span>'}</div></div>
           <textarea id="trIn" data-draft="trans-${esc(id)}-${dir}-${i}" aria-label="你的译文" rows="3" maxlength="800" lang="${dir === 'zh2en' ? 'en' : 'zh'}" data-submit="#trGo" placeholder="${dir === 'zh2en' ? '译成英文…' : '译成中文…'}"></textarea>
-          <div class="row between"><span class="muted tiny">${dir === 'zh2en' ? '译完对照原文，看哪里不一样。' : '意思准确、读起来像中文就是好译文。'}</span><button class="btn primary" id="trGo">提交</button></div><div id="trOut"></div>`;
+          <div class="row between"><span class="muted tiny">${dir === 'zh2en' ? '译完对照原文，看哪里不一样。' : '意思准确、读起来像中文就是好译文。'}</span><button class="btn primary" id="trGo">提交</button></div><div id="trOut"></div><div class="hist-host"></div>`;
+        historyFold(pane.querySelector('.hist-host'), 'translate', id);  // 之前练过 (86-history.js)
         pane.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => { dir = b.dataset.dir; save('flow-next-trans-dir', dir); render(); });
         pane.querySelector('#trNext').onclick = () => { k = (k + 1) % good.length; render(); };
         if (dir === 'zh2en') {
@@ -153,7 +156,8 @@
       pane.innerHTML = `${outTabs('essay')}<div class="card flat task stack-s"><div class="kicker">建议 ${range[0]}–${range[1]} 词</div><b${m.writing_task ? ' data-zh' : ''}>${esc(m.writing_task || '围绕这篇的话题，写一段你自己的看法或经历。')}</b>
           <span class="muted small">按内容、结构、准确、丰富四个维度批改，给段落点评和示范段落；改出来的错误进错题本。</span></div>
         <textarea id="esIn" aria-label="你的英文作文" rows="10" maxlength="3000" lang="en" data-submit="#esGo" placeholder="Write here…">${esc(load(key) || '')}</textarea>
-        <div class="row between"><span class="counter" id="esN"></span><button class="btn primary" id="esGo">AI 批改</button></div><div id="esOut"></div>`;
+        <div class="row between"><span class="counter" id="esN"></span><button class="btn primary" id="esGo">AI 批改</button></div><div id="esOut"></div><div class="hist-host"></div>`;
+      historyFold(pane.querySelector('.hist-host'), 'essay', id);  // 之前练过 (86-history.js)
       const ta = pane.querySelector('#esIn'), n = pane.querySelector('#esN');
       const count = () => { const w = (ta.value.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length; n.textContent = `${w} 词`; n.classList.toggle('warn', w && (w < range[0] || w > range[1])); return w; };
       ta.oninput = () => { save(key, ta.value); count(); }; count();
@@ -198,7 +202,8 @@
           ${(m.mine || []).length ? `<div class="muted small">可以试着用上你在背的词：${[...new Set(m.mine.map(x => x.form))].slice(0, 5).map(w => `<b>${esc(w)}</b>`).join('、')}（用对了算一次成功复习）</div>` : ''}</div>
         <label class="card flat out-write"><span class="sr-only">你的英文</span><textarea id="ans" maxlength="600" lang="en" data-submit="#go" placeholder="写一两句就好，写错没关系。">${esc(draft)}</textarea><span class="counter" id="cnt">${draft.length} / 600</span></label>
         <button class="btn primary block out-go" id="go">让 AI 帮我改</button>
-        <p class="err" id="outErr" role="alert"></p><div id="result"></div></div>`;
+        <p class="err" id="outErr" role="alert"></p><div id="result"></div><div class="hist-host"></div></div>`;
+      historyFold(pane.querySelector('.hist-host'), 'rewrite', id);  // 之前练过 (86-history.js)
       const ta = pane.querySelector('#ans');
       ta.oninput = () => { save(key, ta.value); pane.querySelector('#cnt').textContent = ta.value.length + ' / 600'; };
       const sm = pane.querySelector('#sayModel'); if (sm) sm.onclick = () => TTS.say(m.task.model);

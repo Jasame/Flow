@@ -5,6 +5,7 @@
        fiTile('bell')   the icon in a 34px soft square: the rows of a settings list
      Icons are decoration (aria-hidden): the row's own words name it. Add a new one here, not in a page's own file. */
   const FI = {
+    clock: '<circle class="w" cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="8"/><path d="M12 7.8V12l3 1.8"/>',  // 练习记录
     retry: '<rect class="w" x="4" y="4" width="16" height="16" rx="4.5"/><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.5 12.3l2.4 2.4 4.6-5.2"/>',  // 错题和句型复习
     bookx: '<path class="w" d="M6 4h11a1 1 0 0 1 1 1v15H7a1 1 0 0 1-1-1z"/><path d="M6 4h11a1 1 0 0 1 1 1v15H7a1 1 0 0 1-1-1z"/><path d="M10 9.5l4 4m0-4-4 4"/>',  // 错题本
     graph: '<circle class="w" cx="12" cy="6" r="2.6"/><circle cx="12" cy="6" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><circle cx="18" cy="17.5" r="2.6"/><path d="M10.8 8.3 7.3 15.2M13.2 8.3l3.5 6.9M8.6 17.5h6.8"/>',  // 知识图谱

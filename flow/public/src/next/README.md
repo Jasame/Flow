@@ -53,6 +53,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `81-me.js` | 我的, email binding |
 | `81-privacy.js` | 年龄段 and a guardian's agreement under 14: the sign-up chips, the one-time ask for older accounts, the prompt when AI needs the agreement |
 | `82-class.js` | 班级试用: joining a class with an invite code and leaving it (我的 → 班级), the teacher's whole-class summary (#/class/<id>) |
+| `86-history.js` | 练习记录: 之前练过 under a practice page (`historyFold`), every record (#/history), one record as it was (#/history/<id>), deleting one or all (`97-history.css`, `01-en-history.js`) |
 | `83-updates.js` | 更新记录 (#/updates, 我的 → 帮助) and 今日's 「语流更新了」 card, first in the one notice slot (updates_service.py) |
 | `99-boot.js` | start-up |
 | `00-lang.css` | English mode (`html[lang=en]`): Latin fonts first, English for words in CSS `content:`, the language switch and its undo line |

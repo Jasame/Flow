@@ -58,7 +58,8 @@
       <div id="ieIn" class="stack-s" hidden><div class="tiny muted" id="ieQn"></div>
         <div class="chat-in"><textarea id="ieText" rows="2" maxlength="600" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点录音键说出来"></textarea>${recBtn('ieMic', '说出来')}<button class="btn primary" id="ieSend">发送</button></div>
         <div class="row between"><span class="tiny muted">说完再点一次录音键停止，最长 45 秒</span><button class="btn small ghost" id="ieEnd">结束并看反馈</button></div></div>
-      <div><button class="btn primary block" id="ieStart">开始</button></div><div id="ieOut"></div></div>`;
+      <div><button class="btn primary block" id="ieStart">开始</button></div><div id="ieOut"></div><div class="hist-host"></div></div>`;
+    historyFold(view.querySelector('.hist-host'), 'ielts', 'ielts-p1-' + x.id);  // 之前练过 (86-history.js)
     const chat = view.querySelector('#chat'), box = view.querySelector('#ieIn');
     const bubble = (role, text, extra) => { chat.insertAdjacentHTML('beforeend', `<div class="msg ${role}"><div class="b">${esc(text)}</div>${extra || ''}</div>`); chat.lastElementChild.scrollIntoView({ block: 'nearest', behavior: REDUCED ? 'auto' : 'smooth' }); };
     const busy = on => ['#ieSend', '#ieEnd', '#ieMic'].forEach(s => { const b = view.querySelector(s); if (b) b.disabled = on; });
@@ -132,7 +133,8 @@
       <div class="cue" id="cue" lang="en"><b>${esc(x.task)}</b><div class="small">You should say:</div><ul>${x.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul><div class="small">${esc(x.last_point)}</div></div>
       <div id="p2" class="stack-s"><p class="small">点「开始准备」：1 分钟准备，可以在下面记几个关键词；时间到自动开始录音，最多说 2 分钟，到时间自动停。也可以提前开始、提前结束。尽量说满 1 分钟以上。</p>
         <button class="btn primary block" id="p2Start">开始准备</button><button class="btn small ghost" id="p2Type" type="button">不方便说话？打字作答（不评发音）</button></div>
-      <div id="ieOut"></div></div>`;
+      <div id="ieOut"></div><div class="hist-host"></div></div>`;
+    historyFold(view.querySelector('.hist-host'), 'ielts', 'ielts-p2-' + x.id);  // 之前练过 (86-history.js)
     const card = view.querySelector('#cue'), stage = view.querySelector('#p2'), out = view.querySelector('#ieOut');
     const meter = (label, s, total, cls) => `<div class="p2-clock ${cls}" role="timer" aria-live="off"><span class="lbl">${label}</span><b id="p2T">${mmss(Math.max(0, s))}</b><span class="vbar"><i id="p2Bar" style="width:${Math.round((total - s) / total * 100)}%"></i></span></div>`;
     const tick = (s, total) => { const t = view.querySelector('#p2T'), b = view.querySelector('#p2Bar'); if (t) t.textContent = mmss(Math.max(0, s)); if (b) b.style.width = Math.round((total - s) / total * 100) + '%'; };
