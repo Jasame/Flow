@@ -11,8 +11,9 @@
   function langSwitchHTML() {
     if (!uiLangOpen()) return '';
     const cur = uiLang();
-    return /* i18n: keep (each half in its own language) */ `<div class="lang-seg" role="radiogroup" aria-label="界面语言 Language" translate="no">${[['zh', '中文', 'zh-CN'], ['en', 'English', 'en']].map(([v, l, lg]) =>
-      `<button type="button" role="radio" data-lang="${v}" lang="${lg}" aria-checked="${v === cur}">${l}</button>`).join('')}</div>`;
+    // the look of 列表 | 卡片 and 简 | 详 (.vt, 30-words.css; B9)
+    return /* i18n: keep (each half in its own language) */ `<div class="vt lang-seg" role="radiogroup" aria-label="界面语言 Language" translate="no">${[['zh', '中文', 'zh-CN'], ['en', 'English', 'en']].map(([v, l, lg]) =>
+      `<button type="button" role="radio" data-lang="${v}" lang="${lg}" class="${v === cur ? 'on' : ''}" aria-checked="${v === cur}">${l}</button>`).join('')}</div>`;
   }
   function langSwitchWire(root) {
     (root || document).querySelectorAll('.lang-seg [data-lang]').forEach(b => b.onclick = () => {
@@ -24,12 +25,12 @@
   function langAskEnglish() {
     const lv = S.home && S.home.profile ? S.home.profile.level : (S.guest && S.guest.level) || '';
     const early = !lv || lv === 'A2';
-    openSheet(/* i18n: keep (both languages) */ `<div class="stack" translate="no"><h2 class="h2" id="sheetTitle"><span lang="zh-CN">换成英文界面</span> · <span lang="en">Switch to English</span></h2>
+    openSheet(/* i18n: keep (both languages) */ `<div class="stack" translate="no"><h2 class="h2" id="sheetTitle"><span lang="zh-CN">换成英文界面</span>&nbsp;·&nbsp;<span lang="en">Switch to English</span></h2>
       <p lang="zh-CN">按钮、标题和说明都会换成英文，AI 也用英文讲解（每段讲解下面能看中文）。单词的中文意思还在。随时可以在「我的 → 使用习惯」换回中文。</p>
       <p class="small muted" lang="en">Buttons, titles and instructions will be in English, and the AI will explain in English (with Chinese one tap away). Chinese word meanings stay. Switch back any time in Me → Preferences.</p>
       ${early ? /* i18n: keep */ `<p class="small" lang="zh-CN">你现在是入门水平，建议到中级（B1）再换。</p><p class="small muted" lang="en">At this level, Chinese may still be easier. B1 (intermediate) is a good time to switch.</p>` : ''}
-      <button class="btn primary" type="button" id="langGo"><span lang="zh-CN">换成英文</span> · <span lang="en">Switch</span></button>
-      <button class="btn ghost" type="button" data-close><span lang="zh-CN">取消</span> · <span lang="en">Cancel</span></button></div>`, card => {
+      <button class="btn primary" type="button" id="langGo"><span lang="zh-CN">换成英文</span>&nbsp;·&nbsp;<span lang="en">Switch</span></button>
+      <button class="btn ghost" type="button" data-close><span lang="zh-CN">取消</span>&nbsp;·&nbsp;<span lang="en">Cancel</span></button></div>`, card => {
       card.querySelector('#langGo').onclick = () => setLang('en');
     });
   }
@@ -77,9 +78,9 @@
     if (!(Date.now() - u.at < 30000) || !uiLangOpen()) return;
     const en = uiLang() === 'en';
     const el = document.createElement('div');
-    el.className = 'lang-undo'; el.setAttribute('role', 'status'); el.setAttribute('translate', 'no');
+    el.className = 'easy-bar lang-undo'; el.setAttribute('role', 'status'); el.setAttribute('translate', 'no');  // the look of 复习's 太简单 · 撤销
     el.innerHTML = /* i18n: keep */ (en ? '<span lang="en">Now in English</span><span lang="zh-CN">已换成英文</span>' : '<span lang="zh-CN">已换成中文</span><span lang="en">Now in Chinese</span>')
-      + /* i18n: keep */ `<button type="button" class="btn small">${en ? '<span lang="en">Undo</span> · <span lang="zh-CN">撤销</span>' : '<span lang="zh-CN">撤销</span> · <span lang="en">Undo</span>'}</button>`;
+      + /* i18n: keep */ `<button type="button" class="link small">${en ? '<span lang="en">Undo</span>&nbsp;·&nbsp;<span lang="zh-CN">撤销</span>' : '<span lang="zh-CN">撤销</span>&nbsp;·&nbsp;<span lang="en">Undo</span>'}</button>`;
     el.querySelector('button').onclick = () => { el.remove(); setLang(u.from, true); };
     document.body.appendChild(el);
     setTimeout(() => el.remove(), LANG_UNDO_MS);

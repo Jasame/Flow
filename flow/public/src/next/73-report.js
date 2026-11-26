@@ -3,18 +3,21 @@
     if (!S.user) return needLogin('登录后可以看周报。');
     const r = await api('/api/next/report');
     const arrow = s => s.now == null ? '—' : `${Math.round(s.now * 100)}%${s.before != null ? (s.now > s.before + 0.02 ? ' ↑' : s.now < s.before - 0.02 ? ' ↓' : '') : ''}`;
-    view.innerHTML = `<h1 class="h1">周报</h1><span class="muted small">${esc(r.from)} – ${esc(r.to)} · 最近 7 天</span>
+    // 周报 in blocks (B9, 2026-11-26; the user on the mock-ups: 完全做，按照现在的效果图): the six figures as one sentence with
+    // seven dots (as many filled as days studied), then a block a subject with its title inside, the things to open as
+    // rows, and the one full-width button. The theme colour: the days, the bars, what went up, the small texts to tap.
+    const days = Math.max(0, Math.min(7, r.days || 0));
+    view.innerHTML = `<div class="stack rep-page"><div><h1 class="h1">周报</h1><span class="muted small">${esc(r.from)} – ${esc(r.to)} · 最近 7 天</span></div>
+      <section class="card flat rep-hero"><p class="tiny muted">这 7 天</p><h2>学了 ${r.days} 天，约 ${r.minutes} 分钟</h2>
+        <p class="small muted">学完 ${r.materials} 篇 · 新学 ${r.learned} 个词 · 输出练习 ${r.outputs} 次 · ${r.mastered} 个词进入长期记忆</p>
+        <div class="rep-days" aria-hidden="true">${[0, 1, 2, 3, 4, 5, 6].map(k => `<i${k < days ? ' class="on"' : ''}></i>`).join('')}</div></section>
       ${weekPairHTML(r.progress)}
-      <div class="stat-grid section"><div class="card flat stat"><b>${r.days}</b><span class="tiny muted">学习天数</span></div><div class="card flat stat"><b>${r.minutes}</b><span class="tiny muted">分钟（估算）</span></div>
-        <div class="card flat stat"><b>${r.materials}</b><span class="tiny muted">学完的材料</span></div><div class="card flat stat"><b>${r.outputs}</b><span class="tiny muted">输出练习</span></div>
-        <div class="card flat stat"><b>${r.learned}</b><span class="tiny muted">新学的词</span></div><div class="card flat stat"><b>${r.mastered}</b><span class="tiny muted">进入长期记忆</span></div></div>
-      <div class="card flat section stack-s"><b>各项练习的平均分</b><div class="ab-list">${r.skills.filter(s => s.count || s.before != null).map(s => `<div class="ab"><span class="nm">${esc(s.label)}</span>
-        <span class="vbar"><i data-w="${Math.max(3, (s.now || 0) * 100)}"></i></span><span class="lv">${arrow(s)}</span><span class="tiny muted ev">${s.count} 次</span></div>`).join('') || '<p class="muted small">这 7 天还没有练习记录。</p>'}</div></div>
+      <section class="card flat rep-blk"><h2>各项练习的平均分</h2><div class="ab-list rep-skills">${r.skills.filter(s => s.count || s.before != null).map(s => `<div class="ab"><span class="nm">${esc(s.label)}</span>
+        <span class="vbar"><i data-w="${Math.max(3, (s.now || 0) * 100)}"></i></span><span class="lv">${arrow(s)}</span><span class="tiny muted ev">${s.count} 次</span></div>`).join('') || '<p class="muted small">这 7 天还没有练习记录。</p>'}</div></section>
       ${weekMoreHTML(r)}
-      <div class="card flat section stack-s"><b>错题</b><span class="small">新进错题本 ${r.mistakes_new} 个，改对 ${r.mistakes_fixed} 个。</span>
-        ${r.watch.length ? `<span class="small">写作里要留意：${r.watch.map(n => nodeChip({ id: n.id, title: n.title, status: 'watch' })).join(' ')}</span>` : ''}
-        ${r.focus ? `<div class="small"><b>接下来的重点：</b>${esc(r.focus)}</div>` : ''}</div>
-      <div class="section row"><button class="btn primary" id="share" data-tap="share-week">分享这 7 天的学习</button><a class="btn" href="#/radar">能力雷达</a></div>`;
+      ${r.focus || r.watch.length ? `<section class="card flat rep-blk"><h2>接下来的重点</h2>${r.focus ? `<p class="rep-p">${esc(r.focus)}</p>` : ''}
+        ${r.watch.length ? `<p class="small muted rep-watch">写作里要留意：${r.watch.map(n => nodeChip({ id: n.id, title: n.title, status: 'watch' })).join(' ')}</p>` : ''}</section>` : ''}
+      <button class="btn primary block rep-go" id="share" data-tap="share-week">分享这 7 天的学习</button></div>`;
     requestAnimationFrame(() => requestAnimationFrame(() => view.querySelectorAll('.vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
     document.getElementById('share').onclick = () => shareSheet([{ label: '这 7 天', draw: () => shareImage(r) }], '分享这 7 天的学习');
     const w = r.progress && r.progress.waiting, tryBtn = document.getElementById('wpTry');
@@ -66,17 +69,18 @@
   function weekMoreHTML(r) {
     const e = r.easy || {}, sp = r.speaking || {}, ra = r.radar || { moves: [] };
     const speed = e.wpm ? `，平均每分钟 ${e.wpm} 词${e.wpm_before ? (e.wpm > e.wpm_before ? `（前 7 天 ${e.wpm_before}，快了）` : `（前 7 天 ${e.wpm_before}）`) : ''}` : '';
-    const mv = m => m.before == null ? '' : m.now > m.before ? ` <span class="up">↑${m.now - m.before}</span>` : m.now < m.before ? ` <span class="tiny muted">↓${m.before - m.now}</span>` : '';
+    const mv = m => m.before == null ? '' : m.now > m.before ? `<span class="up">↑${m.now - m.before}</span>` : m.now < m.before ? `<span class="down">↓${m.before - m.now}</span>` : '';
     const rl = r.relisten || {};
-    return `${rl.count ? `<div class="card flat section stack-s"><b>复听</b><span class="small">把几天前学过的文章重听了 ${rl.count} 次，平均听懂${esc(rl.label)}。</span></div>` : ''}
-      <div class="card flat section stack-s"><div class="row between"><b>轻松读</b><a class="link small hit44" href="#/easy">去读</a></div>
-        <span class="small">${e.texts ? `读了 ${e.texts} 篇，一共 ${e.words} 个词${speed}。` : '这 7 天还没读。每天读一篇比你低一级的短文，阅读速度会慢慢提上来。'}</span></div>
-      <div class="card flat section stack-s"><div class="row between"><b>口语情景</b><a class="link small hit44" href="#/speak">去练</a></div>
-        <span class="small">${sp.scenes_week ? `这 7 天练了 ${sp.scenes_week} 个情景，` : '这 7 天还没练情景对话，'}一共完成 ${sp.scenes_done || 0} / ${sp.scenes_total || 12} 个。</span></div>
-      <div class="card flat section stack-s"><div class="row between"><b>能力雷达</b><a class="link small" href="#/radar">看雷达</a></div>
-        ${ra.moves.length ? `<div class="ab-list">${ra.moves.map(m => `<div class="ab"><span class="nm">${esc(m.label)}</span><span class="vbar"><i data-w="${Math.max(3, Math.min(100, m.now))}"></i></span><span class="lv">${m.now} 分${mv(m)}</span></div>`).join('')}</div>
+    // 能力 as six small figures (the radar itself is one tap away), then what the week had to open: a row each, the whole row a link
+    return `${rl.count ? `<section class="card flat rep-blk"><h2>复听</h2><p class="rep-p">把几天前学过的文章重听了 ${rl.count} 次，平均听懂${esc(rl.label)}。</p></section>` : ''}
+      <section class="card flat rep-blk"><div class="row between"><h2>能力</h2><a class="rep-more" href="#/radar">看雷达 ›</a></div>
+        ${ra.moves.length ? `<div class="rep-ab">${ra.moves.map(m => `<div><span class="tiny muted">${esc(m.label)}</span><b>${m.now}</b>${mv(m)}</div>`).join('')}</div>
           <span class="tiny muted">100 分 = 达到你定的目标${ra.goals_chosen ? '' : '（还没定目标，先按默认目标算）'}。这 7 天做了 ${ra.tests_week} 次测评。</span>`
-          : '<span class="small">还没有雷达数据。做几次小测评，就能看到六项能力离目标还差多少。</span><div><a class="btn small" href="#/radar/test">去测一测</a></div>'}</div>`;
+          : '<p class="rep-p">还没有雷达数据。做几次小测评，就能看到六项能力离目标还差多少。</p><div><a class="btn small" href="#/radar/test">去测一测</a></div>'}</section>
+      <section class="card flat rep-rows">
+        <a class="rep-row" href="#/easy">${fiTile('read')}<span class="t"><b>轻松读</b><span class="small muted">${e.texts ? `读了 ${e.texts} 篇，一共 ${e.words} 个词${speed}。` : '这 7 天还没读。每天读一篇比你低一级的短文，阅读速度会慢慢提上来。'}</span></span><span class="go" aria-hidden="true">›</span></a>
+        <a class="rep-row" href="#/speak">${fiTile('chat')}<span class="t"><b>口语情景</b><span class="small muted">${sp.scenes_week ? `这 7 天练了 ${sp.scenes_week} 个情景，` : '这 7 天还没练情景对话，'}一共完成 ${sp.scenes_done || 0} / ${sp.scenes_total || 12} 个。</span></span><span class="go" aria-hidden="true">›</span></a>
+        <a class="rep-row" href="#/cards/mistake">${fiTile('bookx')}<span class="t"><b>错题</b><span class="small muted">新进错题本 ${r.mistakes_new} 个，改对 ${r.mistakes_fixed} 个。</span></span><span class="go" aria-hidden="true">›</span></a></section>`;
   }
   function shareImage(r) {
     const rows = r.skills.filter(s => s.now != null).slice(0, 5).length;

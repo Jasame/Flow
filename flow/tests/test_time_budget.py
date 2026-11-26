@@ -461,9 +461,9 @@ class PageTests(unittest.TestCase):
         for s in ('还有时间的话', '本周任务', 'tp-extra', 'tp-week', 'tp-over', '剩下的可以留到明天', 'must_minutes', 'left_minutes', 'tp-back', '欢迎回来', '之后几天慢慢补上',
                   "data-tap=\"home-more-grammar\"", '做 4 道语法题'):
             self.assertTrue(s in JS, s)
-        for s in ('function mineRowHTML', 'data-tap="home-mine"', 'data-tap="home-start"', '今天的练习', 'class="tp-count"', '贴课本或讲义进来练'):
+        for s in ('function moreRows', 'data-tap="home-mine"', 'data-tap="home-start"', '今天的练习', 'class="tp-count"', '贴课本或讲义进来练'):
             self.assertTrue(s in JS, s)
-        for s in ('.tp-extra', '.tp-week', '.tp-over', '.tp-back', '.mine-card', '.tp-count'):
+        for s in ('.tp-extra', '.tp-week', '.tp-over', '.tp-back', '.tv-row', '.tp-count'):
             self.assertTrue(s in CSS, s)
 
     def test_the_guide_explains_the_budget(self):

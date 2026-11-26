@@ -28,34 +28,11 @@
     const h = S.home, pick = h.today[0], st = h.stats;
     const name = S.user ? S.user.username : '';
     const path = S.user && h.path, weekN = st ? st.week.filter(d => d.active).length : 0;
-    // One clear first action: the plan's next step (signed in), or today's article (guest). Under it a short list of
-    // steps, at most one notice, and a few materials as one-line rows.
+    // A learner with a plan: 今日 in the look they chose (列表 or 卡片, 13-today-views.js), the switch beside the
+    // greeting. Without a plan (a guest, or no goal set yet): one clear first action, today's article.
     let top = '', readId = '';
-    if (path) {
-      // 按时间打包 (r28): 必做 fits the day's minutes and is what the ring and the button count; 还有时间的话 folds below
-      // (not counted); 本周任务 is the week's exam set, any day of the week. An older server sends no group: all 必做.
-      const p = h.path, must = p.steps.filter(s => (s.group || 'must') === 'must'), extra = p.steps.filter(s => s.group === 'extra'), wk = p.steps.filter(s => s.group === 'week');
-      const nextK = must.findIndex(s => !s.done), next = must[nextK], read = must.find(s => s.key === 'read');
-      readId = read ? decodeURIComponent(read.href.split('/')[2] || '') : '';
-      const art = [pick, h.resume, ...h.today].find(m => m && m.id === readId);
-      // 再学一篇 (r27): the next recommendation itself, not the whole library (that only when there is none)
-      const more1 = h.today.find(m => m && m.id !== readId && (!(m.steps || []).includes('check') || m.redo));  // 精读重学 counts: it is what 今日 recommends once a level is done
-      // the line past the day's minutes goes under the button, so it never pushes 开始 / 继续 off the first screen
-      top = `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(p, next)}
-        <div class="tp-head"><h1 class="tp-t" id="tpTitle">${next ? '今天的计划' : '今天的计划完成了'}</h1><span class="muted small">${planHeadText(p)}</span>
-          <span class="tp-count" role="img" aria-label="今天的计划，已完成 ${p.done} 步，共 ${p.total} 步"><span aria-hidden="true">${p.done} / ${p.total}</span></span>${sprintLine(h)}</div>
-        ${next ? `<a class="btn primary block go-next" href="${esc(next.href)}" data-tap="home-start">${p.done ? '继续' : '开始'}今天的练习<span aria-hidden="true">→</span></a>${overLineHTML(p, next)}`
-          : `<div class="tp-done">${doneRing}<span>都完成了。${more1 ? `想多学一点，下一篇是《${esc(more1.title)}》。` : '想多学一点，就再挑一篇。'}多学的照样算进「这周进步」。</span></div>
-            <div class="tp-more"><a class="btn primary block go-next" href="${more1 ? '#/m/' + encodeURIComponent(more1.id) : '#/library'}" data-tap="home-more-one">再学一篇<span aria-hidden="true">→</span></a>
-            <a class="btn ghost block" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>
-            <button class="link small hit44 tp-remind" type="button" id="remindOnce" data-tap="home-remind-once">今天或明天什么时候有空复习？</button></div>`}
-        <div class="plist">${must.map((s, k) => planRowHTML(s, String(k + 1), s === next, s.key === 'read' ? art : null)).join('')}</div>
-        ${p.note ? `<p class="tiny muted tp-note">${esc(p.note)}</p>` : ''}
-        ${extra.length ? `<details class="tp-extra"${next ? '' : ' open'}><summary><span>还有时间的话</span><span class="tiny muted">${extra.length} 项 · 不算进今天的计划</span></summary>
-          <div class="plist">${extra.map(s => planRowHTML(s, '+', false, null, 'home-extra')).join('')}</div></details>` : ''}
-        ${wk.length ? `<div class="tp-week"><div class="tp-week-head"><h2 class="h3">本周任务</h2><span class="tiny muted">这周哪天做都行，不占每天的时间</span></div>
-          <div class="plist">${wk.map(s => planRowHTML(s, '周', false, null, 'home-week-task')).join('')}</div></div>` : ''}</section>`;
-    } else if (pick) {
+    if (path) readId = planFacts(h).readId;
+    else if (pick) {
       top = `<div class="hello"><h1 class="h1">今天学一篇，用上一句。</h1><span class="muted small">按「${esc(h.level_label)}（${h.level}）」为你挑选 · <a class="link" href="#/welcome/edit">调整</a></span></div>
         <article class="card hero"><div class="meta">${kindPill(pick)}<span class="pill green">今日推荐</span><span class="pill">${pick.level}</span><span class="pill">${esc(pick.theme_label)}</span></div>
         <h2 class="title">${esc(pick.title)}</h2>${pick.title_en ? `<div class="title-en">${esc(pick.title_en)}</div>` : ''}<p class="preview">${esc(pick.preview)}</p>${reasonsHTML(pick)}
@@ -64,58 +41,26 @@
     } else top = '<div class="empty">今天没有可推荐的材料了。</div>';
     const resume = h.resume && h.resume.id !== readId ? h.resume : null, news = h.news && h.news.id !== readId ? h.news : null;
     const more = h.today.filter(m => m.id !== readId && (path || m !== pick) && (!resume || m.id !== resume.id) && (!news || m.id !== news.id)).slice(0, 3);
-    // 好句 and 一读 come first, except on a screen too short for them and the plan's button together (a phone held
-    // sideways): there the plan comes first, so its next step is still on the first screen.
-    // The day back after days away (r28 第 2 段) starts with 欢迎回来 and the plan too: getting going comes first.
-    const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back);
+    const deck = path && todayView() === 'cards' ? todayCards(h, news) : null;
+    const notes = `${announceHTML(h) || updateCardHTML(h)}${trialSurveyHTML(h)}`;
     view.innerHTML = `<div class="greet-row"><span class="kicker greet">${greeting()}${name ? `，<span class="nm">${esc(name)}</span>` : ''}</span>
-        ${st && st.habit ? '' : st ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
-      ${announceHTML(h) || updateCardHTML(h)}${trialSurveyHTML(h)}
-      ${short ? '' : lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h)}
-      ${top}
-      ${short ? lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h) : ''}
-      ${weekCardSlot()}
+        ${path ? todaySwitchHTML() : st && !st.habit ? `<span class="wk" title="本周学了 ${weekN} 天"><span class="tiny muted">本周 ${weekN} 天</span><span class="week" aria-hidden="true">${st.week.map(d => `<span class="${d.active ? 'on' : ''}"></span>`).join('')}</span></span>` : ''}</div>
+      ${deck ? `<div class="tv-notes">${notes}<div id="notice"></div></div>${deck.html}` : `${notes}
+      ${path ? todayListHTML(h, news) : top + weekCardSlot()}
       <div id="notice"></div>
       ${S.user && !path ? vocabHome(st) : ''}
       <section class="section" aria-labelledby="mTitle"><div class="section-head"><h2 class="h2" id="mTitle">也可以读</h2><a class="link small hit44" href="#/welcome/edit">按 ${h.level} 挑选 · 调整</a></div>${featLeftHTML(h)}
         <div class="mlist">${resume ? mrow(resume, ['继续', 'green'], `#/m/${encodeURIComponent(resume.id)}/${nextStep(resume.steps)}`, 'home-resume') : ''}${more.map(m => mrow(m, null, '', 'home-pick')).join('')}
-          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`;
+          <a class="mrow more" href="#/library" data-tap="home-more"><span class="t"><b>更多材料</b><span class="tiny muted">按话题和级别挑一篇</span></span><span class="go" aria-hidden="true">›</span></a></div></section>`}`;
     fillNotice(h);
     bindAnnounce(h); bindUpdateCard(h); bindTrialSurvey();  // 「语流更新了」 where a 公告 would be (83-updates.js)
+    if (path) { bindTodaySwitch(); if (deck) mountDeck(deck.start); else bindTodayList(); }  // after the reminders: the deck fits under them
     bindLine(h);  // 今日好句 (12-daily-line.js)
     const ro = document.getElementById('remindOnce'); if (ro) ro.onclick = () => remindOnce();  // 这次什么时候复习 (50-words.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)
     if (st && st.habit) cheerWeek(st.habit);
     const nextRead = readId || (pick && pick.id);
     if (nextRead) setTimeout(() => preloadMaterial(nextRead), 600);  // after the page is drawn, not before
-  }
-  // The plan's line under its title: 必做's real minutes before it starts, what is left once it has, and the day's
-  // minutes from the learner's own records once it is done (time_budget, r28). An older server: the minutes chosen.
-  function planHeadText(p) {
-    if (p.must_minutes == null) return `${p.total} 步 · 约 ${p.minutes} 分钟`;
-    if (p.done >= p.total) return p.studied ? `今天学了约 ${p.studied} 分钟` : '都做完了';
-    return p.done ? `还要约 ${p.left_minutes} 分钟` : `必做 ${p.total} 步 · 约 ${p.must_minutes} 分钟`;  // done / total beside it (.tp-count)
-  }
-  // 练我自己的材料 (r29, the user's pick 2026-11-26: a third row under 今日好句 and 今日一读, the same look): the learner's own
-  // article to go on with (next_service.mine), or a way to paste one in. Signed in only: a guest has no articles.
-  function mineRowHTML(h) {
-    if (!S.user || !h.mine) return '';
-    const m = h.mine.item;
-    const href = m ? `#/m/${encodeURIComponent(m.id)}${m.started ? '/' + nextStep(m.steps) : ''}` : '#/import';
-    return `<a class="card news-card mine-card" href="${href}" data-tap="home-mine"><span class="lc-head"><span class="lc-title nc-title">我的材料</span></span>
-      <b class="nc-h">${m ? `${m.started ? '继续' : '练'}《${esc(m.title)}》` : '贴课本或讲义进来练'}</b>
-      <span class="small muted nc-p">${m ? `${esc(m.level || '')} · ${m.words} 词 · 你自己贴进来的` : '课本、讲义、面试题都行，用语流的四步来练'}</span></a>`;
-  }
-  // A step of the plan as a row: its number (+ for 还有时间的话, 周 for 本周任务), what to do and about how long.
-  // 本周任务's row is .wtask, never .week: .week is the week-days bar (10-pages.css .week span = a 6 px grey bar), which
-  // turned the row's title block and its › into grey bars and pushed the subtitle out of the card (feedback, 2026-11-25).
-  // ui_test progress group checks the rows.
-  function planRowHTML(s, num, isNext, a, tap) {
-    const mins = s.minutes && !s.done ? `约 ${s.minutes} 分钟` : '';
-    const sub = a ? [`${a.redo ? '精读重学 · ' : ''}今天这篇 · ${a.level} · ${a.theme_label}`, s.mode_label, mins] : [s.sub, mins];
-    return `<a class="prow${s.done ? ' done' : ''}${isNext ? ' next' : ''}${s.group === 'extra' ? ' extra' : s.group === 'week' ? ' wtask' : ''}" href="${esc(s.href)}"${tap ? ` data-tap="${tap}"` : ''}>
-      <span class="num">${s.done ? '✓' : num}</span><span class="t"><b>${esc(a ? a.title : s.title)}</b><span class="muted tiny">${esc(sub.filter(Boolean).join(' · '))}</span></span>
-      <span class="go" aria-hidden="true">›</span></a>`;
   }
   // 欢迎回来 (r28 第 2 段): after three days or more away, the day back is short, and the plan says so first.
   function backHTML(p, next) {

@@ -448,6 +448,28 @@ class NextAudioTests(unittest.TestCase):
             nx.save_profile(c, 1, {'level': 'B2'})
             self.assertEqual(nx.profile(c, 1)['voice'], 'uk-f')
 
+    def test_the_look_of_today_is_kept_with_the_account(self):
+        with app.db() as c:
+            self.assertEqual(nx.set_today_view(c, 1, {'view': 'cards'})[1], 400)  # no profile yet: nothing to keep it on
+            nx.save_profile(c, 1, {'level': 'B1'})
+            self.assertEqual(nx.profile(c, 1)['today_view'], 'list')  # 列表 by default (the user, 2026-11-26)
+            self.assertEqual(nx.set_today_view(c, 1, {'view': 'grid'})[1], 400)
+            st = nx.post(c, 1, '/api/next/today-view', {'view': 'cards'})
+            self.assertEqual((st[1], st[0]['today_view']), (200, 'cards'))
+            nx.save_profile(c, 1, {'level': 'B2'})  # other settings saved later keep it
+            self.assertEqual(nx.profile(c, 1)['today_view'], 'cards')
+            # 调整顺序: 今天的计划 first by default; the learner's order kept, every block once
+            self.assertEqual(nx.profile(c, 1)['today_order'], ['plan', 'week', 'line', 'mine', 'news', 'extra'])
+            order = ['week', 'line', 'plan', 'mine', 'extra', 'news']
+            self.assertEqual(nx.set_today_view(c, 1, {'order': order})[0]['today_order'], order)
+            self.assertEqual(nx.profile(c, 1)['today_view'], 'cards')  # the look stays
+            for bad in (['plan', 'plan', 'line', 'mine', 'news', 'extra'], ['plan', 'week'], 'plan', ['plan', 'week', 'line', 'mine', 'news', 'radar']):
+                self.assertEqual(nx.set_today_view(c, 1, {'order': bad})[1], 400, bad)
+            self.assertEqual(nx.profile(c, 1)['today_order'], order)
+            # a block added later (here 我的材料, saved before it was there): it goes in where the default has it
+            self.assertEqual(nx._today_order('["week", "plan", "line", "news", "extra"]'), ['week', 'plan', 'line', 'mine', 'news', 'extra'])
+            self.assertEqual(nx._today_order('not json'), list(nx.TODAY_KEYS))
+
     def test_more_than_one_goal_the_first_the_main_one(self):
         """学英语为了什么 (2026-11-26): up to three goals; goal is the first, as every reader of the profile expects."""
         with app.db() as c:

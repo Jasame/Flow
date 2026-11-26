@@ -5,6 +5,8 @@
     const tag = /^(#|\/|https?:)/.test(to) ? 'a' : 'button';
     return `<${tag} class="grow${icon ? ' gi' : ''}" ${tag === 'a' ? `href="${to}"` : `type="button" id="${to}"`}${tapKey ? ` data-tap="${tapKey}"` : ''}>${icon ? fiTile(icon) : ''}<span class="t">${label}</span><span class="v small muted"${vid ? ` id="${vid}"` : ''}>${value || ''}</span><span class="go" aria-hidden="true">›</span></${tag}>`;
   }
+  // 全英文界面: rows about agreeing and privacy stay in Chinese in English mode too (data-zh, docs/english-ui.md)
+  const zhRow = html => html.replace('class="grow"', 'class="grow" data-zh');
   // 帮助 → 更多: the two rows that are not looked at every week (简洁化, the user's pick 2026-11-25)
   function moreSheet() {
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">更多</h2><div class="glist">${grow('/about', '认识语流', '一页看完语流能帮你做什么', '', 'me-about')}${grow('/survey', '匿名问卷', '你想要什么样的英语学习网站', '', 'me-survey')}
@@ -114,9 +116,9 @@
         '这里是语流的内测版（flow.jasa.hk），新功能先在这里试。账号和数据都和正式版分开，内测期间可能会清空。<span id="meBetaVer"></span>'],
       // 安卓 App 1.0.4+ (81-privacy.js appPrivacy): 撤回同意 and the system permissions, for the app stores
       // and the two lists the stores ask for (隐私和数据, #342), a tap from 我的
-      appPrivacy() && ['隐私', [grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list'), grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list'),
-        grow('meWithdraw', '撤回同意', '', '', 'me-withdraw'), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
-        '撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号和隐私 → 数据存放」里撤回；要删除，请注销账号。'],
+      appPrivacy() && ['隐私', [zhRow(grow('#/guide/info-list', '个人信息收集清单', '', '', 'me-info-list')), zhRow(grow('#/guide/sharing-list', '第三方信息共享清单', '', '', 'me-sharing-list')),
+        zhRow(grow('meWithdraw', '撤回同意', '', '', 'me-withdraw')), grow('mePerms', '系统权限', '麦克风、通知', '', 'me-permissions')],
+        '<span data-zh>撤回同意以后，App 清掉这台手机上的登录和缓存，回到第一次打开时的样子。服务器上的账号和学习记录还在：要停下来，请在「账号和隐私 → 数据存放」里撤回；要删除，请注销账号。</span>'],
     ].filter(Boolean);
     const sec = (h, body, foot) => `<section class="me-sec" aria-label="${h}"><h2 class="me-h">${h}</h2>${body}${foot ? `<p class="tiny muted gfoot">${foot}</p>` : ''}</section>`;
     view.innerHTML = `<section class="me-card me-head">${u ? `<span class="avatar" aria-hidden="true">${esc([...u.username][0].toUpperCase())}</span>` : ''}
@@ -130,10 +132,10 @@
       ${sec('设置', `<div class="glist me-list">${settings.join('')}</div>`)}
       ${groups.map(([h, rows, foot]) => sec(h, `<div class="glist">${rows.join('')}</div>`, foot)).join('')}
       <div class="me-folds">${u ? meFold('account', [grow('meSwitch', '切换账号', '<span class="spin"></span>', 'meSwitchV', 'me-switch'), grow('bindMail', '邮箱', '<span class="spin"></span>', 'acctEmail'), grow('chPw', '修改密码'), grow('outAll', '退出所有设备'),
-        grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age'), grow('meStorage', '数据存放', '已同意 · 香港'), grow('#/guide/terms', '用户协议', '和隐私说明一起同意'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'),
+        zhRow(grow('meAge', '年龄段', ageLabel(u && u.age), 'meAgeV', 'me-age')), zhRow(grow('meStorage', '数据存放', '已同意 · 香港')), zhRow(grow('#/guide/terms', '用户协议', '和隐私说明一起同意')), zhRow(grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy')),
         grow('meData', '导出我的数据', '', '', 'me-data'), grow('meDelete', '注销账号', '', '', 'me-delete')],
         '绑定邮箱后，可以用验证码登录，忘记密码时自己找回。30 天内来过就一直保持登录；在别人的手机或电脑上用完，记得退出。') : ''}
-      ${meFold('help', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'), grow('#/feedback', '问题反馈', '', '', 'me-feedback'), grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy'), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')])}</div>
+      ${meFold('help', [grow('#/guide', '操作指南', '', '', 'me-guide'), grow('#/updates', '更新记录', '', '', 'me-updates'), grow('#/feedback', '问题反馈', '', '', 'me-feedback'), zhRow(grow('#/guide/privacy', '隐私说明', '', '', 'me-privacy')), grow('meMore', '更多', '认识语流、匿名问卷、新手引导', '', 'me-more')])}</div>
       ${appPrivacy() ? '<p class="tiny muted me-beian"><span id="meBeian" hidden></span></p>' : ''}
       ${u ? '<div class="me-out"><button class="grow danger" id="out" type="button"><span class="t">退出登录</span></button></div>' : ''}`;
     view.querySelectorAll('details.me-fold').forEach(d => d.addEventListener('toggle', () => { ME_OPEN[d.dataset.fold] = d.open; }));

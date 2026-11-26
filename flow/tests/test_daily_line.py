@@ -100,17 +100,19 @@ class LineTests(Db):
 
 
 class PageTests(unittest.TestCase):
-    def test_today_has_the_line_the_news_and_the_plan_in_that_order_and_the_week_card_under_it(self):
-        for s in ('function lineCardHTML', 'function newsCardHTML', 'function bindLine', "api('/api/next/shadow'", 'data-tap="line-shadow"',
-                  '今日一读</span>${aiTag()}', 'const short = (innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', '${weekCardSlot()}', 'function mountWeekCards',
-                  "api('/api/next/week?brief=1')"):
+    def test_today_draws_both_looks_from_one_order_and_the_line_opens_in_place(self):
+        # r39 (the user's picks 2026-11-26, B9's spec 第 4 版): one order for 列表 and 卡片, the learner's (调整顺序), 今天的计划
+        # first by default; 列表's top fixed (这周, 今天的计划, its button); 好句 and 一读 no longer above the plan; the
+        # sideways-phone special gone
+        for s in ("const TODAY_ORDER = ['plan', 'week', 'line', 'mine', 'news', 'extra'];", "return ['week', 'plan'].map(k => blocks[k]()).join('');", 'todayOrder().map(k =>',
+                  'todayOrder().filter(k => by[k])', 'function todayEditView', 'href="#/today/edit" data-tap="today-edit">调整顺序', 'href="#/today/edit" data-tap="today-edit">编辑',
+                  'function todayListHTML', 'function todayCards', 'function mountDeck', 'function lineBodyHTML', 'function bindLine', "api('/api/next/shadow'",
+                  'data-tap="line-shadow"', 'data-tap="home-news"><span class="t">今日一读</span><span class="m">${aiTag()}', 'function mountWeekCards', "api('/api/next/week?brief=1')"):
             self.assertIn(s, JS, s)
-        order = [JS.index(s) for s in ("${short ? '' : lineCardHTML(h) + newsCardHTML(news) + mineRowHTML(h)}", '${top}', '${weekCardSlot()}')]  # 我的材料 under 一读 (r29)
-        self.assertEqual(order, sorted(order))
+        self.assertNotIn('(innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', JS)
         self.assertIn("${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>", JS)  # the voice is synthesized: 「AI 合成」 at the end of the row (标识办法)
-        for s in ('.line-card', '.lc-en', '.news-card', '.week-slot'):
+        for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot'):
             self.assertIn(s, CSS, s)
-
 
 if __name__ == '__main__':
     unittest.main()

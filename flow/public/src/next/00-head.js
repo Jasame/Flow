@@ -17,7 +17,10 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   // 「AI 生成」标识（2026-11-25，《人工智能生成合成内容标识办法》）：AI 写的、给学员看的内容都带它，样式在 99-ai-mark.css。
   // aiMark(note)：放在一块内容最上面的一行，note 是后面的一句小字（可省），如「未经人工审核」；aiTag()：卡片信息行里的小标签。
-  function aiTag() { return '<span class="ai-mark" title="这部分由人工智能生成，可能有错，仅供参考">AI 生成</span>'; }
+  // 全英文界面: the small tag in an info line stays 「AI 生成」 (D2: Chinese first; where both do not fit, the Chinese alone);
+  // on the line above AI content (aiMark) it reads 「AI 生成 · AI-generated」. Its title is in the page's language.
+  function aiTag() { return aiPill(' translate="no"'); }
+  function aiPill(attrs) { return `<span class="ai-mark"${attrs} title="${zhEn('这部分由人工智能生成，可能有错，仅供参考', 'Written by AI. It may be wrong; use it as a guide only')}">AI 生成</span>`; }
   // 合成的声音（文章录音、AI 朗读、AI 角色和考官的话、单词和例句读音）：《标识办法》要求合成人声在交互界面上有显著提示。
   // 2026-11-25 用户：提示要有，但不抢眼——不再每个喇叭旁边一个胶囊，一页一行小灰字，按播放时它和播放键在同一屏（语流 B7 的最低
   // 要求：不用点开就看得见、≥12px、浅色深色对比度 ≥4.5、字里有「AI」和「合成」或者「AI 朗读」）。aiVoiceNote(text, tag, cls)：
@@ -27,7 +30,7 @@
   function aiBadge() { return '<i class="ai-badge" aria-hidden="true">AI</i>'; }
   // a speaker in a list of many (单词表、对比的句子、用得上的说法、改写的几种说法): 「（AI 朗读）」 in its name, a faint 「AI」 on it
   function sayIcon(attrs, label) { return `<button class="icon-btn has-ai" type="button" ${attrs} aria-label="${esc(label)}（AI 朗读）">${ICON.speak}${aiBadge()}</button>`; }
-  function aiMark(note) { return `<div class="ai-line">${aiTag()}${note ? `<span>${esc(note)}</span>` : ''}</div>`; }
+  function aiMark(note) { return `<div class="ai-line">${aiPill('')}${note ? `<span>${esc(note)}</span>` : ''}</div>`; }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } }
   function rid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10); }
@@ -97,13 +100,6 @@
       }
       // under 14 without a guardian's agreement: the AI on the learner's own words waits for it (81-privacy.js)
       if (r.status === 403 && j.code === 'guardian' && !quiet) setTimeout(() => guardianSheet(), 0);
-      // 数据存放在香港 or 用户协议 not agreed on the server while this page thought they were (drawn from the copy kept on
-      // the phone, or withdrawn on another device; feedback #1, 2026-11-25: 单词 stuck on 「重试」): read the account again
-      // and let the router show the consent page (one line, 「同意，继续学习」, then 导出 / 注销 / 退出), once in a while
-      if (r.status === 403 && j.code === 'storage' && S.user && !quiet && Date.now() - (request.held || 0) > 3000) {
-        request.held = Date.now();
-        setTimeout(() => { dataForget(); S.home = null; route(); }, 0);
-      }
       // the day's AI stop (ai_routes.day_full: 429 code ai_day_full, back at 08:00 Beijing): also what still works.
       // AI voice says its own line (01-audio-offline.js).
       if (j.code === 'ai_day_full' && !path.startsWith('/api/next/tts')) e.message = (j.error || '今天的 AI 用量已满，北京时间早上 8 点恢复。') + zhEn('学材料、背单词、复习和做题照常能用。', ' Texts, words, review and exercises still work.');

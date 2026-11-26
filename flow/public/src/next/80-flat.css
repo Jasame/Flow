@@ -67,8 +67,7 @@ input[type=text]:focus,input[type=email]:focus,input[type=password]:focus,input[
 
 /* home: one clear next action, then the plan as plain rows */
 .greet{display:block;margin-bottom:4px;color:var(--ink2)}
-.today-plan{display:grid;gap:14px}
-.tp-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.today-plan{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}  /* the column never wider than the screen: a long grey line is cut, not widening it */
 .ring{--p:0%;flex:none;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
   background:radial-gradient(closest-side,var(--bg) 78%,transparent 80% 100%),conic-gradient(var(--green) var(--p),var(--line) 0)}
 .ring b{font-size:13.5px;font-variant-numeric:tabular-nums}
