@@ -381,6 +381,7 @@
       else if (name === 'import') { setNav('practice'); await importView(); }
       else if (name === 'sounds') { setNav('practice'); await soundsView(a ? decodeURIComponent(a) : ''); }
       else if (name === 'report') { setNav('me'); await reportView(); }
+      else if (name === 'today') { setNav('today'); todayEditView(); }  // 调整顺序 (#/today/edit, 13-today-views.js)
       else if (name === 'weekly-off') { setNav('me'); await weeklyOffView(decodeURIComponent(a || '')); }  // the link in the Sunday mail
       else if (name === 'vocab') { setNav('cards'); await (a === 'plan' ? planView() : a === 'test' ? vocabTest() : vocabView()); }
       else if (name === 'review') { setNav(a === 'other' ? 'practice' : 'cards'); await reviewView(a === 'more', a === 'other' ? 'other' : 'words'); }

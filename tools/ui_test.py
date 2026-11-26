@@ -3179,8 +3179,9 @@ LIST_JS = r"""() => { const q = s => document.querySelector(s), r = e => e.getBo
     wide: document.scrollingElement.scrollWidth - innerWidth, old: !!q('#view .line-card, #view .news-card, #view .mine-card'),
     sw: sw.map(b => [b.textContent, b.getAttribute('aria-checked')]), swH: sw.length ? Math.round(r(sw[0]).height) : 0 }; }"""
 DECK_JS = r"""() => { const q = s => document.querySelector(s), r = e => e.getBoundingClientRect(), dk = q('#tvDeck'); if (!dk) return null;
-  const cards = [...dk.children], mid = innerWidth / 2;
-  const at = cards.findIndex(c => { const b = r(c); return b.left < mid && b.right > mid; });
+  const cards = [...dk.children], mid = innerWidth / 2, side = dk.clientWidth > cards[0].offsetWidth * 1.6;
+  // the card being looked at: the one in the middle on a phone; the first whole one from the left when they sit side by side
+  const at = side ? cards.findIndex(c => r(c).left >= r(dk).left - 1) : cards.findIndex(c => { const b = r(c); return b.left < mid && b.right > mid; });
   const tabs = q('.tabs'), cs = tabs && getComputedStyle(tabs), tabTop = tabs && cs.position === 'fixed' && cs.display !== 'none' ? r(tabs).top : innerHeight;
   const go = cards[at] && cards[at].querySelector('.go-next');
   return { keys: cards.map(c => c.dataset.card), names: cards.map(c => c.getAttribute('aria-label')), at, dots: document.querySelectorAll('.tv-dots i').length,
@@ -3188,7 +3189,8 @@ DECK_JS = r"""() => { const q = s => document.querySelector(s), r = e => e.getBo
     go: go ? [Math.round(r(go).top), Math.round(r(go).bottom), Math.round(r(go).left), Math.round(r(go).right)] : null, tabTop: Math.round(tabTop),
     cardBottom: cards[at] ? Math.round(r(cards[at]).bottom) : null, wide: document.scrollingElement.scrollWidth - innerWidth,
     arrows: [...document.querySelectorAll('.tv-arrow')].filter(a => a.offsetParent !== null).length,
-    rest: !!q('#view #mTitle'), snap: getComputedStyle(dk).scrollSnapType, stop: getComputedStyle(cards[0]).scrollSnapStop }; }"""
+    rest: !!q('#view #mTitle'), snap: getComputedStyle(dk).scrollSnapType, stop: getComputedStyle(cards[0]).scrollSnapStop,
+    edit: (q('.tv-under .tv-edit') || { getAttribute: () => null }).getAttribute('href') }; }"""
 
 SWIPE_SIZES = {'ipad-land': (1180, 820), 'ipad-mini-land': (1133, 744), 'phone': (390, 844)}
 SWIPE_AT = """([x, y, dx, dy]) => {
@@ -3367,25 +3369,52 @@ def progress_run(pw):
                     pg.screenshot(path=str(OUT / 'progress-sheet.png'))
                 pg.keyboard.press('Escape'); pg.wait_for_timeout(200)
                 check(dev, f'{tag}: the details close', pg.evaluate("document.getElementById('sheet').hidden"))
-                # 卡片: the same order as cards side by side, 今天的计划 in the middle when 今日 opens, its button on the screen
+                # 卡片: the same order as cards side by side (今天的计划 first by default), the first in the middle when
+                # 今日 opens, its button on the screen
                 pg.click('.vt-today [data-today-view="cards"]'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 deck = pg.evaluate(DECK_JS)
-                keys = [k for k in ('week', 'plan', 'line', 'mine', 'news', 'extra') if k in deck['keys']]
-                n = len(deck['keys']); k_plan = deck['keys'].index('plan') if 'plan' in deck['keys'] else -1
-                check(dev, f'{tag}: 卡片 keeps 列表\'s order (这周, 今天的计划, 好句, 我的材料, 今日一读, 还有时间的话), snaps one card a swipe, a list to a screen reader with each card named',
-                      deck['keys'] == keys and deck['keys'][:2] == ['week', 'plan'] and deck['role'] == 'list' and 'x mandatory' in deck['snap'] and deck['stop'] == 'always'
-                      and deck['names'][k_plan] == f'第 {k_plan + 1} 张，共 {n} 张，今天的计划' and deck['dots'] == n and not deck['rest'], deck)
+                keys = [k for k in ('plan', 'week', 'line', 'mine', 'news', 'extra') if k in deck['keys']]
+                n = len(deck['keys']); k_plan = 0
+                check(dev, f'{tag}: 卡片 in the default order (今天的计划, 这周, 好句, 我的材料, 今日一读, 还有时间的话), one card a swipe, a list to a screen reader with each card named',
+                      deck['keys'] == keys and deck['keys'][:2] == ['plan', 'week'] and deck['role'] == 'list' and 'x mandatory' in deck['snap'] and deck['stop'] == 'always'
+                      and deck['names'][0] == f'第 1 张，共 {n} 张，今天的计划' and deck['dots'] == n and not deck['rest'] and deck['edit'] == '#/today/edit', deck)
                 check(dev, f'{tag}: 卡片 opens on 今天的计划 in the middle, its dot lit, its button whole on the screen, nothing wider than the screen',
                       deck['at'] == k_plan and deck['dotOn'] == k_plan and deck['go'] and deck['go'][1] <= deck['tabTop'] and deck['go'][2] >= 0 and deck['go'][3] <= w and deck['wide'] <= 0, deck)
                 if w >= 760:
                     check(dev, f'{tag}: 卡片 on a wide screen: arrows on both sides', deck['arrows'] == 2, deck['arrows'])
                 pg.focus('#tvDeck'); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(500)
                 moved = pg.evaluate(DECK_JS)
-                check(dev, f'{tag}: → turns to the next card (好句), and its dot lights', moved['at'] == k_plan + 1 and moved['dotOn'] == k_plan + 1, (moved['at'], moved['dotOn']))
+                check(dev, f'{tag}: → turns to the next card (这周), and its dot lights', moved['at'] == 1 and moved['dotOn'] == 1 and moved['keys'][1] == 'week', (moved['at'], moved['dotOn']))
+                if size == 'phone-390' and theme == 'light':
+                    # 调整顺序: 编辑 opens it; 好句 dragged to the front, 我的材料 moved with the keys; 完成 keeps it with the
+                    # account and 今日 opens on the new first card. Put back after.
+                    pg.click('.tv-under .tv-edit'); pg.wait_for_selector('#tvGrid .tv-tile', timeout=6000)
+                    tiles = lambda: pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.dataset.k)")
+                    first = tiles(); labels = pg.evaluate("[...document.querySelectorAll('#tvGrid .tv-tile')].map(t => t.getAttribute('aria-label'))")
+                    src, dst = pg.locator('#tvGrid .tv-tile[data-k="line"]').bounding_box(), pg.locator('#tvGrid .tv-tile[data-k="plan"]').bounding_box()
+                    pg.mouse.move(src['x'] + 40, src['y'] + 40); pg.mouse.down()
+                    for k in range(1, 11):
+                        pg.mouse.move(src['x'] + 40 + (dst['x'] - src['x']) * k / 10, src['y'] + 40 + (dst['y'] - src['y']) * k / 10); pg.wait_for_timeout(16)
+                    lifted = pg.evaluate("[!!document.querySelector('#tvGrid .tv-tile.lift'), !!document.querySelector('#tvGrid .tv-slot')]")
+                    pg.mouse.up(); pg.wait_for_timeout(150)
+                    dragged = tiles()
+                    pg.focus('#tvGrid .tv-tile[data-k="mine"]'); pg.keyboard.press('ArrowUp'); pg.wait_for_timeout(100)
+                    keyed = tiles()
+                    pg.screenshot(path=str(OUT / 'progress-today-edit.png'))
+                    pg.click('#tvDone'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
+                    saved = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.profile.today_order)"); after = pg.evaluate(DECK_JS)
+                    want = ['line', 'plan', 'week', 'mine', 'news', 'extra']; want_keyed = ['line', 'plan', 'mine', 'week', 'news', 'extra']
+                    check(dev, '调整顺序: 编辑 shows the six blocks in order, each named with its place; a dragged tile lifts with a space left behind',
+                          first == ['plan', 'week', 'line', 'mine', 'news', 'extra'] and labels[0] == '今天的计划，第 1 个，共 6 个' and lifted == [True, True], (first, labels[:1], lifted))
+                    check(dev, '调整顺序: dropped where it was dragged, moved up with the arrow key; 完成 keeps it and 今日 opens on the new first card',
+                          dragged == want and keyed == want_keyed and saved == want_keyed and after['keys'][0] == 'line' and after['at'] == 0, (dragged, keyed, saved, after['keys']))
+                    pg.evaluate("([o, c]) => fetch('/api/next/today-view', {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': c}, body: JSON.stringify({order: o})})",
+                                [['plan', 'week', 'line', 'mine', 'news', 'extra'], me['csrf']])
+                    pg.evaluate("() => { try { localStorage.removeItem('flow-snap'); } catch (e) {} }"); pg.reload(wait_until='networkidle'); settle(pg); pg.wait_for_selector('#tvDeck', timeout=8000)
                 pg.screenshot(path=str(OUT / f'progress-cards-{size}-{theme}.png'))
                 go(pg, '#/me'); go(pg, '#/'); pg.wait_for_selector('#tvDeck', timeout=8000); pg.wait_for_timeout(300)
                 back = pg.evaluate(DECK_JS)
-                check(dev, f'{tag}: back on 今日, 卡片 is kept and opens on 今天的计划 again', back['at'] == k_plan, back['at'])
+                check(dev, f'{tag}: back on 今日, 卡片 is kept and opens on its first card again', back['at'] == 0 and back['keys'][0] == 'plan', (back['at'], back['keys'][:1]))
                 pg.click('.vt-today [data-today-view="list"]'); pg.wait_for_selector('#view .tv-plan', timeout=8000)
                 kept = pg.evaluate("fetch('/api/next/home').then(r => r.json()).then(h => h.profile.today_view)")
                 check(dev, f'{tag}: 列表 again from the switch, kept with the account', kept == 'list' and not pg.query_selector('#tvDeck'), kept)

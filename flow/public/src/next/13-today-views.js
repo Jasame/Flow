@@ -1,12 +1,18 @@
   /* ---------- 今日的样子 (r39, the user's picks 2026-11-26, B9's v3): 列表 (the default) or 卡片 ---------- */
-  // One order for both (the user: 「列表按什么顺序，卡片就按什么顺序」): 这周, 今天的计划, then what is not counted in the
-  // plan. The list draws 这周 and the plan as two white blocks, the one green button under them, and folds the rest
-  // under 还有时间的话; the cards draw one white card each, side by side, 今天的计划 in the middle when 今日 opens.
+  // One order for both (the user: 「列表按什么顺序，卡片就按什么顺序」), kept with the account and changed on 调整顺序
+  // (#/today/edit): 今天的计划 first by default. The list keeps its top fixed — 这周, 今天的计划, the one green button —
+  // and folds the rest under 还有时间的话 in that order; the cards draw one white card each, side by side, the first in
+  // the middle whenever 今日 opens (B9's spec, 第 4 版).
   // The same parts in both: a white block, a step row (number, title, time; the next one in ink), one green button.
   // The choice is kept with the account (POST /api/next/today-view); the switch on 今日 and 我的 → 使用习惯 (B5) call
   // setTodayView. Only learners with a plan have it: a guest's 今日 is one article.
-  const TODAY_ORDER = ['week', 'plan', 'line', 'mine', 'news', 'extra'];
+  const TODAY_ORDER = ['plan', 'week', 'line', 'mine', 'news', 'extra'];  // next_service.TODAY_KEYS
   const TODAY_NAMES = { week: '这周', plan: '今天的计划', line: '今日好句', mine: '我的材料', news: '今日一读', extra: '还有时间的话' };
+  const TODAY_DESC = { plan: '今天要做的几步', week: '学了几天、记住多少', line: '每天一句，能听能跟读', mine: '你自己贴进来的那篇', news: '每天一篇短文', extra: '错题、复听、语法' };
+  function todayOrder() {
+    const p = S.home && S.home.profile, got = (p && p.today_order || []).filter(k => TODAY_ORDER.indexOf(k) >= 0);
+    return got.concat(TODAY_ORDER.filter(k => got.indexOf(k) < 0));
+  }
   function todayView() { const p = S.home && S.home.profile; return p && p.today_view === 'cards' ? 'cards' : 'list'; }
   async function setTodayView(v) {
     const p = S.home && S.home.profile;
@@ -71,16 +77,19 @@
   // What is not counted in the plan, one line each: 今日好句 (opens in place: 听一遍, 跟读, 收藏), 我的材料, 今日一读
   // (marked AI 生成), then the plan's 还有时间的话. Name on the left, what it is on the right, in grey.
   function moreRows(h, f, news) {
-    const rows = [], l = h.line, m = h.mine;
-    if (l) rows.push(`<div class="line-row" id="lineCard"><button class="tv-row named" id="lcFold" type="button" aria-expanded="false" aria-controls="lcBody" data-tap="line-fold">`
+    const by = {}, l = h.line, m = h.mine;
+    by.line = [];
+    if (l) by.line.push(`<div class="line-row" id="lineCard"><button class="tv-row named" id="lcFold" type="button" aria-expanded="false" aria-controls="lcBody" data-tap="line-fold">`
       + `<span class="t">今日好句</span><span class="m">${esc(l.source)}</span></button><div class="lc-body tv-line" id="lcBody">${lineBodyHTML(l)}</div></div>`);
+    by.mine = [];
     if (S.user && m) {
       const it = m.item, href = it ? `#/m/${encodeURIComponent(it.id)}${it.started ? '/' + nextStep(it.steps) : ''}` : '#/import';
-      rows.push(`<a class="tv-row named" href="${href}" data-tap="home-mine"><span class="t">我的材料</span><span class="m">${it ? `${it.started ? '继续' : '练'}《${esc(it.title)}》` : '贴课本或讲义进来练'}</span></a>`);
+      by.mine.push(`<a class="tv-row named" href="${href}" data-tap="home-mine"><span class="t">我的材料</span><span class="m">${it ? `${it.started ? '继续' : '练'}《${esc(it.title)}》` : '贴课本或讲义进来练'}</span></a>`);
     }
-    if (news) rows.push(`<a class="tv-row named" href="#/m/${encodeURIComponent(news.id)}" data-tap="home-news"><span class="t">今日一读</span><span class="m">${aiTag()}${news.minutes ? ` · 约 ${news.minutes} 分钟` : ''}</span></a>`);
-    f.extra.forEach(s => rows.push(extraRowHTML(s, 'home-extra')));
-    return rows;
+    by.news = [];
+    if (news) by.news.push(`<a class="tv-row named" href="#/m/${encodeURIComponent(news.id)}" data-tap="home-news"><span class="t">今日一读</span><span class="m">${aiTag()}${news.minutes ? ` · 约 ${news.minutes} 分钟` : ''}</span></a>`);
+    by.extra = f.extra.map(s => extraRowHTML(s, 'home-extra'));
+    return todayOrder().filter(k => by[k]).reduce((rows, k) => rows.concat(by[k]), []);
   }
   function extraRowHTML(s, tap) {
     return `<a class="tv-row${s.done ? ' done' : ''}" href="${esc(s.href)}" data-tap="${tap}"><span class="t">${esc(s.title)}</span><span class="m tm">${s.done ? '已完成' : s.minutes ? `约 ${s.minutes} 分钟` : ''}</span></a>`;
@@ -92,6 +101,7 @@
   const CHEV = '<svg class="tv-chev" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ---- 列表 ----
+  // The top is fixed (the user: 这周 and 今天的计划 together, the green button under them); the rest follows the order.
   function todayListHTML(h, news) {
     const f = planFacts(h), w = weekFacts(h), rows = moreRows(h, f, news);
     const blocks = {
@@ -103,9 +113,9 @@
           ${sprintLine(h)}${stepsHTML(f)}${f.p.note ? `<p class="tiny muted tp-note">${esc(f.p.note)}</p>` : ''}</div>
         ${goHTML(f)}${overLineHTML(f.p, f.next)}${doneHTML(f)}
         ${rows.length ? `<details class="tp-extra tv-fold"${f.next ? '' : ' open'}><summary><span>还有时间的话</span><span class="tv-n">${rows.length} 项${CHEV}</span></summary>
-          <div class="tv-card tv-more">${rows.join('')}</div></details>` : ''}${weekTasksHTML(f)}</section>`
+          <div class="tv-card tv-more">${rows.join('')}</div><a class="link small hit44 tv-edit" href="#/today/edit" data-tap="today-edit">调整顺序</a></details>` : ''}${weekTasksHTML(f)}</section>`
     };
-    return TODAY_ORDER.filter(k => blocks[k]).map(k => blocks[k]()).join('');
+    return ['week', 'plan'].map(k => blocks[k]()).join('');
   }
   function bindTodayList() {
     const wc = document.getElementById('weekCard'); if (wc) wc.onclick = weekSheet;
@@ -128,25 +138,30 @@
         ${f.next ? '' : `<a class="link small hit44 tv-also" href="#/mix/more" data-tap="home-more-grammar">做 4 道语法题</a>`}${goHTML(f)}`,
       line: () => l && `<p class="tv-lb">今日好句</p><p class="tv-quote lc-en${l.say.length > 100 ? ' long' : ''}" lang="en">${lineEnHTML(l)}</p><p class="tv-p lc-zh">${esc(l.zh)}</p>
         <p class="tv-sub lc-src">${esc(l.source)}${l.label ? ' · ' + esc(l.label) : ''}${l.href ? ` · <a class="link" href="${esc(l.href)}" data-tap="line-read">读原文</a>` : ''}</p>
-        <div class="tv-foot">${aiVoiceNote('朗读由 AI 合成', 'p', 'tv-ai')}<div class="tv-pair"><button class="tv-act" type="button" id="lcSay" data-tap="line-say">听一遍</button>`
-        + `<button class="tv-act tv-icon" type="button" id="lcKeep" data-tap="line-keep" aria-label="收藏这一句">${ICON.star}</button></div></div>`,
-      mine: () => m && `<p class="tv-lb">我的材料</p><h2 class="tv-ttl">${it ? esc(it.title) : '贴课本或讲义进来练'}</h2>
-        <p class="tv-sub">${it ? [it.level, it.words ? it.words + ' 词' : '', it.started ? `学了 ${(it.steps || []).length} / 4 步` : '还没开始'].filter(Boolean).map(esc).join(' · ') : '课本、讲义、面试题都行，用语流的四步来练'}</p>
-        ${it && it.started ? `<div class="tv-bar" aria-hidden="true"><i style="width:${Math.round((it.steps || []).length / 4 * 100)}%"></i></div>` : ''}
-        <a class="tv-act" href="${it ? `#/m/${encodeURIComponent(it.id)}${it.started ? '/' + nextStep(it.steps) : ''}` : '#/import'}" data-tap="home-mine">${it ? (it.started ? '接着学' : '开始练') : '去粘贴'}</a>`,
+        <div class="tv-foot"><div id="lcPanel" hidden></div>${aiVoiceNote('朗读由 AI 合成', 'p', 'tv-ai')}<div class="tv-three"><button class="tv-act" type="button" id="lcSay" data-tap="line-say">听一遍</button>`
+        + `<button class="tv-act" type="button" id="lcShadow" data-tap="line-shadow" aria-expanded="false" aria-controls="lcPanel">跟读</button>`
+        + `<button class="tv-act" type="button" id="lcKeep" data-tap="line-keep">收藏</button></div></div>`,
+      mine: () => m && (it ? `<p class="tv-lb">我的材料</p><h2 class="tv-ttl">${esc(it.title)}</h2>
+        <p class="tv-sub">${it.started ? `学了 ${(it.steps || []).length} 步，共 4 步` : [it.level, it.words ? it.words + ' 词' : '', '还没开始'].filter(Boolean).map(esc).join(' · ')}</p>
+        ${it.started ? `<div class="tv-bar" aria-hidden="true"><i style="width:${Math.round((it.steps || []).length / 4 * 100)}%"></i></div>` : ''}
+        ${it.opening ? `<p class="tv-en" lang="en">${esc(it.opening)}</p>` : ''}
+        <a class="tv-act" href="#/m/${encodeURIComponent(it.id)}${it.started ? '/' + nextStep(it.steps) : ''}" data-tap="home-mine">${it.started ? '接着读' : '开始练'}</a>`
+        : `<p class="tv-lb">我的材料</p><h2 class="tv-big">贴课本或讲义进来练</h2><p class="tv-sub">课本、讲义、面试题都行，用语流的四步来练</p>
+        <a class="tv-act" href="#/import" data-tap="home-mine">贴一篇</a>`),
       news: () => news && `<p class="tv-lb">今日一读 · ${aiTag()}</p><h2 class="tv-ttl">${esc(news.title)}</h2>
         <p class="tv-sub">${[news.level, news.theme_label, news.minutes ? `约 ${news.minutes} 分钟` : ''].filter(Boolean).map(esc).join(' · ')}</p>${news.preview ? `<p class="tv-p tv-clamp">${esc(news.preview)}</p>` : ''}
         <a class="tv-act" href="#/m/${encodeURIComponent(news.id)}" data-tap="home-news">读这篇</a>`,
       extra: () => extra.length && `<p class="tv-lb">还有时间的话</p><h2 class="tv-big">还可以再练 ${extra.length} 项</h2><p class="tv-sub">不算进今天的计划</p>
         <div class="tv-rows">${extra.map(s => extraRowHTML(s, s.group === 'week' ? 'home-week-task' : 'home-extra')).join('')}</div>`
     };
-    const list = TODAY_ORDER.map(k => ({ k, html: cards[k] && cards[k]() })).filter(c => c.html);
-    const n = list.length, start = Math.max(0, list.findIndex(c => c.k === 'plan'));
+    const list = todayOrder().map(k => ({ k, html: cards[k] && cards[k]() })).filter(c => c.html);
+    const n = list.length, start = 0;  // the learner's first card, in the middle, whenever 今日 opens
     const html = `<div class="tv-deckbox"><button class="tv-arrow prev" type="button" aria-label="上一张" tabindex="-1">‹</button>
       <div class="tv-deck" id="tvDeck" role="list" aria-label="今日，${n} 张卡片，左右翻" tabindex="0">${list.map((c, k) =>
         `<section class="tv-dc tv-${c.k}${c.k === 'plan' ? ' today-plan' : ''}"${c.k === 'line' ? ' id="lineCard"' : ''} role="listitem" aria-label="第 ${k + 1} 张，共 ${n} 张，${TODAY_NAMES[c.k]}" data-card="${c.k}">${c.html}</section>`).join('')}</div>
       <button class="tv-arrow next" type="button" aria-label="下一张" tabindex="-1">›</button></div>
-      <div class="tv-dots" aria-hidden="true">${list.map((c, k) => `<i class="${k === start ? 'on' : ''}"></i>`).join('')}</div>`;
+      <div class="tv-under"><span></span><div class="tv-dots" aria-hidden="true">${list.map((c, k) => `<i class="${k === start ? 'on' : ''}"></i>`).join('')}</div>
+        <a class="link small hit44 tv-edit" href="#/today/edit" data-tap="today-edit">编辑</a></div>`;
     return { html, start };
   }
   function mountDeck(start) {
@@ -159,19 +174,21 @@
       const room = tb - (dk.getBoundingClientRect().top + scrollY) - 44;  // measured from the page's top: 今日 opens there
       dk.style.setProperty('--dk-h', Math.max(180, Math.min(560, Math.round(room))) + 'px');  // a phone held sideways: short, its button still on the screen
     };
-    // where card k sits in the middle (one card a screen on a phone, two or three side by side on a computer)
+    // where card k sits: in the middle on a phone (one card a screen); first from the left when two or three fit side
+    // by side (a computer, an iPad), where the first card could never be in the middle
     const step = () => cards[0].offsetWidth + (parseFloat(getComputedStyle(dk).columnGap) || 0);
     const pad = () => parseFloat(getComputedStyle(dk).paddingLeft) || 0;
-    const left = k => pad() + k * step() + cards[0].offsetWidth / 2 - dk.clientWidth / 2;
-    const at = () => Math.max(0, Math.min(cards.length - 1, Math.round((dk.scrollLeft + dk.clientWidth / 2 - pad() - cards[0].offsetWidth / 2) / step())));
+    const side = () => dk.clientWidth > cards[0].offsetWidth * 1.6;
+    const left = k => side() ? k * step() : pad() + k * step() + cards[0].offsetWidth / 2 - dk.clientWidth / 2;
+    const at = () => Math.max(0, Math.min(cards.length - 1, Math.round(side() ? dk.scrollLeft / step() : (dk.scrollLeft + dk.clientWidth / 2 - pad() - cards[0].offsetWidth / 2) / step())));
     let frame = 0;
     const paint = () => {
       frame = 0;
       const k = at();
       dots.forEach((x, i) => x.classList.toggle('on', i === k));
-      if (calm || dk.clientWidth > cards[0].offsetWidth * 1.6) return;  // side by side on a wide screen: all in full view, none smaller
+      if (calm || side()) return;  // side by side on a wide screen: all in full view, none smaller
       const s = step(), mid = dk.scrollLeft + dk.clientWidth / 2;
-      cards.forEach((c, i) => { const d = Math.min(1, Math.abs(pad() + i * s + c.offsetWidth / 2 - mid) / s); c.style.transform = d > 0.01 ? `scale(${1 - 0.04 * d})` : ''; c.style.opacity = d > 0.01 ? String(1 - 0.35 * d) : ''; });
+      cards.forEach((c, i) => { const d = Math.min(1, Math.abs(pad() + i * s + c.offsetWidth / 2 - mid) / s); c.style.transform = d > 0.01 ? `scale(${1 - 0.04 * d})` : ''; c.style.opacity = d > 0.01 ? String(1 - 0.5 * d) : ''; });
     };
     const go = k => dk.scrollTo({ left: left(Math.max(0, Math.min(cards.length - 1, k))), behavior: calm ? 'auto' : 'smooth' });
     fit();
@@ -187,6 +204,86 @@
     if (prev) prev.onclick = () => go(at() - 1);
     if (next) next.onclick = () => go(at() + 1);
     const wk = document.getElementById('tvWeek'); if (wk) wk.onclick = weekSheet;
+    // a long press on a card (half a second, a short buzz where the phone has one) opens 调整顺序, as on a phone's home
+    // screen; a move or a scroll first is a swipe, and the tap after a long press is not a tap on what is under it
+    let hold = 0, held = false, x0 = 0, y0 = 0;
+    const stop = () => { clearTimeout(hold); hold = 0; };
+    dk.addEventListener('pointerdown', e => {
+      if (e.button > 0 || !e.target.closest('.tv-dc')) return;
+      held = false; x0 = e.clientX; y0 = e.clientY; stop();
+      hold = setTimeout(() => { held = true; hold = 0; if (navigator.vibrate) navigator.vibrate(10); location.hash = '#/today/edit'; }, 500);
+    });
+    dk.addEventListener('pointermove', e => { if (hold && Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 8) stop(); });
+    ['pointerup', 'pointercancel', 'scroll'].forEach(t => dk.addEventListener(t, stop, { passive: true }));
+    dk.addEventListener('click', e => { if (held) { e.preventDefault(); e.stopPropagation(); held = false; } }, true);
+    dk.addEventListener('contextmenu', e => { if (e.target.closest('.tv-dc')) e.preventDefault(); });
     const onResize = () => { if (!dk.isConnected) return removeEventListener('resize', onResize); const k = at(); fit(); dk.scrollLeft = left(k); paint(); };
     addEventListener('resize', onResize);
+  }
+
+  // ---- 调整顺序 (#/today/edit): the blocks as small white tiles in two columns, dragged into place ----
+  // Held, a tile lifts (a little larger, with a shadow), a grey space stays where it was and the others make room; let
+  // go, it drops there. A screen reader hears 「今天的计划，第 1 个，共 6 个」 and has 上移 / 下移; the arrow keys move a
+  // tile too. 完成 keeps the order with the account (POST /api/next/today-view {order}) and goes back to 今日, its new
+  // first block first. This version only orders: nothing is hidden.
+  function todayEditView() {
+    if (!S.user || !S.home || !S.home.path) { location.hash = '#/'; return; }
+    view.innerHTML = `<div class="greet-row tv-edit-head"><h1 class="tv-edit-t">调整顺序</h1><button class="btn tv-done" type="button" id="tvDone" data-tap="today-edit-done">完成</button></div>
+      <ol class="tv-grid" id="tvGrid" aria-label="今日的顺序">${todayOrder().map(k => `<li class="tv-tile" tabindex="0" data-k="${k}"><b>${TODAY_NAMES[k]}</b><span>${TODAY_DESC[k]}</span><i class="tv-ix" aria-hidden="true"></i>`
+        + `<button class="sr-only" type="button" data-mv="-1">上移</button><button class="sr-only" type="button" data-mv="1">下移</button></li>`).join('')}</ol>
+      <p class="small muted tv-edit-hint">按住一块拖动。排在最前面的，打开今日先看到。</p>`;
+    const grid = document.getElementById('tvGrid');
+    const tiles = () => [...grid.querySelectorAll('.tv-tile')];
+    const renumber = () => { const all = tiles(); all.forEach((t, i) => { t.querySelector('.tv-ix').textContent = i + 1; t.setAttribute('aria-label', `${TODAY_NAMES[t.dataset.k]}，第 ${i + 1} 个，共 ${all.length} 个`); }); };
+    const move = (t, by) => {
+      const all = tiles(), i = all.indexOf(t), j = Math.max(0, Math.min(all.length - 1, i + by));
+      if (i === j) return;
+      grid.insertBefore(t, by > 0 ? all[j].nextSibling : all[j]); renumber(); t.focus();
+      announce(`${TODAY_NAMES[t.dataset.k]}，第 ${j + 1} 个`);
+    };
+    renumber();
+    grid.addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (b) move(b.closest('.tv-tile'), Number(b.dataset.mv)); });
+    grid.addEventListener('keydown', e => {
+      const t = e.target.closest('.tv-tile'); if (!t || e.target !== t) return;
+      const by = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key];
+      if (by) { e.preventDefault(); move(t, by); }
+    });
+    // dragging: the tile follows the finger (fixed, on top); a grey slot moves through the others to where it would drop
+    let drag = null;
+    grid.addEventListener('pointerdown', e => {
+      const t = e.target.closest('.tv-tile'); if (!t || e.button > 0 || e.target.closest('button')) return;
+      drag = { t, id: e.pointerId, x0: e.clientX, y0: e.clientY, on: false };
+    });
+    grid.addEventListener('pointermove', e => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const t = drag.t;
+      if (!drag.on) {
+        if (Math.abs(e.clientX - drag.x0) + Math.abs(e.clientY - drag.y0) < 6) return;
+        const r = t.getBoundingClientRect();
+        drag.on = true; drag.slot = document.createElement('li'); drag.slot.className = 'tv-slot'; drag.slot.setAttribute('aria-hidden', 'true');
+        grid.insertBefore(drag.slot, t);
+        t.classList.add('lift'); t.style.left = r.left + 'px'; t.style.top = r.top + 'px'; t.style.width = r.width + 'px'; t.style.height = r.height + 'px';
+        try { t.setPointerCapture(e.pointerId); } catch (err) { /* the pointer is gone */ }
+      }
+      e.preventDefault();
+      t.style.transform = `translate(${e.clientX - drag.x0}px, ${e.clientY - drag.y0}px) scale(1.04)`;
+      const over = tiles().find(x => x !== t && (b => e.clientX >= b.left && e.clientX <= b.right && e.clientY >= b.top && e.clientY <= b.bottom)(x.getBoundingClientRect()));
+      if (over) { const kids = [...grid.children], a = kids.indexOf(drag.slot), b = kids.indexOf(over); grid.insertBefore(drag.slot, a < b ? over.nextSibling : over); }
+    });
+    const drop = () => {
+      if (!drag) return;
+      const t = drag.t;
+      if (drag.on) { grid.insertBefore(t, drag.slot); drag.slot.remove(); t.classList.remove('lift'); t.style.cssText = ''; renumber(); }
+      drag = null;
+    };
+    grid.addEventListener('pointerup', drop); grid.addEventListener('pointercancel', drop);
+    document.getElementById('tvDone').onclick = async e => {
+      const order = tiles().map(t => t.dataset.k), b = e.currentTarget;
+      b.disabled = true;
+      try {
+        const r = await api('/api/next/today-view', { order });
+        if (S.home && S.home.profile) S.home.profile.today_order = r.today_order;
+        location.hash = '#/';
+      } catch (err) { b.disabled = false; toast(err.message); }
+    };
   }

@@ -101,16 +101,15 @@ class LineTests(Db):
 
 class PageTests(unittest.TestCase):
     def test_today_draws_both_looks_from_one_order_and_the_line_opens_in_place(self):
-        # r39 (the user's picks 2026-11-26, B9's v3): 这周, 今天的计划, then 今日好句, 我的材料, 今日一读, 还有时间的话 —
-        # one order for 列表 and 卡片; 好句 and 一读 are no longer above the plan, and the sideways-phone special is gone
-        for s in ("const TODAY_ORDER = ['week', 'plan', 'line', 'mine', 'news', 'extra'];", 'TODAY_ORDER.filter(k => blocks[k])', 'TODAY_ORDER.map(k =>',
+        # r39 (the user's picks 2026-11-26, B9's spec 第 4 版): one order for 列表 and 卡片, the learner's (调整顺序), 今天的计划
+        # first by default; 列表's top fixed (这周, 今天的计划, its button); 好句 and 一读 no longer above the plan; the
+        # sideways-phone special gone
+        for s in ("const TODAY_ORDER = ['plan', 'week', 'line', 'mine', 'news', 'extra'];", "return ['week', 'plan'].map(k => blocks[k]()).join('');", 'todayOrder().map(k =>',
+                  'todayOrder().filter(k => by[k])', 'function todayEditView', 'href="#/today/edit" data-tap="today-edit">调整顺序', 'href="#/today/edit" data-tap="today-edit">编辑',
                   'function todayListHTML', 'function todayCards', 'function mountDeck', 'function lineBodyHTML', 'function bindLine', "api('/api/next/shadow'",
                   'data-tap="line-shadow"', 'data-tap="home-news"><span class="t">今日一读</span><span class="m">${aiTag()}', 'function mountWeekCards', "api('/api/next/week?brief=1')"):
             self.assertIn(s, JS, s)
         self.assertNotIn('(innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', JS)
-        rows = JS[JS.index('function moreRows'):JS.index('function extraRowHTML')]
-        order = [rows.index(s) for s in ('今日好句', '我的材料', '今日一读', 'f.extra.forEach')]
-        self.assertEqual(order, sorted(order))
         self.assertIn("${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>", JS)  # the voice is synthesized: 「AI 合成」 at the end of the row (标识办法)
         for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot'):
             self.assertIn(s, CSS, s)
