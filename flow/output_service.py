@@ -57,6 +57,17 @@ def _fixes(raw, valid):
     return out
 
 
+def retell_score(r):
+    """A retelling's score, added to the result after it is kept (lab_jobs has it without): the points covered, less
+    a little for each correction. 练习记录 (history_service) works it out again the same way."""
+    return round(sum(x['covered'] for x in r['points']) / len(r['points']) * (1 - 0.06 * min(4, len(r['fixes']))), 2)
+
+
+def essay_score(r):
+    """An essay's score: the four 1–5 scores out of 20 (added after the result is kept, like retell_score)."""
+    return round(sum(r['scores'].values()) / 20, 2)
+
+
 def _audio_or_text(data, min_words=3, max_chars=2500):
     """(text, audio, error): learners may type or speak."""
     from lab_service import audio_enabled
@@ -110,7 +121,7 @@ def retell(c, uid, data):
     result, status = _ai(c, uid, data, 'next-retell', p['id'], 'speaking' if audio else 'writing', spec, system, user, convert, audio)
     if status == 200:
         r = result['result']
-        r['score'] = round(sum(x['covered'] for x in r['points']) / len(r['points']) * (1 - 0.06 * min(4, len(r['fixes']))), 2)
+        r['score'] = retell_score(r)
     if status == 200 and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'speaking' if audio else 'writing', 'retell', r['score'], nx.cefr(p), p['id'], commit=False)
@@ -287,7 +298,7 @@ def essay(c, uid, data):
     result, status = _ai(c, uid, data, 'next-essay', p['id'], 'writing', {'pack': p['id'], 'text': text}, system, user, convert)
     if status == 200:
         r = result['result']
-        r['score'] = round(sum(r['scores'].values()) / 20, 2)
+        r['score'] = essay_score(r)
     if status == 200 and not result.get('replayed'):
         r = result['result']
         sk.log(c, uid, 'writing', 'essay', r['score'], r['level'] or nx.cefr(p), p['id'], commit=False)
