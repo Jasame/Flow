@@ -123,6 +123,9 @@ pub fn delivered() -> Vec<String> {
     vec![]
 }
 
+/// The notification servers keep what they showed their own way (often not at all): nothing to take back.
+pub fn clear_shown() {}
+
 pub fn show_now(title: &str, body: &str, _launch: &str) -> Result<(), String> {
     show(title, body, None)
 }

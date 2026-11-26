@@ -870,7 +870,7 @@
   }
 
   /* ---------- 操作记录：管理员改了什么、导出了什么 ---------- */
-  /* ---------- 问题反馈（只有管理员）：学员在「我的 → 问题反馈」提交的说明和截图 ---------- */
+  /* ---------- 问题反馈（只有管理员）：学员在「我的 → 帮助 → 问题反馈」提交的说明和截图 ---------- */
   var FB = { status: 'new', page: 1 };
   function fbBadge(k) {
     var b = document.getElementById('fbBadge');
@@ -891,7 +891,7 @@
         return bits.join(' · ');
       };
       var filters = [['new', '待处理', d.counts.new], ['done', '已处理', d.counts.done], ['all', '全部', d.counts.new + d.counts.done]];
-      main.innerHTML = '<div class="head-row"><div><h1>问题反馈</h1><p class="muted">学员在「我的 → 问题反馈」提交的说明和截图。处理完点「标记已处理」，会记进操作记录。</p></div>' +
+      main.innerHTML = '<div class="head-row"><div><h1>问题反馈</h1><p class="muted">学员在「我的 → 帮助 → 问题反馈」提交的说明和截图。处理完点「标记已处理」，会记进操作记录。</p></div>' +
         '<div class="toolbar">' + filters.map(function (f) {
           return '<button type="button" class="btn' + (FB.status === f[0] ? ' primary' : '') + '" data-fs="' + f[0] + '">' + f[1] + ' ' + n(f[2]) + '</button>';
         }).join('') + '</div></div>' +

@@ -130,6 +130,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
 |---|---|
 | `FlowApp.v` / `app` / `build` / `beta` / `platform` / `features` / `has(k)` / `call(cmd, args)` | `1`、App 版本、构建（CI 的提交前 7 位，本机是 `dev`）、是不是内测版、`'android'`；能力有 `audio`、`rec`、`notify`、`speech`、`privacy`。`call('hello')` → `{v, app, build, platform, features}`；`call('app.visible')` 让 App 把正在放的状态再发一次 |
 | `privacy.state()` / `ask()` / `withdraw()` / `permissions()` / `settings({what})`（安卓自己的） | 见上面「第一次打开」。`state()` → `{state: 'agreed' \| 'basic', version, beian, store}`；`ask()` 在基本模式里再问一次，返回新的 state；`withdraw()` 撤回同意（先说明，用户点「撤回」才撤，返回 true，之后页面会换掉）；`permissions()` → `{mic, notify}`，各是 `granted`、`undetermined`、`denied`，给网页做权限管理页；`settings({what: 'mic' \| 'notify'})` 打开手机设置里对应的那一页 |
+| `account.changed`（1.0.5 起） | 网页切换账号、添加账号、退出登录（含退出所有设备）、注销账号以后调。App 停掉正在放的朗读，清掉本机各篇读到哪儿（那是上一个账号的），撤掉上一个账号的复习提醒和已经弹出的那条，忘掉它的钟点和「这次什么时候复习」，马上按现在这个账号的 `/api/next/vocab` 重排（同意以后才拉），cookie 立刻写盘。App 提醒的开关和「每天的学习」是这台手机的，不跟账号走。→ `{ok, scheduled}`。旧版 App 不认这个命令也照常能用，下次回到前台时自己会重排 |
 | `FlowApp.on(type, fn)` → 取消订阅的函数；`off` | 同时发 `window` 事件 `flowapp:<type>` |
 | `audio.play(o)` / `pause()` / `resume()` / `stop()` / `step(±1)` / `seek(i)` / `set({rate, rep, gap})` / `state()` / `progress(key)` | 见下面「原生声音」。这些都返回当前状态 `{ok, key, state, i, n, t, title, rate}`；`resume()` 的返回值网页用来判断要不要从头再放 |
 | `rec.permission()` / `ask()` / `start({max, format})` / `stop()` / `cancel()` | 见下面「录音」 |
@@ -188,6 +189,7 @@ CI（`.github/workflows/android.yml`，语流 A2）：
     - 到点没词：这个时间作废，当天到了每天的钟点照常提醒（有词才提醒）。
   - 「每天的学习」（`reminder.ics?kind=plan`，在 App 里选了通知）：每天那个钟点提醒今天的学习，打开 `#/`，不用登录。同一时刻的复习提醒就不再单独发。
 - `sync(r)`：`r` 是网页的 `reminder`，可以带上 `forecast`、`app`。`sync(null)` 或 `off()` 关掉 App 的提醒。`pending()` → `[{id, at, title, body}]`。
+- 网页切换账号以后（`account.changed`，1.0.5 起）：上一个账号的提醒马上撤掉，按现在这个账号重排，见上面桥的表格。
 - App 打开、回到前台、切到后台时，都用登录 cookie 拿一次 `/api/next/vocab` 重新排，所以复习完的日子会被撤掉（只在同意以后；基本模式里不拉）。退出登录以后不再提醒复习单词，「每天的学习」照常。重启手机、改时间或时区以后，提醒会重新排上；这个开机接收器只在打开了 App 提醒时才开着（见上面「第一次打开」）。
 - 点通知：复习打开 `#/review`，今天的学习打开 `#/`。
 - 账号还没给网站要的同意时，`/api/next/vocab` 回 403，什么提醒都不排，「今天的学习」也不排；网站对这样的账号也不发提醒。钟点留着，同意以后下一次拉到 vocab 就会自己排回来。

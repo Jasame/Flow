@@ -170,7 +170,7 @@ class QuotaTests(unittest.TestCase):
         self.assertIsNotNone(q.get(self.c, 1)); self.assertTrue(q.history(self.c, 1))  # the quota and its log stay
         self.assertEqual(q.prune(self.c, now), 0)  # once is enough
         self.assertNotIn(-1, [r['user_id'] for r in q.report(self.c, now=now)])
-        self.assertIn('「我的 → 问题反馈」', q.PAUSED)
+        self.assertIn('「我的 → 帮助 → 问题反馈」', q.PAUSED)  # #464: 问题反馈 sits under 我的 → 帮助
 
     def test_read_aloud_characters_go_after_90_days_with_the_account_and_into_the_export(self):  # B6, D2
         import account_data

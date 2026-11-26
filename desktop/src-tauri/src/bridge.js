@@ -7,6 +7,7 @@
  *  - has('media'): the system's media controls (Windows SMTC, macOS 「正在播放」, the media keys) follow the
  *    page's navigator.mediaSession; a key runs the action the page registered. The page plays its own audio.
  *  - no 'audio' / 'rec': a desktop webview plays and records like a browser.
+ *  - call('account.changed') (切换账号, 添加账号, 退出登录): the reminders follow the account now in use.
  *  - FLOW_MUTE=1 (and every --smoke-test): the page makes no sound — <audio>/<video> muted, Web Audio through a
  *    silent gain, browser speech at volume 0. Everything else (events, timing, media controls) runs as usual.
  */
@@ -133,6 +134,17 @@
       return { ok: false, planned: 0, why: 'offline' };  // the ones already planned stay
     } finally { planning = null; }
   })());
+  // account.changed (docs/native-bridge.md §5): the app forgets what it kept for the last account (its planned and
+  // shown reminders, the once it saw), then plans from the account now in use. notify_account goes out at once, so
+  // it holds even if the page goes away before the answer (the next look then plans without the 30 minutes' wait).
+  // A plan already on its way was asked with the last account's login: wait for it, forget what it put back, then plan.
+  const accountChanged = async () => {
+    const forget = () => invoke('notify_account').catch(() => {});
+    const late = planning;
+    await forget();
+    if (late) { await late; await forget(); }
+    return replan(true);
+  };
   const quietly = () => { if (document.visibilityState === 'visible') replan(false); };
   addEventListener('load', () => setTimeout(quietly, 4000));
   document.addEventListener('visibilitychange', () => setTimeout(quietly, 1500));
@@ -156,6 +168,7 @@
       if (name === 'hello') return Promise.resolve({ v: 1, app: FlowApp.app, build: FlowApp.build, platform: FlowApp.platform, features: CAPS.slice() });
       // the page is visible again: send the media state once more (the system's controls follow it)
       if (name === 'app.visible') { media.sent = ''; push(); return Promise.resolve({ ok: true }); }
+      if (name === 'account.changed') return accountChanged();
       return Promise.reject(new Error('FlowApp: no command ' + name));
     },
     notify: Object.freeze({

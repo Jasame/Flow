@@ -41,6 +41,11 @@ class ProgressStore(context: Context) {
         prefs.edit().putString("all", o.toString()).apply()
     }
 
+    /** Every text's place (another account now, or the learner withdrew their agreement): FlowAudio.forget. */
+    fun clearAll() {
+        prefs.edit().clear().apply()
+    }
+
     companion object {
         const val DAYS = 30
         const val MAX = 100

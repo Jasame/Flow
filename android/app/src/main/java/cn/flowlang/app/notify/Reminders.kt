@@ -178,6 +178,23 @@ object Reminders {
     fun bootOn(c: Context): Boolean =
         c.packageManager.getComponentEnabledSetting(ComponentName(c, RescheduleReceiver::class.java)) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED
 
+    /**
+     * account.changed (切换账号, 添加账号, 退出登录, 注销账号; docs/native-bridge.md §5): what the last account had here goes
+     * — its counts, its hour, 这次什么时候复习, its reminders on the phone and the review reminder already shown — and, when
+     * [fetch] (agreed to the first start's question), the account now in use is asked at once. The switch for the app's
+     * reminders and the day's plan belong to this phone, not the account: they stay.
+     */
+    suspend fun accountChanged(c: Context, fetch: Boolean): Outcome {
+        val app = c.applicationContext
+        generation++  // an answer still on its way was asked with the last account's login: it no longer counts
+        lastFetch = 0L
+        pausedCode = null
+        save(app, Planner.signedOut(input(app)))
+        try { NotificationManagerCompat.from(app).cancel(NOTE_REVIEW) } catch (e: Exception) { /* nothing shown */ }
+        if (!fetch) { schedule(app); return Outcome.FRESH }
+        return refresh(app, force = true)
+    }
+
     /** 不同意 or 撤回同意 (MainActivity.forgetHere): nothing on the phone, the hours and counts forgotten, no start at boot. */
     fun forget(c: Context) {
         cancelAll(c)

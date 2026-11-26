@@ -38,7 +38,7 @@ other part's names. `20`–`24` are consecutive slices of `study()` (the four le
 | `44-easy.js` | 轻松读: easy texts a level down, reading speed, words read |
 | `45-confuse.js` | 词汇辨析: word groups Chinese speakers mix up, interleaved rounds |
 | `46-speak.js` | 口语路线: twelve role-play scenes with the AI |
-| `47-growth.js` | 我的进步: this month against the last, milestones |
+| `47-growth.js` | 我的进步: the month in one sentence, seven figures a row each, the three nearest milestones (the rest folded), the way to 周报 (`97-growth.css`) |
 | `48-radar.js` | 能力雷达: goals, the radar against them, the test hub and the reading/listening/speaking/writing checks |
 | `49-guide.js` | 操作指南: the in-site guide (table of contents, search, PDF link), rendered from `public/guide/guide.md` by `user_guide.py` |
 | `49-practice.js` | 练习 tab: every kind of practice grouped by skill, with one suggestion from the radar on top |

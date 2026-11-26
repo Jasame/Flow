@@ -175,7 +175,7 @@
     /* listen modes: 精听 (sentence list) · 跟读 (record, compare, AI feedback) · 听写 (type what you hear) */
     const MODES = { listen: '精听', shadow: '跟读', dictate: '听写' };
     if (!st.mode) st.mode = MODES[load('flow-next-listen-mode')] ? load('flow-next-listen-mode') : 'listen';
-    const stripLabel = s => s.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/, '');
+    const stripLabel = s => s.replace(/^(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|[A-Z]):\s+/, '');  // speaker labels and Q:/A: are shown, not read
     // The words worth knowing before listening, folded into one line (open it for the meaning, the sound, review).
     function prereadHTML() {
       const pr = m._prHidden ? [] : (m.preread || []);

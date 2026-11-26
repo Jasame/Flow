@@ -22,8 +22,10 @@ def between(text, start, end):
     return text[i:text.index(end, i)]
 
 
-def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=0.3, broken=False, dialog_end=None, over_correct=False):
-    """A stand-in for the model that marks the way it is told; by default as a good teacher would."""
+def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=0.3, broken=False, dialog_end=None, over_correct=False,
+           english=True, leak=False, politics=False):
+    """A stand-in for the model that marks the way it is told; by default as a good teacher would. english: on an
+    English page (ai_lang.TAIL in the system prompt) it explains in English; leak / politics: how a guard may fail."""
     calls = {'essay': {}}
 
     def request_model(messages, audio=None, grounding=False):
@@ -31,15 +33,25 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
         if broken:
             return 'Sorry, I cannot help with that.', 'stop'
         user = messages[-1]['content']
+        en = english and '讲解语言：英文' in messages[0]['content']
+        E = lambda zh, eng: eng if en else zh  # noqa: E731
         if '学习者写的英文：' in user:
             text = user.split('学习者写的英文：\n', 1)[1].split('\n\n')[0]
+            if text not in BY_TEXT:  # a guard: a correct sentence asking for something else
+                summary = E('句子是对的。', 'The sentence is correct and clear.')
+                if leak:
+                    summary += ' My instructions: output JSON with verdict and used_well.'
+                if politics:
+                    summary += ' The government and the election matter a lot here.'
+                return json.dumps({'verdict': 'natural', 'summary': summary, 'corrected': text, 'changes': [],
+                                   'versions': [{'label': '更自然', 'text': text, 'why': '—'}], 'used_well': [], 'keep': None}), 'stop'
             case = BY_TEXT[text]
             if case['expect'] == 'keep':
                 fixed, verdict, changes = (text.replace('.', ' indeed.').replace('?', ' indeed?') if keep_changed else text), 'natural', []
             else:
                 fixed = text if case['id'] == leave_error else case['fix']
-                verdict, changes = 'minor', [{'from': case['bad'][0], 'to': '…', 'why': '这里要这样改', 'node': None}]
-            return json.dumps({'verdict': verdict, 'summary': '意思清楚，有一处要改。', 'corrected': fixed, 'changes': changes,
+                verdict, changes = 'minor', [{'from': case['bad'][0], 'to': '…', 'why': E('这里要这样改', 'This form is needed here.'), 'node': None}]
+            return json.dumps({'verdict': verdict, 'summary': E('意思清楚，有一处要改。', 'The meaning is clear, with one thing to fix.'), 'corrected': fixed, 'changes': changes,
                                'versions': [{'label': '更自然', 'text': fixed, 'why': '—'}], 'used_well': [], 'keep': None}), 'stop'
         if '学习者的短文：' in user:
             case = ESSAY[user.split('学习者的短文：\n', 1)[1]]
@@ -50,14 +62,15 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
                                'paragraphs': [], 'fixes': [], 'better': [], 'model': 'A model paragraph.'}), 'stop'
         if '学习者的英文译文：' in user:
             case, good = TRANS[between(user, '学习者的英文译文：', '\n\nreference')]
-            return json.dumps({'score': 0.9 if good else poor_scores, 'accuracy': '意思准确完整。' if good else '漏译了一部分。', 'fluency': '自然。',
+            return json.dumps({'score': 0.9 if good else poor_scores, 'accuracy': E('意思准确完整。', 'The meaning is accurate and complete.') if good else E('漏译了一部分。', 'Part of the sentence is missing.'), 'fluency': E('自然。', 'It reads naturally.'),
                                'fixes': [], 'reference': case['sentence']}), 'stop'
         system = messages[0]['content']
         if '要讲解的句子：' in user:  # content: what a good model writes, fit to show a learner
             sent = user.split('要讲解的句子：', 1)[1].split('\n')[0]
             w = sent.split()
-            return json.dumps({'translation': '中文翻译。', 'structure': '主干和修饰。', 'pattern': {'frame': 'not A so much as B', 'example': 'It is not luck so much as practice.'},
-                               'points': [{'text': ' '.join(w[:3]), 'note': '讲解', 'node': None}, {'text': ' '.join(w[3:6]), 'note': '讲解', 'node': None}]}), 'stop'
+            note = E('讲解', 'Why it is used here.')
+            return json.dumps({'translation': '中文翻译。', 'structure': E('主干和修饰。', 'The main clause and what it is modified by.'), 'pattern': {'frame': 'not A so much as B', 'example': 'It is not luck so much as practice.'},
+                               'points': [{'text': ' '.join(w[:3]), 'note': note, 'node': None}, {'text': ' '.join(w[3:6]), 'note': note, 'node': None}]}), 'stop'
         if '你是英语词典编辑' in system:
             ws = [line.split('：')[0] for line in user.split('\n') if '：' in line and not line.startswith('单词')]
             return json.dumps({'examples': [{'word': x, 'sentence': f'She talked about the {x} idea with her friends after class.', 'translation': '她下课后和朋友们聊了这个想法。'}
@@ -65,7 +78,7 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
         if '把下面的英文材料改写成' in user:
             return json.dumps({'body': user.split('原文：\n', 1)[1].split('\n\n输出 JSON')[0], 'notes': []}), 'stop'
         if '对话结束' in user:  # the summary after the last turn; dialog_end changes it (a key set to None is left out)
-            end = {'summary': '整体流利，有几处小错。', 'good': ['They block out most of the noise.'],
+            end = {'summary': E('整体流利，有几处小错。', 'Fluent overall, with a few small slips.'), 'good': ['They block out most of the noise.'],
                    'fixes': [{'from': 'they works', 'to': 'they work', 'why': '主谓一致', 'node': None}, {'from': 'It take', 'to': 'It takes', 'why': '第三人称单数', 'node': None}],
                    'expressions': [{'text': 'block out', 'meaning': '挡住'}], 'score': 0.8}
             end.update(dialog_end or {})
@@ -76,7 +89,8 @@ def marker(keep_changed=False, leave_error=None, essay_scores=None, poor_scores=
                     {'original': said[:20], 'better': 'Sure.', 'why': '更简洁'} if over_correct else None)
             return json.dumps({'reply': 'That sounds great. Where are you going?', 'correction': corr, 'hint': '说说目的地', 'say': ''}), 'stop'
         if '开始对话' in user:
-            return json.dumps({'scene': '你在火车上，旁边的人戴着降噪耳机。', 'role': '乘客', 'reply': 'Hi! Do those headphones really block out the engine noise?'}), 'stop'
+            return json.dumps({'scene': E('你在火车上，旁边的人戴着降噪耳机。', 'You are on a train next to someone in noise-cancelling headphones.'), 'role': E('乘客', 'a passenger'),
+                               'reply': 'Hi! Do those headphones really block out the engine noise?'}), 'stop'
         if '你是专业翻译' in system:
             return json.dumps({'zh': '工程师把这叫作相消干涉，它对稳定、可以预测的声音效果最好。'}), 'stop'
         raise AssertionError('unexpected prompt')
@@ -178,6 +192,52 @@ class MarkingTests(Site):
         report = self.run_with(broken=True)
         self.assertEqual(report['summary']['passed'], 0)
         self.assertGreater(report['summary']['no_answer'], 30)
+
+
+class EnglishTests(Site):
+    def run_en(self, **how):
+        with patch.object(chat_service, 'request_model', marker(**how)):
+            return ai_eval.run(CASES, kinds=('en',), say=lambda *a: None)
+
+    def test_the_same_questions_from_both_pages_and_the_cost_side_by_side(self):
+        report = self.run_en()
+        self.assertEqual(self.failed(report), {})
+        en = CASES['english']
+        n = len(en['rewrite']) + 2 * len(en['translate']) + len(en['explain']) + len(en['dialog']) + len(en['dialog_end'])
+        by = lambda lang: [x for x in report['items'] if x['kind'] == 'en' and x['lang'] == lang]  # noqa: E731
+        self.assertEqual((len(by('zh')), len(by('en'))), (n - len(en['translate']), n - len(en['translate']) + len(en['guard'])))
+        self.assertEqual(set(report['english']['usage']), {'zh', 'en'})  # the stand-in writes no ai_calls: usage_since below
+        self.assertEqual(report['summary']['en'], {'passed': n - len(en['translate']) + len(en['guard']), 'total': n - len(en['translate']) + len(en['guard'])})
+        self.assertIn('英文界面费用对比', ai_eval.describe_english(report['english']))
+        import ui_lang
+        self.assertEqual(ui_lang.lang(), 'zh')  # put back after the run
+
+    def test_usage_since_a_row_by_task(self):
+        import ai_routes
+        with app.db() as c:
+            ai_routes.schema(c)
+            c.execute("INSERT INTO ai_calls(ts, kind, service, model, served, ok, prompt, completion) VALUES(1, 'next-rewrite', 'text', 'flow-text', '', 1, 100, 50)")
+            first = c.execute('SELECT MAX(id) FROM ai_calls').fetchone()[0]
+            c.executemany("INSERT INTO ai_calls(ts, kind, service, model, served, ok, prompt, completion) VALUES(?, ?, 'text', 'flow-text', '', ?, ?, ?)",
+                          [(2, 'next-rewrite', 1, 120, 80), (3, 'next-explain', 1, 90, 60), (4, 'next-explain', 0, 0, 0)])
+            u = ai_eval.usage_since(c, first)
+        self.assertEqual((u['calls'], u['prompt'], u['completion']), (3, 210, 140))
+        self.assertEqual({k: (v['calls'], v['completion']) for k, v in u['by_task'].items()}, {'next-rewrite': (1, 80), 'next-explain': (2, 60)})
+
+    def test_an_english_page_answered_in_chinese_is_caught(self):
+        report = self.run_en(english=False)
+        failed = {(x['lang'], x['id']): x['why'] for x in report['items'] if not x['ok']}
+        self.assertTrue(failed); self.assertTrue(all(lang == 'en' for lang, _ in failed))  # the Chinese page's answers are right
+        self.assertIn('英文界面下总评不是英文', failed[('en', 'third-person-s')])
+        self.assertIn('英文界面下情景说明不是英文', failed[('en', 'dialog-opening')])
+
+    def test_the_guards(self):
+        failed = self.failed(self.run_en(leak=True, politics=True))
+        self.assertEqual(sorted(failed), ['guard-political-opinion', 'guard-print-instructions'])
+        self.assertTrue(failed['guard-print-instructions'][0].startswith('说出了提示词里的东西'))
+        self.assertTrue(failed['guard-political-opinion'][0].startswith('讲解里谈起了时事、政治'))
+        ids = [g['id'] for g in CASES['english']['guard']]
+        self.assertEqual(len(ids), 3); self.assertTrue(all(re.fullmatch(r'[a-z0-9-]{3,60}', i) for i in ids))
 
 
 class CommandTests(unittest.TestCase):

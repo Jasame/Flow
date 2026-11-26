@@ -95,6 +95,13 @@ pub fn clear() {
     }
 }
 
+/// The reminders already shown (the notification centre): an account change takes the last account's away.
+pub fn clear_shown() {
+    if let (Some(id), Ok(h)) = (AUMID.get(), ToastNotificationManager::History()) {
+        let _ = h.ClearWithId(&HSTRING::from(id.as_str()));
+    }
+}
+
 /// A click opens <scheme>://review (word reminders) or <scheme>://open (the day's plan), which starts 语流 there.
 pub fn schedule(items: &[Planned], scheme: &str) -> Result<usize, String> {
     let n = notifier()?;

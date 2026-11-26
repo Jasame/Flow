@@ -46,6 +46,7 @@ FlowApp.v / app / build / beta   1、App 版本、构建的提交（CI 的 GITHU
 FlowApp.platform   "windows" | "macos"（iOS 是 "ios"，安卓 "android"）
 FlowApp.has(k)     'notify' → true，'media' → true，'audio' / 'rec' / 'speech' → false（桌面网页自己放、自己录）
 FlowApp.call('hello')        → {v, app, build, platform, features}；call('app.visible') 把媒体状态再发一次
+FlowApp.call('account.changed') 切换账号、添加账号、退出登录以后：撤掉上一个账号的提醒，按现在的账号重排 → {ok, planned}
 FlowApp.notify.permission()  → 'granted' | 'denied' | 'undetermined' | 'provisional'
 FlowApp.notify.ask()         → true / false（macOS 第一次弹系统框；Windows 不问，看「设置 → 通知」）
 FlowApp.notify.sync(r)       r 不为空：照整份 /api/next/vocab 重排；null 或 {app: false}：关掉 App 的提醒

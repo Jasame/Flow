@@ -297,10 +297,22 @@ def run_device(pw, dev, opts):
     check(dev, 'starting check: ends with a level and band scores', res['h'].startswith('建议从') and 1 <= res['bands'] <= 4 and asked % 4 == 0, (res, asked))
 
     # ---- exam practice: a timed paper (its size set by the learner's minutes a day), handed in once, scored by part
+    # 考试练习 (B9's batch 3): the note as it was, small and grey; 我的考试 a white card and the one green button; the
+    # exams one white card, a row each with 「约 N 分钟 ›」
+    go(pg, '#/exam'); pg.wait_for_timeout(300)
+    ev = pg.evaluate("""() => { const n = document.querySelector('#view .ex-note'); return { hub: !!document.getElementById('spTypesH'), note: n ? [n.textContent, getComputedStyle(n).fontSize] : null,
+      cards: document.querySelectorAll('#view .ex-list').length, rows: document.querySelectorAll('#view .ex-list > .ex-row').length,
+      mins: [...document.querySelectorAll('#view .ex-row .m')].every(m => /^约 \\d+ 分钟 ›$/.test(m.textContent)), greens: document.querySelectorAll('#view .btn.primary').length,
+      invite: !!document.getElementById('exInvite'), wide: document.scrollingElement.scrollWidth - innerWidth }; }""")
+    if not ev['hub']:
+        check(dev, 'exam: the note under the title as it was (12 px), the exams in one white card with 「约 N 分钟 ›」, 设定我的考试 the one green button',
+              ev['note'] and '不是真题' in ev['note'][0] and ev['note'][1] == '12px' and ev['cards'] == 1 and ev['rows'] >= 7 and ev['mins']
+              and ev['invite'] and ev['greens'] == 1 and ev['wide'] <= 0, ev)
     go(pg, '#/exam/cet4')
-    ex = pg.evaluate("""() => { const c = document.querySelector('#view .opt[aria-pressed=true]'), d = document.getElementById('examCur');
-      return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .opt:not([aria-pressed=true])')).backgroundColor] : null; }""")
-    check(dev, 'exam: the chosen exam opens right under its card, 开始一套 in the primary style', ex and 0 <= ex[0] <= 40 and ex[1], ex)
+    ex = pg.evaluate("""() => { const c = document.querySelector('#view .ex-row[aria-pressed=true]'), d = document.getElementById('examCur');
+      return c && d ? [Math.round(d.getBoundingClientRect().top - c.getBoundingClientRect().bottom), getComputedStyle(document.getElementById('exStart')).backgroundColor !== getComputedStyle(document.querySelector('#view .ex-row:not([aria-pressed=true])')).backgroundColor,
+        document.querySelectorAll('#view .btn.primary').length] : null; }""")
+    check(dev, 'exam: the chosen exam opens right under its row, 开始一套 in the primary style and the only one', ex and 0 <= ex[0] <= 40 and ex[1] and ex[2] == 1, ex)
     with pg.expect_response(lambda r: r.url.endswith('/api/next/exam/paper')) as got:
         pg.click('#exStart')
     paper = got.value.json()
@@ -651,8 +663,24 @@ def run_device(pw, dev, opts):
 
     # ---- my progress: this month, last month, milestones
     go(pg, '#/growth')
-    gw = pg.evaluate("() => ({tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length})")
+    gw = pg.evaluate("""() => { const vis = e => !e.closest('details:not([open])'), all = document.querySelector('.grow-all');
+      return { tiles: document.querySelectorAll('.gtile').length, miles: document.querySelectorAll('.mile').length, rows: document.querySelectorAll('.grow-row').length,
+               icons: document.querySelectorAll('.grow-row .fi').length, hero: (document.querySelector('.grow-hero h2') || {}).textContent, near: [...document.querySelectorAll('.mile')].filter(vis).length,
+               fold: !!all && !all.open, prev: !!document.querySelector('.grow-mon a[aria-label="上个月"]'), next: !!document.querySelector('.grow-mon a[aria-label="下个月"]'),
+               report: (document.querySelector('.grow-link') || {}).getAttribute ? document.querySelector('.grow-link').getAttribute('href') : null, wide: document.documentElement.scrollWidth > innerWidth }; }""")
     check(dev, 'my progress: eight figures and the milestones', gw['tiles'] == 8 and gw['miles'] >= 10, gw)
+    # (in sight = not inside a closed fold: Chrome keeps the boxes of a folded <details>, so a height says nothing)
+    # one sentence for the month, seven rows with an icon each, the three nearest milestones (the rest folded), the month
+    # changed with the arrows (no next month from this one), the way to 周报
+    check(dev, 'my progress: the month in one sentence, seven rows, three milestones in sight with the rest folded',
+          gw['rows'] == 7 and gw['icons'] == 7 and ('天' in (gw['hero'] or '') or gw['hero'] == '还没有记录') and gw['near'] <= 3 and gw['fold'] and gw['prev'] and not gw['next']
+          and gw['report'] == '#/report' and not gw['wide'], gw)
+    pg.click('.grow-all > summary'); pg.wait_for_timeout(300)
+    opened = pg.evaluate("() => [...document.querySelectorAll('.mile')].filter(e => !e.closest('details:not([open])')).length")
+    pg.click('.grow-mon a[aria-label="上个月"]'); pg.wait_for_timeout(600)
+    back = pg.evaluate("() => ({ next: !!document.querySelector('.grow-mon a[aria-label=\"下个月\"]'), home: !!document.querySelector('.grow-top a[href=\"#/growth\"]'), tiles: document.querySelectorAll('.gtile').length })")
+    check(dev, 'my progress: 全部 opens the other milestones in place; last month has a way forward and back to this month',
+          opened == gw['miles'] and back == {'next': True, 'home': True, 'tiles': 8}, (opened, back))
 
     # ---- ability radar: set goals, take the reading check, the radar draws the skill against the goal
     go(pg, '#/radar/goals')

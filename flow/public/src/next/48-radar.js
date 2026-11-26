@@ -130,7 +130,7 @@
         // passage at once), never the browser voice unless the server cannot say it, and then the reason is shown.
         // Nothing is kept (key ''): a check is heard from the start. ✕ on the player counts as a play heard.
         const note = document.getElementById('aNote');
-        LONG.start({ key: '', texts: splitSentences(p.body.replace(/^[A-Z][a-z]+(?: [A-Z][a-z]+)?:\s+/gm, '')), nm: null, pack: p.pack, title: '能力测评 · 听力',
+        LONG.start({ key: '', texts: splitSentences(p.body.replace(/^(?:[A-Z][a-z]+(?: [A-Z][a-z]+)?|[A-Z]):\s+/gm, '')), nm: null, pack: p.pack, title: '能力测评 · 听力',
           onState: (state, i, why) => { if (note.isConnected) { note.textContent = why || ''; note.hidden = !why; } if (state === 'idle') done(); },
           onDone: done }, 0);
       };
