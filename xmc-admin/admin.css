@@ -223,3 +223,5 @@ html[data-env="beta"] .adm-brand svg rect{fill:#d97706}
 
 #invNew .field{display:grid;gap:4px;max-width:340px}
 #invNew .input{width:100%}
+.tk-kinds{display:flex;flex-wrap:wrap;gap:8px}
+
