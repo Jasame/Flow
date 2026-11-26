@@ -61,12 +61,13 @@
       <p class="lede rv" data-d="2">听一遍、读一遍、答几道题，再用自己的话说出来、写出来。生词点一下就懂，单词按遗忘曲线复习，一篇十几分钟。</p>
       <div class="cta-row rv" data-d="3">
         <a class="btn primary big" href="/" data-tap="about-start">免费开始学<span class="arr" aria-hidden="true">→</span></a>
-        <a class="btn ghost big" href="/#/guide" data-tap="about-guide">先看操作指南</a>
+        <a class="btn ghost big hero-dl" href="#download" data-dl-go data-tap="about-hero-download"><svg class="hd-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg><span class="hd-t">下载 App</span></a>
       </div>
-      <a class="film-link rv" data-d="3" href="#film"><span class="fl-ico" aria-hidden="true"></span>先看一分钟动画</a>
+      <p class="hero-links rv" data-d="3"><a class="film-link" href="#film"><span class="fl-ico" aria-hidden="true"></span>先看一分钟动画</a><a class="guide-link" href="/#/guide" data-tap="about-guide">先看操作指南</a></p>
       <ul class="facts rv" data-d="4">
-        <li>不用下载 App</li><li>手机、平板、电脑都能用</li><li>微信里也能打开</li>
+        <li>不装 App 也能用</li><li>手机、平板、电脑都能用</li><li>微信里也能打开</li>
       </ul>
+      <a class="scroll-cue" href="#film" data-cue><span>往下看看</span><svg class="sc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>
     </div>
     <div class="hero-visual rv" data-d="1">
       <div class="parallax" data-speed="-0.06">
@@ -82,7 +83,6 @@
       <div class="chip c-ai" aria-hidden="true"><span class="spark">✦</span>AI 讲解这一句</div>
     </div>
   </div>
-  <a class="scroll-cue" href="#film" aria-label="往下看：一分钟看懂语流"><span></span></a>
 </section>
 
 <!-- ============ film: 一分钟看懂语流. One timeline (about.js film()) draws this stage, and the two videos are recorded
@@ -676,10 +676,10 @@
 <!--/channel:prod-->
 <!--channel:beta-->
           <h4>怎么装（两步）</h4>
-          <ol class="app-steps"><li>用华为手机点下面的「加入内测」。还没装 AppTest（华为的测试版应用平台）的话，按提示先装好它，再回来点一次。（也可以先在华为应用市场搜「AppTest」装好。）</li><li>在 AppTest 里下载语流；以后有新版本，也在 AppTest 里更新，开了自动更新会自己更新。</li></ol>
-          <p class="app-warn">装好的是正式版语流：用正式版（flowlang.cn）的账号登录，不是内测版账号。这是测试版：每个测试版装好后最多能用 90 天，到期前会有新版本，在 AppTest 里更新就行。AppTest 不能在未成年模式下使用。</p>
+          <ol class="app-steps"><li>用 HarmonyOS 5.0 及以上的华为手机，在华为应用市场搜「AppTest」（华为的测试版应用平台）装好，用华为账号登录。</li><li>在 AppTest 里输入下面的邀请码，下载语流；以后有新版本，也在 AppTest 里更新，开了自动更新会自己更新。</li></ol>
+          <p class="app-warn">装好的鸿蒙 App 是正式版语流：请用 flowlang.cn 的账号登录（和内测版账号不通），没有的话在 App 里注册一个。这是测试版：每个测试版装好后最多能用 90 天，到期前会有新版本，在 AppTest 里更新就行。邀请码每月更新，过期了回这一页看新的。AppTest 不能在未成年模式下使用。</p>
           <p class="app-perm"><b>要用的权限：</b>麦克风，只在跟读和口语练习时用，第一次录音会问你。第一次打开会先问你同不同意《用户协议》和《隐私和数据》，不同意也能用基本模式。</p>
-          <div class="dl"><a class="btn primary dl-btn" data-harmony data-tap="about-harmony-join" aria-disabled="true">即将开放</a><p class="dl-needs">需要 HarmonyOS 5.0 及以上</p></div>
+          <div class="dl" data-harmony><p class="hm-code" hidden><span>邀请码</span><code></code><button type="button" class="btn ghost hm-copy" data-tap="about-harmony-copy">复制</button></p><a class="btn primary dl-btn" data-tap="about-harmony-join" aria-disabled="true">即将开放</a><p class="dl-needs">需要 HarmonyOS 5.0 及以上</p></div>
 <!--/channel:beta-->
         </div>
       </article>

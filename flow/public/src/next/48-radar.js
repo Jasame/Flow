@@ -161,7 +161,7 @@
         const DIMN = kind === 'speaking' ? { fluency: '流利度', accuracy: '准确度', range: '词汇句式', pronunciation: '发音清晰度' } : { content: '内容切题', organization: '结构衔接', accuracy: '语言准确', range: '词汇句式' };
         assessResult(name, x.recorded, `${aiMark('评分和建议由 AI 估计，仅供参考')}${x.transcript ? `<div class="small"><span class="muted">AI 听到的：</span>${esc(x.transcript)}</div>` : ''}
           <div class="ab-list">${Object.entries(x.scores).map(([k2, v]) => `<div class="ab"><span class="nm">${DIMN[k2] || k2}</span><span class="vbar"><i data-w="${v * 20}"></i></span><span class="lv">${v} / 5</span></div>`).join('')}</div>
-          ${x.strength ? `<div class="small"><span class="ok">做得好：</span>${esc(x.strength)}</div>` : ''}${(x.next || []).map(s => `<div class="small">· ${esc(s)}</div>`).join('')}`);
+          <div class="stack-s" data-ex-block>${x.strength ? `<div class="small"><span class="ok">做得好：</span><span data-ex>${esc(x.strength)}</span></div>` : ''}${(x.next || []).map(s => `<div class="small">· <span data-ex>${esc(s)}</span></div>`).join('')}</div>`);
       } catch (e) { out.innerHTML = ''; toast(e.message); }
     };
     if (kind === 'speaking') {

@@ -214,6 +214,16 @@ The owner approved these on 2026-11-24 (「按你的建议改，b6 发完就写�
     workflows for outside contributors' pull requests; one that changes anything under `.github/` (workflows,
     actions, settings files) is declined, whatever it says it does: its own workflow would run with what it wrote in
     it. Ask for the change without `.github/`, and a session here makes that part.
+11. **A squash never takes back someone else's work** (2026-11-26: #456 was squashed with `git reset --soft
+    origin/main` after another session's fetch had moved origin/main, and took #450 and its test out of main).
+    - Squash onto the base you worked from, worked out once: `base=$(git merge-base HEAD origin/main)`, then
+      `git reset --soft "$base"`. Never onto `origin/main` itself: any session's `git fetch` can move it under you.
+      To catch up with main, merge it in (`git merge origin/main`) instead of squashing onto it.
+    - Before pushing, read what the PR will change: `git diff --stat origin/main...HEAD`, then the lines it removes.
+      A removed line you did not write means stop and look.
+    - `tools/msi-run.sh` runs `tools/check_undo.py` first and sends nothing when the branch removes most of what a pull
+      request merged in the last 48 hours added and puts back what that one had replaced. Set `FLOW_ALLOW_UNDO=1`
+      only when taking it back is the point (and say so in the PR).
 
 ## 推之前跑哪些测试 (what to run before pushing)
 
@@ -296,6 +306,19 @@ GitHub's machines.
   workspace after every job. A fork's pull request is never sent there by the pick, and because a fork could edit the
   workflow itself, Settings → Actions → General keeps "Require approval for all outside collaborators": never approve a
   fork's run that changes `.github/workflows/` without reading it.
+- **Local code mirror** (2026-11-26, to spend less of the proxy): `~/ci-cache/flow.git` holds main (objects are only
+  added, `gc.auto=0`), refreshed every 10 minutes by cron (`~/ci-cache/update.sh`: first from msi-run's repository the
+  Macs push to over the LAN, then main's new commits from GitHub). Every runner's `.env` has
+  `GIT_ALTERNATE_OBJECT_DIRECTORIES` pointing at its objects, so a checkout downloads only what the mirror lacks
+  (12 MB → 0 for main), and `PIP_INDEX_URL` at mirrors.aliyun.com (direct, in `NO_PROXY`). Undo: the runners'
+  `.env.bak-20261126-mirror`, `crontab -r`. Reloading a runner's `.env` without sudo: kill its idle `Runner.Listener`
+  (never one with a `Runner.Worker` child); `RunnerService.js` starts it again within 5 s.
+- **Nightly whole-site check** (`tools/nightly_check.py`, run by `tools/nightly-msi.sh` from cron at 01:00 on main as it
+  is that night): every UI group, each page in Chinese and English on a phone and a desktop (screenshots, script
+  errors, Chinese left in the English pages, time to draw), each material's 读 and 听 pages, and `check_compat.py`
+  (static only: no old Safari on Linux). Local server and demo learners only; four cores at the lowest priority, waiting
+  while a CI job runs, stopping at 06:30. The report goes to `~/nightly/publish/<date>/`; read it from the Mac with
+  `ssh msi-flow cat ~/nightly/publish/$(date +%F)/report.md` (the shots it names are next to it).
 
 ## End-to-end test on the server (`qa_e2e.py`)
 

@@ -592,8 +592,15 @@ def run_device(pw, dev, opts):
                 break
             if pg.query_selector('#fixIn'):
                 seen_fix = True
+                # the card before may still be sending its answer: wait for the box to take input (2026-11-26, tablet,
+                # MSI fully loaded: it was filled while still disabled and timed out), then for the answer's buttons
+                pg.wait_for_selector('#fixIn:not([disabled])', timeout=8000)
                 pg.fill('#fixIn', 'would have arrived')
-                pg.press('#fixIn', 'Enter'); pg.wait_for_timeout(250)
+                pg.press('#fixIn', 'Enter')
+                try:
+                    pg.wait_for_selector('#go, #fixMiss', timeout=8000)
+                except Exception:
+                    pass  # the check below says what is missing
                 # Right: one "next" button. Other words than the reference: the learner says whether it means the same.
                 nxt = pg.query_selector('#go') or pg.query_selector('#fixMiss')
                 check(dev, 'Enter submits a fix card', nxt is not None and (pg.query_selector('#go') or pg.query_selector('#fixSame')))
@@ -602,6 +609,7 @@ def run_device(pw, dev, opts):
                 seen_passage = seen_passage or bool(pg.query_selector('.passage-q .ptext'))
                 pg.click('.qopt >> nth=0'); pg.wait_for_selector('#go', timeout=5000); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('#spellIn'):
+                pg.wait_for_selector('#spellIn:not([disabled])', timeout=8000)  # as the fix card: the card before may still be sending
                 pg.fill('#spellIn', 'x'); pg.press('#spellIn', 'Enter'); pg.wait_for_timeout(250); pg.click('#go'); pg.wait_for_timeout(350); continue
             if pg.query_selector('[data-claim]'):
                 if touch:
@@ -1793,7 +1801,12 @@ def ux_run(pw):
         p8.route('**/api/next/tts', lambda r: r.fulfill(json={'url': '/audio/tts/us-f/no-aac-0001.wav', 'made': False}))
         p8.route('**/audio/tts/us-f/no-aac-0001.wav', lambda r: r.fulfill(status=200, content_type='audio/wav', body=short))
         p8.goto(BASE + f'/#/m/{med}/listen', wait_until='networkidle'); settle(p8, '#playAll'); p8.wait_for_timeout(300)
-        p8.click('#playAll'); p8.wait_for_timeout(2500)
+        p8.click('#playAll')
+        for _ in range(50):  # up to 10 s for the switch to AI 朗读 (2026-11-26: a fixed 2.5 s was too short on a busy MSI)
+            p8.wait_for_timeout(200)
+            if tts8 and p8.evaluate("() => ((document.getElementById('playAll') || {}).textContent || '').trim() === '暂停'"):
+                break
+        p8.wait_for_timeout(300)
         eight = p8.evaluate("() => ({ toasts: window.__toasts.filter(t => t.includes('放不了录音的格式')).length, missing: window.__toasts.filter(t => t.includes('没加载出来')).length, btn: (document.getElementById('playAll') || {}).textContent || '' })")
         check(dev, 'a recording that will not decode here (code 4, the file there): the text goes on in AI 朗读 sentence by sentence, why said once',
               eight['toasts'] == 1 and eight['missing'] == 0 and len(tts8) >= 1 and eight['btn'].strip() == '暂停', {**eight, 'tts': len(tts8)})
@@ -2669,6 +2682,17 @@ def privacy_run(pw):
         back = pg.query_selector('#stoF') is None
         check(dev, '数据存放: an older account is asked first on every page, 不同意 pauses it, ticking goes on',
               asked and other and paused and '勾选' in err and '用户协议' in err and both and back, (asked, other, paused, err, both, back))
+        # feedback #1 (2026-11-25): the page open while the consent goes (another device withdrew it): the next page that
+        # asks the server (我的进步; 单词 was preloaded and shows from the copy until its next request) is the consent page,
+        # not 「重试」 alone; one line, the tick and one button, the rest in small type
+        pg.evaluate("""async () => { const s = await (await fetch('/api/session', {credentials: 'same-origin'})).json();
+            await fetch('/api/account/storage', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json',
+              'X-CSRF-Token': s.user.csrf}, body: JSON.stringify({agree: false})}); location.hash = '#/growth'; }""")
+        pg.wait_for_selector('#stoF', timeout=8000); settle(pg)
+        calm = ('这个账号已暂停' in (pg.text_content('h1') or '') and pg.is_visible('#stoF [type=submit]') and not pg.is_visible('text=重试')
+                and pg.is_visible('#stoDel') and pg.locator('.sto-why').count() == 1 and not pg.is_visible('.sto-why .hint >> nth=1'))
+        pg.screenshot(path=str(OUT / 'privacy-storage-withdrawn-open.png'))
+        check(dev, '数据存放: withdrawn while a page is open, the next page is the short consent page, never 「重试」 alone', calm)
         ctx.close()
         # an older account without a band: asked once, the question stays until answered
         ctx = browser.new_context(**phone)
@@ -3705,6 +3729,24 @@ def progress_run(pw):
         check(dev, 'the unsubscribe link opens signed out, asks first, and explains a link that no longer works',
               first == ('#/weekly-off/not-a-real-link-0123456789', '退订每周进度邮件') and '失效' in err, (first, err))
         ctx.close()
+        # 小彩蛋: holding 今日's greeting plays one of four little shows over the page, never in the way of a tap and gone
+        # after 1.5 s; with 减少动态效果 nothing plays
+        for motion in ('no-preference', 'reduce'):
+            ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion=motion)
+            ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['guide']['token'], 'url': BASE}])
+            pg = ctx.new_page(); errors = []; pg.on('pageerror', lambda e: errors.append(str(e)))
+            pg.goto(BASE + '/#/', wait_until='networkidle'); settle(pg)
+            box = pg.locator('.greet-row .greet').bounding_box()
+            pg.mouse.move(box['x'] + 20, box['y'] + box['height'] / 2); pg.mouse.down(); pg.wait_for_timeout(560); pg.mouse.up(); pg.wait_for_timeout(250)
+            shown = pg.evaluate("(c => c && [c.dataset.kind, getComputedStyle(c).pointerEvents])(document.querySelector('canvas.egg-layer'))")
+            pg.wait_for_timeout(1500)
+            after = pg.evaluate("[!!document.querySelector('canvas.egg-layer'), String(getSelection())]")
+            if motion == 'reduce':
+                check(dev, '小彩蛋: with 减少动态效果 holding the greeting plays nothing', shown is None and not errors, (shown, errors))
+            else:
+                check(dev, '小彩蛋: holding the greeting plays one of the four, over the page but taking no tap, gone after 1.5 s, nothing selected',
+                      shown and shown[0] in ('wave', 'rings', 'burst', 'hello') and shown[1] == 'none' and after == [False, ''] and not errors, (shown, after, errors))
+            ctx.close()
         # 听两句、答一句 (r29 第 2 项, the 5-minute 表达日): two sentences of the text to hear, a question the AI wrote (marked
         # AI 生成, one grey line for the voice), 说出来 the one big button; 给我一点提示 marks the answer as helped. Typed here:
         # met keeps the phrase in the word book with 撤销 and offers 再说一次 / 下一步; not yet gives 再说一次 and 先跳过 only.
@@ -4757,6 +4799,29 @@ def start_run(pw):
                       (again, pg.evaluate('location.hash')))
                 check(dev, f'{tag}: no script errors', not errs, errs[:3])
                 ctx.close()
+        # an older account (goal only), signed out, opens the site (/, or 认识语流's 「免费开始学」 → /#/join), lands on the
+        # start page and signs in there: 今日 follows, not the questions again (the owner, 2026-11-26)
+        back = []
+        for start in ('/', '/#/join'):
+            ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
+            if 'NO_INTRO' in globals():  # (新手引导 v2 over the start page: this check is about signing in under it)
+                ctx.add_init_script(NO_INTRO)
+            pg = ctx.new_page(); errs = []; pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+            pg.goto(BASE + start, wait_until='networkidle'); settle(pg); pg.wait_for_timeout(400)
+            landed = pg.evaluate('location.hash')
+            if pg.evaluate("document.getElementById('sheet').hidden"):
+                pg.click('#wgLogin'); pg.wait_for_selector('#authForm', timeout=4000)
+            tab = pg.query_selector('#sheetCard [role=tab]:has-text("登录")')
+            if tab and tab.get_attribute('aria-selected') != 'true':
+                tab.click(); pg.wait_for_timeout(250)
+            pg.fill('#authForm [name=username]', 'ui-returning'); pg.fill('#authForm [name=password]', CFG['learners']['returning']['password'])
+            pg.click('#authForm [type=submit]')
+            pg.wait_for_function("() => document.getElementById('sheet').hidden", timeout=8000); settle(pg); pg.wait_for_timeout(500)
+            back.append((start, landed, pg.evaluate('location.hash'), pg.query_selector('#view .hello, #view .today-plan') is not None,
+                         pg.query_selector('[data-goal]') is None, errs[:2]))
+            ctx.close()
+        check(dev, 'an older account signed out opens / or /#/join, lands on the start page, signs in there: 今日, not the questions again',
+              all(l == '#/welcome' and h in ('#/', '') and today and gone and not e for (_, l, h, today, gone, e) in back), back)
         # a new account without settings: the page, written to the account in one call; 今日 then suggests a test
         ctx = browser.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True)
         ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['fresh']['token'], 'url': BASE}])
@@ -4846,7 +4911,7 @@ LEAK_JS = r"""() => {
 }"""
 EN_PAGES = ['#/', f'#/m/{PID}/listen', f'#/m/{PID}/read', f'#/m/{PID}/check', f'#/m/{PID}/output', f'#/m/{PID}/output/retell',
             f'#/m/{PID}/output/dialog', f'#/m/{PID}/output/translate', f'#/m/{PID}/output/essay', '#/library', '#/cards', '#/vocab/plan',
-            '#/vocab/test', '#/review', '#/me', '#/practice']
+            '#/vocab/test', '#/review', '#/me', '#/practice', '#/today/edit']
 EN_DONE = set(EN_PAGES)
 EN_ONCE = "try { if (!sessionStorage.getItem('en-set')) { sessionStorage.setItem('en-set', '1'); localStorage.setItem('flow-lang', JSON.stringify('en')); } } catch (e) {}"
 
@@ -4885,6 +4950,29 @@ def english_run(pw):
                 check(dev, f'{h}: no sideways scrolling in English', wide <= 1, wide)
             check(dev, f'{scheme}: no script errors on the English pages', not errs, errs[:3])
             ctx.close()
+        # 看中文 under an AI explanation (31-ex-zh.js): the rewrite's result, its button in both languages, the Chinese under each line
+        ctx = browser.new_context(viewport={'width': 375, 'height': 667}, is_mobile=True, has_touch=True, locale='zh-CN', bypass_csp=True, reduced_motion='reduce')
+        ctx.add_cookies([{'name': 'flow_session', 'value': CFG['learners']['english']['token'], 'url': BASE}])
+        ctx.add_init_script(EN_ONCE)
+        pg = ctx.new_page(); errs = []
+        pg.on('pageerror', lambda e: errs.append(page_error(pg, e)))
+        pg.goto(BASE + f'/#/m/{PID}/output', wait_until='load'); settle(pg)
+        pg.fill('#ans', 'If I had left earlier, I would catch the bus.'); pg.click('#go')
+        pg.wait_for_selector('.result [data-ex]', timeout=15000); pg.wait_for_timeout(300)
+        btn = pg.query_selector('.result + .ex-zh-row button')
+        check(dev, '看中文: a 「Show Chinese · 看中文」 button right under the AI feedback', btn is not None and 'Show Chinese' in btn.text_content() and '看中文' in btn.text_content(),
+              btn.text_content() if btn else None)
+        if btn:
+            n = pg.evaluate("document.querySelectorAll('.result [data-ex]').length")
+            btn.click(); pg.wait_for_selector('.result .ex-zh', timeout=10000); pg.wait_for_timeout(200)
+            got = pg.evaluate("[...document.querySelectorAll('.result .ex-zh')].map(x => [x.textContent, x.hasAttribute('data-zh'), x.lang])")
+            check(dev, '看中文: each explanation line gets its Chinese under it, marked to stay Chinese', len(got) == n and all(z.startswith('（中文）') and k and l == 'zh-CN' for z, k, l in got), got[:3])
+            check(dev, '看中文: the row says the Chinese is AI-made (AI 生成) and the button now hides it',
+                  pg.evaluate("!!document.querySelector('.ex-zh-row .ai-mark') && document.querySelector('.ex-zh-row button').textContent.includes('Hide Chinese')"))
+            pg.click('.ex-zh-row button'); pg.wait_for_timeout(200)
+            check(dev, '看中文: tapped again, the Chinese is hidden', pg.evaluate("[...document.querySelectorAll('.result .ex-zh')].every(x => !x.offsetParent)"))
+        check(dev, '看中文: no script errors', not errs, errs[:3])
+        ctx.close()
         # one screen in English where the Chinese page is one (the review card, 测词汇量): English is longer
         for H in (667, 553):
             ctx = browser.new_context(viewport={'width': 375, 'height': H}, is_mobile=True, has_touch=True, device_scale_factor=2, locale='zh-CN',

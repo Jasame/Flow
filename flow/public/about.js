@@ -54,6 +54,9 @@ document.documentElement.classList.add('js');
       if (line) line.style.transform = `scaleX(${max > 0 ? clamp(y / max, 0, 1) : 0})`;
       if (top) top.classList.toggle('scrolled', y > 8);
       if (!RM) par.forEach(el => {
+        // on a phone the hero's phone picture sits under the text and its top edge peeks at the bottom of the first
+        // screen (往下看看); drifting it down would hide that edge, so it stays put there
+        if (window.innerWidth < 900 && el.closest('.hero-visual')) { el.style.transform = ''; return; }
         const r = el.getBoundingClientRect(); if (r.bottom < -200 || r.top > vh + 200) return;
         const d = (r.top + r.height / 2 - vh / 2) * Number(el.dataset.speed || 0);
         el.style.transform = `translate3d(0,${d.toFixed(1)}px,0)`;
@@ -340,6 +343,10 @@ document.documentElement.classList.add('js');
   function hero() {
     const h = $('.hero .display');
     if (h) requestAnimationFrame(() => setTimeout(() => h.classList.add('in'), 60));
+    // the phone under the hero is part of the first screen (on a phone only its top peeks out): its cards come in on
+    // load, not once 12% of it is in view, so the first screen moves and hints at more below (the owner, 2026-11-26)
+    const v = $('.hero-visual');
+    if (v) setTimeout(() => v.classList.add('in'), 400);
   }
 
   /* ---------- the buttons that lead into the site are counted: per day and button only, nothing about who
@@ -561,22 +568,100 @@ document.documentElement.classList.add('js');
     }), { threshold: [0, 0.45, 0.8] }).observe(stage);
   }
 
-  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this button. The page never carries the AppTest link: the button
-     asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学). Signed in
-     with a link: 「加入内测」 opens it; signed in, no link yet: 即将开放 stays; not signed in: 「登录内测版后显示」 goes to
-     the site to sign in. 语流 (flowlang.cn) has no such button: its card says how to ask to join. ---------- */
+  /* ---------- 鸿蒙 内测 (#download): only the 内测版 has this box. The page never carries the AppTest invite code (or
+     link): it asks /api/next/harmony-test, which gives it only to someone signed in to the 内测版 (the owner: 只发同学).
+     Signed in with a code: the code and 「复制」; with a link: 「加入内测」 opens it; with neither: 即将开放 stays; not
+     signed in: 「登录内测版后显示」 goes to the site to sign in. 语流 (flowlang.cn) has no such box. ---------- */
   function harmony() {
-    const b = $('[data-harmony]'); if (!b || !window.fetch) return;
+    const box = $('[data-harmony]'); if (!box || !window.fetch) return;
+    const b = $('.dl-btn', box), codeBox = $('.hm-code', box);
     fetch('/api/next/harmony-test', { credentials: 'same-origin', cache: 'no-store' }).then(r => r.json().then(j => [r.status, j], () => [r.status, {}])).then(([st, j]) => {
       if (st === 401) { b.href = '/'; b.removeAttribute('aria-disabled'); b.textContent = '登录内测版后显示'; return; }
-      const u = (st === 200 && j && typeof j.url === 'string') ? j.url : '';
-      if (!/^https:\/\/[^\s"'<>]+$/.test(u)) return;
-      b.href = u; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测';
+      if (st !== 200 || !j) return;
+      const code = typeof j.code === 'string' && /^[A-Za-z0-9]{4,32}$/.test(j.code) ? j.code : '';
+      const url = typeof j.url === 'string' && /^https:\/\/[^\s"'<>]+$/.test(j.url) ? j.url : '';
+      if (code) {
+        $('code', codeBox).textContent = code; codeBox.hidden = false; b.hidden = true;
+        const copy = $('.hm-copy', codeBox);
+        copy.addEventListener('click', () => {
+          const done = () => { copy.textContent = '已复制'; setTimeout(() => { copy.textContent = '复制'; }, 1600); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).then(done, () => {});
+          else { const r = document.createRange(); r.selectNodeContents($('code', codeBox)); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+        });
+        return;
+      }
+      if (url) { b.href = url; b.target = '_blank'; b.rel = 'noopener'; b.removeAttribute('aria-disabled'); b.textContent = '加入内测'; }
     }).catch(() => { /* 即将开放 stays */ });
   }
 
+  /* ---------- 下载 on the first screen (the owner, 2026-11-26: 手机上第一屏看不到下载): the entry says what this device
+     gets and goes to its card in 在哪儿都能学; for an installer (安卓, Windows, Mac) it also opens the same sheet as the
+     card's 下载安装 (what it is, who makes it, permissions, SHA-256), so nothing downloads without it. ---------- */
+  function deviceKind() {
+    const ua = navigator.userAgent || '';
+    if (/OpenHarmony|HarmonyOS/i.test(ua)) return 'harmony';
+    if (/Android/i.test(ua)) return 'android';
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+    if (/Windows/.test(ua)) return 'windows';
+    if (/Macintosh|Mac OS X/.test(ua)) return 'mac';
+    if (/Linux|X11/.test(ua)) return 'linux';
+    return '';
+  }
+  const DL_GO = {
+    android: ['下载安卓 App', '[data-app=android]', 'android'], windows: ['下载 Windows 版', '[data-app=windows]', 'windows'],
+    mac: ['下载 Mac 版', '[data-app=mac]', 'mac'], linux: ['下载 Linux 测试版', '[data-app=linux]', ''],
+    ios: ['加到 iPhone 主屏幕', '[data-app=web]', ''], harmony: ['鸿蒙版内测中', '[data-app=harmony]', '']
+  };
+  function downloadEntry() {
+    const go = DL_GO[deviceKind()];
+    $$('[data-dl-go]').forEach(a => {
+      const t = $('.hd-t', a);
+      if (go && t) t.textContent = go[0];
+      a.addEventListener('click', e => {
+        const card = go && $(go[1]);
+        if (!card) return;  // no idea which device: the plain #download jump
+        e.preventDefault();
+        card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+        const btn = go[2] && $('[data-dl="' + go[2] + '"] .dl-btn');
+        if (btn && btn.getAttribute('href')) setTimeout(() => btn.click(), 450);  // the installer is listed: its sheet
+      });
+    });
+  }
+
+  /* ---------- the top bar's 开始学 (the owner, 2026-11-26): hidden while the hero's 免费开始学 is on screen or below it,
+     shown once that button has scrolled up out of sight, hidden again on the way back; the first screen keeps one
+     solid button. With 减少动态效果 it appears at once (about.css). No IntersectionObserver: it just stays. ---------- */
+  function ctaReveal() {
+    const top = $('#top'), hero = $('.hero .cta-row .btn.primary');
+    if (!top || !hero || !IO) return;
+    top.classList.add('cta-watch');
+    new IO(es => es.forEach(e => {
+      top.classList.toggle('cta-on', !e.isIntersecting && e.boundingClientRect.bottom < (e.rootBounds ? e.rootBounds.top : 0) + 1);
+    }), { rootMargin: '-64px 0px 0px 0px' }).observe(hero);
+  }
+
+  /* ---------- 往下看看 (the owner, 2026-11-26): the cue under the first screen goes away on the first scroll and does not
+     come back (nor when the page opens further down); tapping it scrolls to what comes next: the phone picture on a
+     phone (it peeks below the cue), the next section on a wide screen. The floating arrow is CSS. ---------- */
+  function scrollCue() {
+    const cue = $('[data-cue]'); if (!cue) return;
+    if (scrollY > 24) { cue.classList.add('gone'); return; }
+    const onScroll = () => { if (scrollY > 24) { cue.classList.add('gone'); removeEventListener('scroll', onScroll); } };
+    addEventListener('scroll', onScroll, { passive: true });
+    // where a block sits in the page, without the transforms it may still be easing out of (.rv comes in from below)
+    const pageTop = el => { let y = 0; for (let n = el; n; n = n.offsetParent) y += n.offsetTop; return y; };
+    cue.addEventListener('click', e => {
+      const pic = $('.hero-visual'), film = $('#film');
+      const to = pic && pageTop(pic) - scrollY > innerHeight * 0.5 ? pic : film;
+      if (!to) return;
+      e.preventDefault();
+      const head = $('#top') ? $('#top').offsetHeight : 0;
+      window.scrollTo({ top: pageTop(to) - head - 8, behavior: RM ? 'auto' : 'smooth' });
+    });
+  }
+
   function start() {
-    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); film(); scrolling();
+    taps(); hero(); reveal(); pauseOffscreen(); statusBars(); story(); lookup(); curve(); levels(); graph(); radar(); shelf(); timers(); faq(); downloads(); harmony(); downloadEntry(); ctaReveal(); scrollCue(); film(); scrolling();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

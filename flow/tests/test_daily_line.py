@@ -111,8 +111,22 @@ class PageTests(unittest.TestCase):
             self.assertIn(s, JS, s)
         self.assertNotIn('(innerHeight < 500 && innerWidth > innerHeight) || !!(path && h.path.back)', JS)
         self.assertIn("${ICON.star}收藏</button>${aiVoiceNote('AI 合成', 'span')}</div>", JS)  # the voice is synthesized: 「AI 合成」 at the end of the row (标识办法)
-        for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot'):
+        for s in ('.lc-en', '.line-row', '.tv-deck', 'scroll-snap-type:x mandatory', 'scroll-snap-stop:always', 'scroll-snap-align:center', '.week-slot',
+                  '.tv-days i.on{background:var(--green)}', '.tv-wk7 i.on{background:var(--green)}'):  # the days studied, in the accent (B9 2026-11-26)
             self.assertIn(s, CSS, s)
+
+    def test_the_easter_egg_is_short_silent_and_never_in_the_way(self):
+        # 小彩蛋 (the user's pick 2026-11-26): hold 今日's greeting, or the plan all done the first time that day; four
+        # kinds, never the same twice in a row; 1.5 s; a layer that takes no tap, made to play and taken away; not with
+        # 减少动态效果; no sound and nothing sent (no audio, no fetch, no api in it)
+        egg = JS[JS.index('const EGG = (() => {'):JS.index("return { play, bindGreeting, planDone };")]
+        for s in ('const MS = 1500;', "matchMedia('(prefers-reduced-motion: reduce)')", '} while (k === last);', 'cv.remove(); busy = false;',
+                  "cv.className = 'egg-layer'", 'setTimeout(() => { hold = 0; play(x0, y0); }, 450)', "load('flow-egg-done') === day"):
+            self.assertIn(s, egg, s)
+        for s in ('api(', 'fetch(', 'Audio', 'speak', 'TTS'):
+            self.assertNotIn(s, egg, s)
+        self.assertIn("EGG.bindGreeting(view.querySelector('.greet-row .greet'))", JS)
+        self.assertIn('.egg-layer{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:9999;pointer-events:none}', CSS)
 
 if __name__ == '__main__':
     unittest.main()

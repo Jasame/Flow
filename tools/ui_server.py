@@ -56,6 +56,9 @@ def fake(messages, audio=None, grounding=False):
     """Plausible answers for every prompt Flow sends, keyed on the prompt's role line."""
     system, prompt = messages[0]['content'], messages[-1]['content']
     J = lambda o: (json.dumps(o, ensure_ascii=False), 'stop')
+    if '你是翻译。把英语学习反馈' in system:  # 看中文 under an English explanation (ai_lang.to_zh): each line back, marked as Chinese
+        texts = json.loads(prompt.split('\n', 1)[1].split('\n\n输出', 1)[0])['texts']
+        return J({'zh': ['（中文）' + t[:40] for t in texts]})
     if '评估老师' in system:  # the radar's speaking and writing assessments
         dims = ('fluency', 'accuracy', 'range', 'pronunciation') if '口语' in system else ('content', 'organization', 'accuracy', 'range')
         return J({'transcript': 'I went to Hangzhou last spring with my parents.' if '口语' in system else '', 'level': 'B1', 'position': 0.6,
@@ -152,6 +155,9 @@ def fake(messages, audio=None, grounding=False):
 
 
 chat_service.request_model = fake
+# 看中文 (ai_lang.ask) calls the text service itself, not request_model: its prompt is answered here too
+_text_service = chat_service._request_text_service
+chat_service._request_text_service = lambda messages, *a, **k: (fake(messages) if '你是翻译。把英语学习反馈' in messages[0]['content'] else _text_service(messages, *a, **k))
 
 # The server voice (tts_service): on, answered by a CosyVoice sample instead of the gateway; files in this run's folder.
 os.environ['FLOW_TTS_MODEL'] = 'flow-tts'
@@ -166,6 +172,7 @@ LEARNERS = {'a2': ('A2', 'daily', ['life']), 'b1': ('B1', 'work', ['work', 'scie
             **{d: ('B1', 'work', ['work', 'science']) for d in ('phone', 'phone-land', 'tablet', 'desktop', 'phone-360')},
             'guide': ('B1', 'work', ['work', 'science']),  # the 操作指南 screenshots (tools/guide_shots.py)
             'leaver': ('B1', 'work', ['work', 'science']),  # 注销账号 in tools/ui_test.py (learner_run)
+            'returning': ('B1', 'work', ['work']),  # an older account signing in from the start page (start_run)
             'a11y': ('B1', 'work', ['work', 'science']),  # the screen-reader and contrast audit (a11y_run)
             'pile': ('B1', 'work', ['work', 'science']),  # back from a break: reviews piled up (backlog_run)
             'side': ('B1', 'work', ['work']),  # 「认识」放在 and 这次什么时候复习 (review_side_run): 20 words due
@@ -194,7 +201,7 @@ out = {}
 with app.db() as c:
     for name, (level, goal, themes) in LEARNERS.items():
         uname = '小林' if name == 'guide' else f'ui-{name}'
-        secret = 'ui-leaver-' + secrets.token_hex(8) if name == 'leaver' else ''
+        secret = f'ui-{name}-' + secrets.token_hex(8) if name in ('leaver', 'returning') else ''  # (the two that type a password)
         c.execute('INSERT INTO users(username,password) VALUES(?,?)', (uname, app.password(secret) if secret else 'ui-no-login:' + secrets.token_hex(8)))
         uid = c.execute('SELECT id FROM users WHERE username=?', (uname,)).fetchone()[0]
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
@@ -205,6 +212,8 @@ with app.db() as c:
             continue
         nx.save_profile(c, uid, {'level': level, 'goal': goal if goal in nx.GOALS else next(iter(nx.GOALS)), 'themes': [t for t in themes if t in nx.THEMES], 'minutes': 15})
         vs.save_plan(c, uid, {'book': 'core' if level == 'A2' else 'mid', 'daily_new': 10, 'retention': 0.9})
+        if name == 'returning':  # made before more than one goal could be chosen: goal only
+            c.execute('UPDATE next_profiles SET goals=NULL WHERE user_id=?', (uid,)); c.commit()
         for w, ctx in (('commute', 'I commute to work by train.'), ('deadline', 'The deadline is on Friday.'), ('make ends meet', 'It is hard to make ends meet.')):
             nx.save_card(c, uid, {'text': w, 'context': ctx, 'pack': PID})
         nx.save_card(c, uid, {'text': 'not A so much as B', 'meaning': '句型｜例：It is not talent so much as practice.', 'context': 'It is not talent so much as practice.'})

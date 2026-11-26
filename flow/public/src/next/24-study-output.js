@@ -28,10 +28,10 @@
           if (blob) body.audio = await MIC.payload(blob); else body.text = text;
           const x = (await api('/api/next/retell', body)).result;
           if (!out.isConnected) return;
-          out.innerHTML = `<div class="result enter stack">${aiMark('点评和示范复述由 AI 生成，仅供参考')}
+          out.innerHTML = `<div class="result enter stack" data-ex-block>${aiMark('点评和示范复述由 AI 生成，仅供参考')}
             ${blob ? `<div class="card sunk small"><span class="muted">AI 听到：</span>${esc(x.transcript)}</div>` : ''}
-            <div class="card verdict"><span class="dot"></span><div>${esc(x.comment)}<div class="tiny muted">讲到 ${x.points.filter(p => p.covered).length} / ${x.points.length} 个要点</div></div></div>
-            <div class="card flat stack-s"><b>原文要点</b>${x.points.map(p => `<div class="small"><span class="${p.covered ? 'ok-mark' : 'bad-mark'}">${p.covered ? '✓' : '✗'}</span> ${esc(p.point)}</div>`).join('')}</div>
+            <div class="card verdict"><span class="dot"></span><div><span data-ex>${esc(x.comment)}</span><div class="tiny muted">讲到 ${x.points.filter(p => p.covered).length} / ${x.points.length} 个要点</div></div></div>
+            <div class="card flat stack-s"><b>原文要点</b>${x.points.map(p => `<div class="small"><span class="${p.covered ? 'ok-mark' : 'bad-mark'}">${p.covered ? '✓' : '✗'}</span> <span data-ex>${esc(p.point)}</span></div>`).join('')}</div>
             ${x.used.length ? `<div class="small">用上了原文的表达：${x.used.map(u => `<span class="pill green">${esc(u)}</span>`).join(' ')}</div>` : ''}
             ${fixesHTML(x.fixes)}
             ${x.model ? `<div class="card flat stack-s"><div class="row between"><b>示范复述</b><span class="say-pair">${aiVoiceNote('AI 合成', 'span')}<button class="icon-btn" id="rtSay" type="button" aria-label="朗读示范复述（AI 朗读）">${ICON.speak}</button></span></div><div class="text small">${esc(x.model)}</div></div>` : ''}</div>`;
@@ -47,7 +47,7 @@
       const hist = [];
       pane.innerHTML = `${outTabs('dialog')}<div class="card flat task stack-s"><b${m.speaking_task ? ' data-zh' : ''}>${esc(m.speaking_task || '围绕这篇的话题和 AI 聊几句')}</b>
           <div class="ai-line">${aiTag()}<span>对话里的另一方由 AI 扮演</span>${aiVoiceNote('AI 朗读', 'span')}</div><span class="muted small">AI 扮演情景里的另一方。可以打字或说，每说一句它会顺手纠正；聊 4–6 轮后点「结束并总结」。</span></div>
-        <div class="chat" id="chat"></div>
+        <div class="chat" id="chat" data-ex-block></div>
         <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
           <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答…"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend">发送</button></div>
           <div><button class="btn small ghost" id="dlgEnd">结束并总结</button></div></div>
@@ -67,7 +67,7 @@
         const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
         const x = await turn({}); if (!x) { btn.disabled = false; btn.textContent = '开始对话'; return; }
         btn.parentNode.remove();
-        chat.insertAdjacentHTML('beforeend', `<div class="scene small">${esc(x.scene)}${x.role ? `（AI 扮演：${esc(x.role)}）` : ''}</div>`);
+        chat.insertAdjacentHTML('beforeend', `<div class="scene small"><span data-ex>${esc(x.scene)}</span>${x.role ? `（AI 扮演：${esc(x.role)}）` : ''}</div>`);
         bubble('ai', x.reply); TTS.say(x.reply); hist.push({ role: 'ai', text: x.reply });
         pane.querySelector('#dlgIn').hidden = false; showInput(); if (!TOUCH) pane.querySelector('#dlgText').focus({ preventScroll: true });
       };
@@ -75,7 +75,7 @@
         const body = blob ? { audio: await MIC.payload(blob) } : { text };
         const x = await turn(body); if (!x) return;
         const me = x.heard || text;
-        bubble('me', me, x.correction ? `<div class="fix tiny"><del>${esc(x.correction.original)}</del> → <b>${esc(x.correction.better)}</b> <span class="muted">${esc(x.correction.why)}</span></div>` : '');
+        bubble('me', me, x.correction ? `<div class="fix tiny"><del>${esc(x.correction.original)}</del> → <b>${esc(x.correction.better)}</b> <span class="muted" data-ex>${esc(x.correction.why)}</span></div>` : '');
         hist.push({ role: 'me', text: me });
         bubble('ai', x.reply); TTS.say(x.reply); hist.push({ role: 'ai', text: x.reply });
         pane.querySelector('#dlgHint').textContent = x.hint ? '提示：' + x.hint : '';
@@ -90,7 +90,7 @@
         const btn = e.currentTarget; btn.innerHTML = '<span class="spin"></span>';
         const x = await turn({ end: true }); if (!x) { btn.textContent = '结束并总结'; return; }
         pane.querySelector('#dlgIn').hidden = true; TTS.stop(); markStep('output');
-        pane.querySelector('#dlgOut').innerHTML = `<div class="result enter stack">${aiMark('总结和建议由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>${esc(x.summary)}</div></div>
+        pane.querySelector('#dlgOut').innerHTML = `<div class="result enter stack" data-ex-block>${aiMark('总结和建议由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div data-ex>${esc(x.summary)}</div></div>
           ${x.good.length ? `<div class="card flat stack-s"><b>说得好的句子</b>${x.good.map(g => `<div class="small text">${esc(g)}</div>`).join('')}</div>` : ''}
           ${fixesHTML(x.fixes)}
           ${x.expressions.length ? `<div class="card flat stack-s"><b>可以学的表达</b>${x.expressions.map((ex, k) => `<div class="row between small"><span><b>${esc(ex.text)}</b> <span class="muted" data-zh>${esc(ex.meaning)}</span></span><button class="btn small" data-kx="${k}">收藏</button></div>`).join('')}</div>` : ''}
@@ -130,7 +130,7 @@
           try {
             const x = (await api('/api/next/translate', { pack: id, i, direction: dir, text, request_id: rid('tr') })).result;
             if (!out.isConnected) return;
-            out.innerHTML = `<div class="result enter stack">${aiMark('评分和讲解由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small">${esc(x.accuracy)}</div><div class="small muted">${esc(x.fluency)}</div></div></div>
+            out.innerHTML = `<div class="result enter stack" data-ex-block>${aiMark('评分和讲解由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>得分 ${Math.round(x.score * 100)}<div class="small" data-ex>${esc(x.accuracy)}</div><div class="small muted" data-ex>${esc(x.fluency)}</div></div></div>
               ${fixesHTML(x.fixes)}<div class="card flat stack-s"><b>${dir === 'zh2en' ? '原文' : '参考译文'}</b><div class="text small" data-zh>${esc(dir === 'zh2en' ? x.original : x.reference)}</div>
               ${dir === 'zh2en' && x.reference && x.reference !== x.original ? `<div class="tiny muted">另一种自然说法：${esc(x.reference)}</div>` : ''}</div></div>`;
             markStep('output'); showFinish(pane, m, id); bringIntoView(pane.querySelector('#trOut')); draftDone(`trans-${id}-${dir}-${i}`);
@@ -161,11 +161,11 @@
           const x = (await api('/api/next/essay', { pack: id, text: ta.value, request_id: rid('es') })).result;
           if (!out.isConnected) return;
           const dims = { content: '内容切题', organization: '结构衔接', accuracy: '语言准确', range: '词汇句式' };
-          pane.querySelector('#esOut').innerHTML = `<div class="result enter stack">${aiMark('批改、评分和示范由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>${esc(x.comment)}${x.level ? `<div class="tiny muted">这篇体现的水平约 ${esc(x.level)}</div>` : ''}</div></div>
+          pane.querySelector('#esOut').innerHTML = `<div class="result enter stack" data-ex-block>${aiMark('批改、评分和示范由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div><span data-ex>${esc(x.comment)}</span>${x.level ? `<div class="tiny muted">这篇体现的水平约 ${esc(x.level)}</div>` : ''}</div></div>
             <div class="card flat ab-list">${Object.entries(dims).map(([k, l]) => `<div class="ab"><span class="nm">${l}</span><span class="vbar"><i data-w="${x.scores[k] * 20}"></i></span><span class="lv">${x.scores[k]} / 5</span></div>`).join('')}</div>
-            ${x.paragraphs.length ? `<div class="card flat stack-s"><b>段落点评</b>${x.paragraphs.map(pg => `<div class="small"><b>第 ${pg.para} 段</b>：${esc(pg.note)}</div>`).join('')}</div>` : ''}
+            ${x.paragraphs.length ? `<div class="card flat stack-s"><b>段落点评</b>${x.paragraphs.map(pg => `<div class="small"><b>第 ${pg.para} 段</b>：<span data-ex>${esc(pg.note)}</span></div>`).join('')}</div>` : ''}
             ${fixesHTML(x.fixes)}
-            ${x.better.length ? `<div class="card flat stack-s"><b>可以写得更好</b>${x.better.map(b => `<div class="small"><del>${esc(b.from)}</del><br><ins>${esc(b.to)}</ins><div class="tiny muted">${esc(b.why)}</div></div>`).join('')}</div>` : ''}
+            ${x.better.length ? `<div class="card flat stack-s"><b>可以写得更好</b>${x.better.map(b => `<div class="small"><del>${esc(b.from)}</del><br><ins>${esc(b.to)}</ins><div class="tiny muted" data-ex>${esc(b.why)}</div></div>`).join('')}</div>` : ''}
             ${x.model ? `<div class="card flat stack-s"><b>示范段落</b><div class="text small">${esc(x.model)}</div></div>` : ''}</div>`;
           requestAnimationFrame(() => requestAnimationFrame(() => pane.querySelectorAll('#esOut .vbar i').forEach(i => { i.style.width = i.dataset.w + '%'; })));
           const wn = count();
@@ -211,14 +211,14 @@
     function renderResult(r, yours, remaining) {
       const box = pane.querySelector('#result');
       const same = r.corrected.trim() === yours.trim();
-      box.innerHTML = `<div class="result enter"><div class="ai-line">${aiTag()}<span>批改由 AI 生成，仅供参考</span>${aiVoiceNote('AI 朗读', 'span')}</div>
-        <div class="card verdict ${esc(r.verdict)}"><span class="dot"></span><div>${esc(r.summary)}</div></div>
+      box.innerHTML = `<div class="result enter" data-ex-block><div class="ai-line">${aiTag()}<span>批改由 AI 生成，仅供参考</span>${aiVoiceNote('AI 朗读', 'span')}</div>
+        <div class="card verdict ${esc(r.verdict)}"><span class="dot"></span><div data-ex>${esc(r.summary)}</div></div>
         <div class="card compare"><div class="kicker">${same ? '你写的已经是对的' : '改对之后'}</div>
           ${same ? '' : `<div class="yours">${esc(yours)}</div>`}<div class="fixed">${esc(r.corrected)} ${sayIcon(`data-say-text="${esc(r.corrected)}"`, '朗读')}</div>
-          ${r.changes.length ? `<div>${r.changes.map(c => `<div class="change"><span class="ft"><del>${esc(c.from)}</del> → <ins>${esc(c.to)}</ins></span><span class="why">${esc(c.why)}</span>${c.node ? `<span>${nodeChip({ id: c.node, title: c.node_title || c.node, status: 'watch' })}</span>` : ''}</div>`).join('')}</div>` : ''}
+          ${r.changes.length ? `<div>${r.changes.map(c => `<div class="change"><span class="ft"><del>${esc(c.from)}</del> → <ins>${esc(c.to)}</ins></span><span class="why" data-ex>${esc(c.why)}</span>${c.node ? `<span>${nodeChip({ id: c.node, title: c.node_title || c.node, status: 'watch' })}</span>` : ''}</div>`).join('')}</div>` : ''}
           ${r.used_well && r.used_well.length ? `<div class="used-well small"><span class="muted">用对了：</span>${r.used_well.map(n => nodeChip({ id: n.id, title: n.title, status: 'used' })).join('')}</div>` : ''}</div>
-        <div class="stack-s"><h2 class="h2">还可以这样说</h2>${r.versions.map((v, i) => `<div class="version"><div class="row between"><span class="pill green">${esc(v.label)}</span><span class="row">${sayIcon(`data-say-text="${esc(v.text)}"`, '朗读')}<button class="icon-btn" data-keep-v="${i}" aria-label="收藏这句">${ICON.star}</button></span></div><div class="v">${esc(v.text)}</div><div class="small muted">${esc(v.why)}</div></div>`).join('')}</div>
-        ${r.word_use && r.word_use.length ? `<div class="card sunk stack-s"><div class="kicker">你用到了正在背的词</div>${r.word_use.map(u => `<div class="small"><span class="${u.ok ? 'ok-mark' : 'bad-mark'}">${u.ok ? '✓' : '✗'}</span> <b>${esc(u.word)}</b>：${esc(u.note)}</div>`).join('')}
+        <div class="stack-s"><h2 class="h2">还可以这样说</h2>${r.versions.map((v, i) => `<div class="version"><div class="row between"><span class="pill green">${esc(v.label)}</span><span class="row">${sayIcon(`data-say-text="${esc(v.text)}"`, '朗读')}<button class="icon-btn" data-keep-v="${i}" aria-label="收藏这句">${ICON.star}</button></span></div><div class="v">${esc(v.text)}</div><div class="small muted" data-ex>${esc(v.why)}</div></div>`).join('')}</div>
+        ${r.word_use && r.word_use.length ? `<div class="card sunk stack-s"><div class="kicker">你用到了正在背的词</div>${r.word_use.map(u => `<div class="small"><span class="${u.ok ? 'ok-mark' : 'bad-mark'}">${u.ok ? '✓' : '✗'}</span> <b>${esc(u.word)}</b>：<span data-ex>${esc(u.note)}</span></div>`).join('')}
           <div class="tiny muted">用对的算一次成功复习；用错的会提前安排复习。</div></div>` : ''}
         ${r.keep ? `<div class="card sunk row between"><div><div class="kicker">值得收藏</div><b class="text">${esc(r.keep.text)}</b> <span class="muted small" data-zh>${esc(r.keep.meaning)}</span></div><button class="btn small primary" id="keep">收藏</button></div>` : ''}
         </div>`;

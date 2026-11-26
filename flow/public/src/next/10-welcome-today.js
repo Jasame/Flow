@@ -55,6 +55,8 @@
     fillNotice(h);
     bindAnnounce(h); bindUpdateCard(h); bindTrialSurvey();  // 「语流更新了」 where a 公告 would be (83-updates.js)
     if (path) { bindTodaySwitch(); if (deck) mountDeck(deck.start); else bindTodayList(); }  // after the reminders: the deck fits under them
+    EGG.bindGreeting(view.querySelector('.greet-row .greet'));  // 小彩蛋 (14-today-egg.js): hold the greeting
+    if (path) EGG.planDone(h.path);  // and once, by itself, the first time today's plan is seen all done
     bindLine(h);  // 今日好句 (12-daily-line.js)
     const ro = document.getElementById('remindOnce'); if (ro) ro.onclick = () => remindOnce();  // 这次什么时候复习 (50-words.js)
     mountWeekCards(view);  // 这周进步 (11-progress.js)

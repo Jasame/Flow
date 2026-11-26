@@ -26,7 +26,7 @@
       <div class="scene-goals"><div class="kicker">你的任务${swap ? `（你是${esc(x.ai)}）` : ''}</div><ol class="steps-list small">${goals.map(g => `<li>${esc(g)}</li>`).join('')}
         ${x.mode === 'challenge' ? `<li class="round-extra"><b>这一轮多一条：</b>${esc(x.challenge)}</li>` : ''}</ol></div>
       ${swap ? '' : `<details class="useful"><summary class="small">用得上的说法（${x.useful.length}）</summary><div class="plist">${x.useful.map(u => `<div class="crow">${sayIcon(`data-say="${esc(u.text)}"`, '朗读')}<span><span class="en">${esc(u.text)}</span><span class="tiny muted">${esc(u.meaning)}</span></span></div>`).join('')}</div></details>`}
-      <div class="chat" id="chat"></div>
+      <div class="chat" id="chat" data-ex-block></div>
       <div id="dlgIn" class="stack-s" hidden><div class="tiny muted" id="dlgHint"></div>
         <div class="chat-in"><textarea id="dlgText" rows="2" maxlength="480" lang="en" enterkeyhint="send" placeholder="用英文回答，或者点录音键说出来"></textarea>${recBtn('dlgMic', '说出来')}<button class="btn primary" id="dlgSend" data-own-wait>发送</button></div>
         <div class="row between"><span class="tiny muted" id="dlgCount"></span><button class="btn small ghost" id="dlgEnd">结束并看反馈</button></div></div>
@@ -47,7 +47,7 @@
       const btn = e.currentTarget; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
       const r = await turn({}); if (!r) { btn.disabled = false; btn.textContent = '开始对话'; return; }
       btn.parentNode.remove();
-      chat.insertAdjacentHTML('beforeend', `<div class="scene small">${esc(r.scene)}${r.role ? `（AI 扮演：${esc(r.role)}）` : ''}</div>`);
+      chat.insertAdjacentHTML('beforeend', `<div class="scene small"><span data-ex>${esc(r.scene)}</span>${r.role ? `（AI 扮演：${esc(r.role)}）` : ''}</div>`);
       bubble('ai', r.reply); speakReply(r.reply, r.voice); hist.push({ role: 'ai', text: r.reply });
       view.querySelector('#dlgIn').hidden = false; showInput(); if (!TOUCH) view.querySelector('#dlgText').focus({ preventScroll: true });
     };
@@ -91,7 +91,7 @@
       // 按回答调难度 (scenarios.pace): the AI's next line follows this answer's length and mistakes; say so in one line
       const pace = r.pace === 'easier' ? '放慢了一点' : r.pace === 'harder' ? '加深了一点' : '';
       if (pace) paced[r.pace] += 1;
-      bubble('me', me, (r.correction ? `<div class="fix tiny"><del>${esc(r.correction.original)}</del> → <b>${esc(r.correction.better)}</b> <span class="muted">${esc(r.correction.why)}</span></div>` : '')
+      bubble('me', me, (r.correction ? `<div class="fix tiny"><del>${esc(r.correction.original)}</del> → <b>${esc(r.correction.better)}</b> <span class="muted" data-ex>${esc(r.correction.why)}</span></div>` : '')
         + (pace ? `<div class="pace tiny muted" data-pace="${r.pace}">↳ AI 按你的回答${pace}</div>` : ''));
       hist.push({ role: 'me', text: me });
       bubble('ai', r.reply); speakReply(r.reply, r.voice); hist.push({ role: 'ai', text: r.reply });
@@ -109,7 +109,7 @@
       const btn = e.currentTarget; btn.innerHTML = '<span class="spin"></span>';
       const r = await turn({ end: true }); if (!r) { btn.textContent = '结束并看反馈'; return; }
       view.querySelector('#dlgIn').hidden = true; TTS.stop();
-      view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack">${aiMark('总结和建议由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div>${esc(r.summary)}</div></div>
+      view.querySelector('#dlgOut').innerHTML = `<div class="result enter stack" data-ex-block>${aiMark('总结和建议由 AI 生成，仅供参考')}<div class="card verdict"><span class="dot"></span><div data-ex>${esc(r.summary)}</div></div>
         ${r.good.length ? `<div class="stack-s"><b>说得好的句子</b>${r.good.map(g => `<div class="small text">${esc(g)}</div>`).join('')}</div>` : ''}
         ${r.fixes.length ? `<div class="stack-s"><b>要改的地方</b>${fixesHTML(r.fixes)}</div>` : ''}
         ${r.challenge ? `<div class="round-extra small"><b>这一轮的要求：</b>${esc(r.challenge)}${typeof r.challenge_met === 'boolean' ? (r.challenge_met ? ' <span class="ok-mark">✓ 做到了</span>' : ' <span class="muted">· 这次还没做到，下一轮再试</span>') : ''}</div>` : ''}

@@ -26,7 +26,8 @@ def today(pg):
 def listen(pg):
     # The local server has no narration files; on the site this material is read by four real voices, so its tip
     # does not carry the "no recording yet" line.
-    pg.evaluate("() => { const t = document.querySelector('.listen-tip'); if (t) t.firstChild.nodeValue = t.firstChild.nodeValue.replace('这篇还没有录音，先用浏览器朗读。', ''); }")
+    # (the tip is empty when the AI voice reads it, 21-study-listen.js: then there is nothing to take out)
+    pg.evaluate("() => { const t = document.querySelector('.listen-tip'); if (t && t.firstChild) t.firstChild.nodeValue = t.firstChild.nodeValue.replace('这篇还没有录音，先用浏览器朗读。', ''); }")
 
 
 def check(pg):
@@ -41,6 +42,9 @@ def output(pg):
 
 def review(pg):
     pg.wait_for_selector('#view .review', timeout=6000)
+    # the first-visit guide drawn over the card (60-review.js #zoneGuide, put away by the first tap) is not the card
+    pg.wait_for_timeout(800)
+    pg.evaluate("() => { const g = document.getElementById('zoneGuide'); if (g) g.remove(); }")
 
 
 # name -> (page, extra step or None, viewport)
@@ -115,7 +119,8 @@ def main(only):
                 pg.wait_for_timeout(700)
                 if step:
                     step(pg)
-                pg.evaluate("() => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; window.scrollTo(0, 0); }")
+                # the toast and the one-time tips (08-tips.js .tip-once, 「知道了」) belong to a first visit, not to the page shown
+                pg.evaluate("() => { const t = document.getElementById('toast'); if (t) t.style.display = 'none'; document.querySelectorAll('#view .tip-once').forEach(e => e.remove()); window.scrollTo(0, 0); }")
                 pg.wait_for_timeout(300)
                 out = OUT / f'{name}{suffix}.jpg'
                 pg.screenshot(path=str(out), type='jpeg', quality=70 if phone else 74)

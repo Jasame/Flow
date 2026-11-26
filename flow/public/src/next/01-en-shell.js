@@ -92,7 +92,7 @@
     '触屏：复习时左滑「不认识」、右滑「认识」；弹窗向下拖可以关闭。': "Touch: in review, swipe left for “Don't know” and right for “Know it”. Drag a panel down to close it.",
     // 02-shell.js: the tab bar (read by a screen reader), the email nudge, WeChat
     '{x}，有 {n} 项': '{1}, {2} waiting', '{x}，有 {n} 项{x}': '{1}, {2} {3}', '该测了': 'due for a test',
-    '绑定邮箱，忘记密码时可以自己找回': 'Add an email so you can reset a forgotten password yourself', '去绑定': 'Add email',
+    '绑定邮箱，忘记密码时可以自己找回': 'Add an email to reset your password', '去绑定': 'Add',
     '以后再说，{n} 天后再提醒': 'Not now, remind me in {1} days',
     '在默认浏览器中打开': 'Open in default browser', '在浏览器打开': 'Open in browser', '在浏览器里打开': 'Open in your browser',
     '在浏览器里打开，用起来更顺': 'Open in your browser. It works better there', '点右上角的「···」': 'Tap “···” at the top right',
