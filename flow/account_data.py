@@ -18,6 +18,8 @@ LEFT_OUT_TABLES = {'sessions', 'recovery_tokens', 'email_codes', 'login_failures
 LEFT_OUT_COLUMNS = {'password', 'token', 'csrf', 'digest', 'salt'}
 # What the main tables are, for someone reading the file (the rest are from earlier versions of the site).
 GUIDE = {
+    'ai_usage_kind': 'AI 用量：每天各项 AI 功能用了几次', 'ai_quota': '你的 AI 额度（管理员调整过才有：每天次数、暂停、到期时间和原因）',
+    'ai_quota_log': 'AI 额度的调整记录（谁、什么时候、改成什么）',
     'next_cards': '单词本：单词、表达和错题（含复习安排）', 'next_corrections': 'AI 改错记录：哪一次练习里改了哪个语法点（看哪些问题反复出现）',
     'next_evidence': '周报「这周的一次进步」：后来你自己写对的句子（每个语法点最多两句，90 天后删）', 'next_reviews': '每一次复习：什么时候、记得怎么样',
     'next_progress': '学过的材料和步骤（听、读、理解、用出来）', 'next_profiles': '学习设置：水平、目标、每天几分钟、每周目标、我的考试和日期、朗读声音、主题色',
