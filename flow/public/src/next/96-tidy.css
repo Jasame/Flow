@@ -45,6 +45,15 @@
 .px-row .go{color:var(--muted);font-size:20px}
 .pgroup .ptile.pmap{margin-bottom:2px}
 @media (min-width:760px){.px-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 练习: 复习 and 今天建议 at the top. On a phone held sideways (390 px tall) they sit side by side, so the 语法 map still
+   starts on the first screen; standing up they stack as before (the wrapper takes main's 14 px between them). */
+.ptop>#pSuggest{margin-top:14px}
+@media (max-height:500px) and (orientation:landscape){
+  .ptop{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;align-items:start;margin-top:18px}
+  .ptop>.pgroup,.ptop>#pSuggest{margin-top:0}
+  .ptop .px-list{grid-template-columns:minmax(0,1fr)}
+  .ptop>#pSuggest:empty{display:none}
+}
 
 /* 全部材料: on a phone 范围 and 难度 side by side, 话题 on its own row, so no choice is cut off at 360 px */
 @media (max-width:759px){
@@ -60,5 +69,8 @@
 @media (max-height:500px) and (orientation:landscape){
   .study-head{gap:2px;margin-bottom:6px}
   .study-head .title-en,.study-head .origin{display:none}
-  .study-head .h1{font-size:19px;margin:0}
+  .study-head .h1{font-size:20px;margin:0}
 }
+/* 练习 → 复习 (49-practice.js reviewBlock): 「都复习完了」 on the right of its row, before the › */
+.px-row.has-v{grid-template-columns:36px minmax(0,1fr) auto 14px}
+.px-row > .v{white-space:nowrap}

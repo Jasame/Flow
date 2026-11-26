@@ -122,32 +122,48 @@ EVIDENCE_KEEP, EVIDENCE_DAYS = 2, 90
 RECUR_WINDOW, RECUR_DAYS, RECUR_OUTPUTS = 14, 2, 3
 
 
-def note_evidence(c, uid, text, changes, kind, request_id='', assisted=None, now=None):
+def note_evidence(c, uid, text, changes, kind, request_id='', assisted=None, now=None, source=''):
     """After a written output is marked: for each fix card on a grammar point whose corrected form (to) the learner now
-    wrote, and that point not corrected this time, keep that sentence (next_evidence). Forms too short to mean anything
-    (a, the, in…) are left out. Returns how many were kept. The caller commits."""
+    wrote, and that point not corrected this time, keep that sentence (next_evidence). Left out: forms too short to mean
+    anything (a, the, in…), and forms the text being written about has itself (source: the material's English — copied,
+    not shown to be known, B7). assisted is only what the page sent (data['assisted']: the learner saw a hint, a model
+    answer or the marking before this draft); the server never guesses it, None = not known. Returns how many were kept.
+    The caller commits."""
     if not uid or not (text or '').strip():
         return 0
     now = now or time.time()
     fixed = {ch.get('node') for ch in (changes or []) if ch.get('node')}
-    source, low, kept = 'ev:' + (str(request_id or '') or uuid.uuid4().hex), text.lower(), 0
+    ev_id, low, kept = 'ev:' + (str(request_id or '') or uuid.uuid4().hex), text.lower(), 0
     for r in c.execute("SELECT id, text, node FROM next_cards WHERE user_id=? AND kind='fix' AND source='mistake' AND node IS NOT NULL AND created<?",
                        (uid, now)).fetchall():
         to = (r['text'] or '').strip()
         if r['node'] in fixed or not to or len(to) > 60 or (len(to) < 4 and ' ' not in to):
             continue
-        if not re.search(r'(?<![a-z])' + re.escape(to.lower()) + r'(?![a-z])', low):
+        form = re.compile(r'(?<![a-z])' + re.escape(to.lower()) + r'(?![a-z])')
+        if not form.search(low) or (source and form.search(source.lower())):
             continue
         sent = next((s for s in nx.sentences(text) if to.lower() in s.lower()), '')[:300]
         if not sent:
             continue
         c.execute('INSERT OR IGNORE INTO next_evidence(user_id,node,card,kind,sentence,source,assisted,created) VALUES(?,?,?,?,?,?,?,?)',
-                  (uid, r['node'], r['id'], kind, sent, source, None if assisted is None else int(bool(assisted)), now))
+                  (uid, r['node'], r['id'], kind, sent, ev_id, None if assisted is None else int(bool(assisted)), now))
         c.execute('DELETE FROM next_evidence WHERE user_id=? AND node=? AND id NOT IN '
                   '(SELECT id FROM next_evidence WHERE user_id=? AND node=? ORDER BY created DESC, id DESC LIMIT ?)', (uid, r['node'], uid, r['node'], EVIDENCE_KEEP))
         kept += 1
     c.execute('DELETE FROM next_evidence WHERE user_id=? AND created<?', (uid, now - EVIDENCE_DAYS * 86400))
     return kept
+
+
+CORRECTIONS_DAYS = 180  # next_corrections older than this go (recurring reads 14 days), as ai_calls do
+
+
+def prune(c, now=None):
+    """Once a day (ai_routes.tick): corrections past CORRECTIONS_DAYS and kept sentences past EVIDENCE_DAYS, for every
+    learner (note_evidence prunes only the one writing)."""
+    now = now or time.time()
+    c.execute('DELETE FROM next_corrections WHERE created<?', (now - CORRECTIONS_DAYS * 86400,))
+    c.execute('DELETE FROM next_evidence WHERE created<?', (now - EVIDENCE_DAYS * 86400,))
+    c.commit()
 
 
 # ---------- 没人提醒自己回来 (r29 第 1 项的量法; D2's four conditions, with B6) ----------

@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS ai_usage(user_id INTEGER,day TEXT,count INTEGER,PRIMA
   __import__('flow_admin').schema(c)
   __import__('ai_routes').schema(c)
   __import__('word_extras').schema(c)  # AI 常用搭配和近义词 (单词详细模式)
+  __import__('two_lines').schema(c)  # 听两句、答一句: the day's shared questions
 def wrong_questions(c,uid):
  return c.execute('''SELECT q.id,q.topic,q.prompt,q.options,q.explanation,q.answer,a.selected FROM questions q
  JOIN attempts a ON a.question_id=q.id WHERE q.status='published' AND a.user_id=? AND a.correct=0
@@ -408,11 +409,11 @@ class Handler(BaseHTTPRequestHandler):
     result=meeting.get(c,u['id'],u['admin'],path)
     if result is not None:return self.send(*result)
     if path=='/api/ai/status':
-     configured=bool(os.getenv('FLOW_AI_MODEL')) and (bool(os.getenv('GOOGLE_CLOUD_PROJECT')) if vertex_enabled() else bool(os.getenv('FLOW_AI_KEY')) and __import__('chat_service').endpoint_ok(os.getenv('FLOW_AI_URL','')))
+     cs=__import__('chat_service');configured=cs.ai_configured()
      last=c.execute("SELECT MAX(updated) FROM lab_jobs WHERE user_id=? AND status='complete'",(u['id'],)).fetchone()[0]
      chat_last=c.execute("SELECT MAX(updated) FROM chat_turns WHERE user_id=? AND status='complete' AND finish_reason!='lesson'",(u['id'],)).fetchone()[0]
      last=max(last or 0,chat_last or 0) or None
-     return self.send({'configured':configured,'last_success':last,'model':ai_model_label() if configured else '','provider':'Vertex ADC' if vertex_enabled() else '兼容网关','message':'当前账号有成功记录；不代表此刻所有能力可用，音频与检索仍需分别实测。' if last else '配置字段齐全，但当前账号尚无成功记录，请运行部署实测。' if configured else '配置字段不完整，请管理员检查接口、模型与凭据。'})
+     return self.send({'configured':configured,'last_success':last,'model':ai_model_label() if configured and cs.main_on() else '','provider':'Vertex ADC' if vertex_enabled() else '兼容网关','message':'当前账号有成功记录；不代表此刻所有能力可用，音频与检索仍需分别实测。' if last else '配置字段齐全，但当前账号尚无成功记录，请运行部署实测。' if configured else '配置字段不完整，请管理员检查接口、模型与凭据。'})
     if path=='/api/daily/suggestions':
      pack_id=parse_qs(urlsplit(self.path).query).get('id',[''])[0]
      row=c.execute("SELECT content FROM lab_packs WHERE id=? AND owner IS NULL AND origin='daily'",(pack_id,)).fetchone()

@@ -21,7 +21,12 @@ class PracticeHubTests(unittest.TestCase):
         known = set(re.findall(r"name === '([a-z]+)'", shell)) | {''}
         hub = (SRC / '49-practice.js').read_text(encoding='utf-8')
         tiles = re.findall(r"\['(#/[^']*)', '([^']+)'", hub)
-        self.assertGreaterEqual(len(tiles), 15)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here
+        self.assertGreaterEqual(len(tiles), 14)  # 简洁化: 今天的材料 (= 今日) and 看进步 (= 我的 → 进步) are no longer repeated here
+        # 复习 on top (方案 1, 2026-11-25): 错题和句型复习 and 错题本 in a block of their own, not among 单词's rows
+        self.assertNotIn("['#/cards/mistake', '错题本'", hub)
+        for href in ('href="#/review/other"', 'href="#/cards/mistake"'):
+            self.assertIn(href, hub)
+        self.assertIn('${reviewBlock(st)}', hub)
         for href, title in tiles:
             self.assertIn(href[2:].split('/')[0], known, title)
         # r20: four tabs; the grammar map has no tab of its own and is the 语法 group's wide card in the hub

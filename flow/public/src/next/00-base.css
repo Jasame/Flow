@@ -45,9 +45,9 @@ button{cursor:pointer}
 /* No backdrop-filter on phones: it would make the fixed bottom tabs position relative to this bar. */
 .bar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
 .bar{display:flex;align-items:center;justify-content:space-between;max-width:none;padding:10px var(--gut);gap:12px}
-.brand{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:700}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;font-size:17px}
 .brand svg{width:28px;height:28px}.brand-bg{fill:var(--brand)}.brand-fg{stroke:#fff;stroke-width:3;stroke-linecap:round;fill:none}
-.brand em{font-style:normal;font-size:11.5px;font-weight:600;color:var(--green-ink);background:var(--green-soft);border-radius:99px;padding:1px 8px}
+.brand em{font-style:normal;font-size:12px;font-weight:600;color:var(--green-ink);background:var(--green-soft);border-radius:99px;padding:1px 8px}
 .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:6px 8px calc(6px + var(--sab));z-index:30}
 .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--muted);padding:4px 0;position:relative;border-radius:10px}
 .tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -67,11 +67,14 @@ button{cursor:pointer}
 main{max-width:var(--max);margin:0 auto;padding:20px var(--gut) 40px;outline:none;overflow-x:clip}
 .loading{color:var(--muted);text-align:center;padding:48px 0}
 h1,h2,h3{margin:0;line-height:1.25}
-.h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
-.h2{font-size:18px;font-weight:700}
+/* 字号阶梯 (G1, 学优秀 UI 第一批, the user's pick 2026-11-25): 12 · 13.5 · 15.5 · 17 · 20 · 24 · 28, weights 400 · 600 · 700.
+   Outside it on purpose: body text and fields 16 (an iPhone zooms the page into a field under 16 px), count badges 11,
+   the reading text of 听 and 读, and the big word on a review card. A new size picks one of these, not a value in between. */
+.h1{font-size:24px;font-weight:700;letter-spacing:-.01em}
+.h2{font-size:17px;font-weight:700}
 /* 配色 A (2026-11-25, the user's pick): green only on what can be pressed or shows progress — small labels above a title
    are grey, the due-word count on the 单词 tab is ink on paper (red read as an error), amber text one step darker */
-.kicker{font-size:12.5px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
 .muted{color:var(--muted)}.small{font-size:13.5px}.tiny{font-size:12px}
 .stack{display:grid;gap:14px}.stack-s{display:grid;gap:8px}.stack-xs{display:grid;gap:3px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row.between{justify-content:space-between}
@@ -87,7 +90,7 @@ h1,h2,h3{margin:0;line-height:1.25}
 .link:hover{text-decoration:underline}
 
 /* ---- buttons / inputs ---- */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-weight:600;font-size:15px;text-decoration:none;transition:background .15s,border-color .15s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 18px;border-radius:12px;border:1px solid var(--line2);background:var(--paper);font-weight:600;font-size:15.5px;text-decoration:none;transition:background .15s,border-color .15s}
 .btn:hover{border-color:var(--green)}
 .btn.primary{background:var(--fill);border-color:var(--fill);color:var(--on-fill)}
 .btn.primary:hover{filter:brightness(1.05)}

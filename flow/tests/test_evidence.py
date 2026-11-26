@@ -104,6 +104,24 @@ class EvidenceTests(Db):
         ps.note_evidence(self.c, self.uid, 'They have gone out.', [], 'essay', 'e10', None, NOW)
         self.assertEqual([r[0] for r in self.c.execute('SELECT sentence FROM next_evidence')], ['They have gone out.'])  # the old two are past 90 days
 
+    def test_a_form_the_text_itself_has_is_copied_not_known(self):
+        self.corrected('r1', NOW - 10 * DAY, GONE)
+        text = 'The team have gone home early.'
+        self.assertEqual(ps.note_evidence(self.c, self.uid, text, [], 'retell', 'r2', None, NOW, source='By six, the team have gone home early.'), 0)
+        self.assertEqual(ps.note_evidence(self.c, self.uid, text, [], 'retell', 'r3', None, NOW, source='The team left early.'), 1)
+        for fn, mod in (('retell', 'output_service'), ('essay', 'output_service'), ('translate', 'output_service')):
+            self.assertIn("source=p.get('body', '')", inspect.getsource(getattr(__import__(mod), fn)), fn)
+
+    def test_old_rows_go_once_a_day_for_everyone(self):
+        self.corrected('old', NOW - 200 * DAY, GONE)
+        self.corrected('new', NOW - DAY, ART)
+        self.c.execute("INSERT INTO next_evidence(user_id,node,card,kind,sentence,source,assisted,created) VALUES(1,'tense-perfect',1,'essay','We have gone.','e',NULL,?)",
+                       (NOW - 100 * DAY,)); self.c.commit()
+        ps.prune(self.c, NOW)
+        self.assertEqual([r[0] for r in self.c.execute('SELECT source FROM next_corrections')], ['fix:new'])
+        self.assertEqual(self.count('next_evidence'), 0)
+        self.assertIn("progress_service').prune(c, now)", inspect.getsource(__import__('ai_routes').tick))
+
     def test_only_written_answers_are_kept(self):
         src = inspect.getsource(__import__('output_service').retell)
         self.assertIn('if not audio:', src)

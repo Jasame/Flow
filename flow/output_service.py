@@ -113,7 +113,7 @@ def retell(c, uid, data):
         sk.log(c, uid, 'speaking' if audio else 'writing', 'retell', r['score'], nx.cefr(p), p['id'], commit=False)
         rid = str(result.get('request_id') or data.get('request_id', ''))
         if not audio:  # 周报的「这周」: written sentences only (spoken words are never kept)
-            __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'retell', rid, data.get('assisted'))
+            __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'retell', rid, data.get('assisted'), source=p.get('body', ''))
         sk.mistakes_from_changes(c, uid, r['fixes'], r['transcript'], 'speaking' if audio else 'writing', p['id'],
                                  request_id=rid, kind='retell', assisted=data.get('assisted'))
     return result, status
@@ -281,7 +281,7 @@ def essay(c, uid, data):
         r = result['result']
         sk.log(c, uid, 'writing', 'essay', r['score'], r['level'] or nx.cefr(p), p['id'], commit=False)
         rid = str(result.get('request_id') or data.get('request_id', ''))
-        __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'essay', rid, data.get('assisted'))
+        __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'essay', rid, data.get('assisted'), source=p.get('body', ''))
         sk.mistakes_from_changes(c, uid, r['fixes'], text[:600], 'writing', p['id'], limit=4, request_id=rid, kind='essay', assisted=data.get('assisted'))
     return result, status
 
@@ -356,7 +356,7 @@ def translate(c, uid, data):
         r = result['result']
         sk.log(c, uid, 'translation', 'translate', r['score'], nx.cefr(p), p['id'], commit=False)
         rid = str(result.get('request_id') or data.get('request_id', ''))
-        __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'translate', rid, data.get('assisted'))
+        __import__('progress_service').note_evidence(c, uid, text, r['fixes'], 'translate', rid, data.get('assisted'), source=p.get('body', ''))
         sk.mistakes_from_changes(c, uid, r['fixes'], text, 'translation', p['id'], limit=2, request_id=rid, kind='translate', assisted=data.get('assisted'))
     return result, status
 

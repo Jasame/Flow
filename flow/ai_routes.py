@@ -32,6 +32,7 @@ DAY = 86400
 TASKS = [  # kind, label, group (grading: marks what a learner wrote or said; content: shared material; chat: free answers)
     ('next-rewrite', '仿写批改', 'grading'), ('next-essay', '写作批改', 'grading'), ('next-translate', '翻译批改', 'grading'),
     ('next-retell', '复述点评', 'grading'), ('next-dialog', '情景对话', 'grading'), ('next-ielts', '雅思口语点评', 'grading'),
+    ('next-two-check', '听两句·答一句批改', 'grading'), ('next-two-ask', '听两句·出题', 'content'),
     ('next-explain', '句子讲解', 'content'), ('next-variant', '难度改写', 'content'), ('next-examples', 'AI 例句', 'content'),
     ('next-transsrc', '翻译原句', 'content'), ('next-enrich', '导入文章出题', 'content'), ('daily-news', '今日热点改写', 'content'),
     ('daily-topic', '今日一读（原创短文）', 'content'),
@@ -509,7 +510,7 @@ def cost(served, ts, prompt, cached, completion, table=None):
 
 def served_name(served, model):
     """The name to price a call by: what answered, else (the Gemini relay names it; a row without one) what was asked."""
-    return served or (os.getenv('FLOW_AI_MODEL', '') if model == default_model() else model)
+    return served or ((os.getenv('FLOW_AI_MODEL', '') or model) if model == default_model() else model)
 
 
 def beijing_day(ts=None):
@@ -902,4 +903,8 @@ def tick(c, now=None):
     t = now or time.time()
     if int(t // 300) % 288 == 0:  # about once a day
         prune(c)
+        try:
+            __import__('progress_service').prune(c, now)  # 周报的改错记录 180 天、写对的句子 90 天 (B7)
+        except Exception as exc:  # noqa: BLE001 - never stops the site's loop (budget mails, the nightly check)
+            print('progress prune:', type(exc).__name__, str(exc)[:120], flush=True)
         __import__('output_service').prune_say(c, now)  # 发音 verdict counts: 14 days even when nobody practises

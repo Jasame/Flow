@@ -234,6 +234,15 @@ def main_on():
  return os.getenv('FLOW_MAIN_AI','on').strip().lower()!='off'
 
 
+def ai_configured():
+ """Whether learners' AI can answer (/api/ai/status). With the main model off (FLOW_MAIN_AI=off), the text model on the
+ gateway is what answers, so the main model's name need not be set at all (2026-11-26, the owner: Gemini's name taken
+ off the servers too); with it on, the main service as before."""
+ if not main_on():return bool(text_provider())
+ if vertex_enabled():return bool(os.getenv('FLOW_AI_MODEL')) and bool(os.getenv('GOOGLE_CLOUD_PROJECT'))
+ return bool(os.getenv('FLOW_AI_MODEL')) and bool(os.getenv('FLOW_AI_KEY')) and endpoint_ok(os.getenv('FLOW_AI_URL',''))
+
+
 def backup_model():
  m=os.getenv('FLOW_BACKUP_AI_MODEL','').strip()
  return m if m and text_provider(m) else ''

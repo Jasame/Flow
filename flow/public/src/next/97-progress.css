@@ -15,8 +15,8 @@
 .wk-tile{display:grid;gap:1px;align-content:start;min-width:0;padding:0 6px}
 .wk-tile:first-child{padding-left:0}
 .wk-tile+.wk-tile{border-left:1px solid var(--line)}
-.wk-tile b{font-size:24px;line-height:1.2;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.wk-tile b small{font-size:13px;font-weight:600;color:var(--muted);margin-left:1px}
+.wk-tile b{font-size:24px;line-height:1.2;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.wk-tile b small{font-size:13.5px;font-weight:600;color:var(--muted);margin-left:1px}
 .wk-tile .tiny{line-height:1.35}
 .wk-tile .sub{color:var(--muted)}
 .wk-tile .up{color:var(--ok-ink);font-weight:600}
@@ -36,8 +36,8 @@
 @media (max-width:374px){
   .week-card{padding:12px 12px 10px}
   .wk-tile{padding:0 4px}
-  .wk-tile b{font-size:21px}
-  .wk-tile .tiny{font-size:11.5px}
+  .wk-tile b{font-size:20px}
+  .wk-tile .tiny{font-size:12px}
 }
 
 /* the details sheet */
