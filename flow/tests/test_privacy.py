@@ -82,6 +82,27 @@ class ChapterDateTests(unittest.TestCase):
         self.assertTrue(days, 'the 修改记录 lists each change on a line of its own')
         self.assertEqual(max(days), m.group(1), 'the 更新日期 is the day of the newest line in 修改记录')
 
+    def test_the_lists_the_stores_ask_for_open_by_their_own_links(self):
+        """个人信息收集清单, 第三方信息共享清单 and how to delete the account: the download page, the store listings and the
+        Android App's first-run popup link to these three (D3, C2), so their ids stay; and no draft placeholder ships."""
+        import next_service as nx
+        text = (HERE / 'public/guide/guide.md').read_text(encoding='utf-8')
+        self.assertFalse('TODO_' in text, 'a placeholder in guide.md is still waiting for its fact')
+        c = None  # the guide route reads no database
+        for sid, chapter, words in (('info-list', 'privacy', ('用来做什么', '什么时候收', '不提供会怎样', '年龄段', '访问日志', '加入和退出的时间')),
+                                     ('sharing-list', 'privacy', ('没有把你的个人信息提供给其他公司自行使用', '阿里云百炼', '阿里云邮件推送',
+                                                                  '飞书企业邮箱', '天理云', '第三方 SDK')),
+                                     ('delete-account', 'faq', ('注销账号',))):
+            body, status = nx.get(c, None, '/api/next/guide', {'chapter': [sid]})
+            self.assertEqual(status, 200, sid)
+            self.assertEqual((body['chapter']['id'], body['chapter']['anchor']), (chapter, sid))
+            html = body['chapter']['html']
+            part = html[html.index(f'id="g-{sid}"'):]
+            part = part[:part.find('<h3', 10)] if '<h3' in part[10:] else part
+            for w in words:
+                self.assertIn(w, part, f'{sid}: {w}')
+        self.assertNotIn('Cloudflare', text[text.index('{#sharing-list}'):text.index('## 修改记录', text.index('{#sharing-list}'))])
+
 
 class StorageTests(Privacy):
     """数据存放在香港 (the user, 2026-11-25): its own tick at sign-up; an older account is held until it answers; 不同意 or
