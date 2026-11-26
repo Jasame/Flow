@@ -144,7 +144,7 @@ CHANNEL='beta' if os.getenv('FLOW_CHANNEL','').strip().lower()=='beta' else 'pro
 # 1.87 MB as base64, and audio_validation to 1.5 MB, so these take up to 2.2 MB, under nginx's 3 MB. A route left out
 # of this list answered every real recording with 「请求大小不正确」 (/api/next/assess/speaking, 2026-11-25), so
 # tests/test_request_size.py finds the routes whose handlers read audio and fails when one is missing here.
-AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking')
+AUDIO_PATHS=('/api/lab/audio','/api/next/shadow','/api/next/retell','/api/next/dialog','/api/next/say','/api/next/ielts','/api/next/assess/speaking','/api/next/two/check')
 TOO_LONG='录音太长了，请在 1 分钟内说完再交'
 _SLIM={}
 def shell_file(name):
@@ -226,7 +226,7 @@ def session_info(u):
  # media: where audio can also be fetched when this server cannot answer (None unless R2 is in use).
  # age/guardian: 年龄段 and a guardian's agreement under 14 (privacy_service): an account without a band is asked once.
  # teacher: a 老师账号 (teacher_service): its home is the teacher page, it makes classes and never joins one.
- return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),'teacher':__import__('teacher_service').is_teacher(u),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
+ return {'user':{**{k:u[k] for k in ('id','username','admin','csrf')},'email_bound':bool(u['email']),'teacher':__import__('teacher_service').is_teacher(u),**__import__('privacy_service').info(u)} if u else None,'ai_enabled':ai_enabled(),'mail':account.configured(),'invite':__import__('beta_invites').on(),'media':__import__('media').info(),'tts':__import__('tts_service').enabled()}
 def verify(p,stored): return hmac.compare_digest(password(p,stored.split(':')[0]),stored)
 def topics(c):
  out=[]
@@ -363,7 +363,7 @@ class Handler(BaseHTTPRequestHandler):
   path=self.path.split('?')[0]
   if path.startswith('/api/') and not api_open('GET',path):return self.send({'error':'接口不存在'},404)
   # consent: the 用户协议 and 隐私和数据 version a sign-up agrees to now (privacy_service; the release check's test accounts use it)
-  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
+  if path=='/api/health':return self.send({'ok':True,'version':'4.5.0','mail':account.configured(),'invite':__import__('beta_invites').on(),'channel':CHANNEL,'consent':__import__('privacy_service').CONSENT_VERSION})
   # The version of next.js/next.css the server sends now: a home-screen app asleep for days asks it when it wakes
   # (04-home-app.js) and takes a new one when it is safe to. No database, nothing about anyone.
   if path=='/api/version':return self.send({'asset':asset_version()})
