@@ -114,7 +114,7 @@ def main(only):
                 # a fixed time of day, so the greeting on 今日 reads 下午好 whenever the shots are taken (today's date, 15:30)
                 pg.clock.set_system_time(time.strftime('%Y-%m-%dT15:30:00'))
                 pg.goto(base + '/' + route)
-                pg.wait_for_function("() => !document.querySelector('#view .skeleton') && !document.querySelector('#view .loading')", timeout=15000)
+                pg.wait_for_function("() => !document.querySelector('#view .skeleton, #view[data-busy]') && !document.querySelector('#view .loading')", timeout=15000)
                 pg.wait_for_selector('#view h1, #view .review, #view .empty', timeout=10000)
                 pg.wait_for_timeout(700)
                 if step:
