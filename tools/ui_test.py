@@ -4442,7 +4442,7 @@ def backlog_run(pw):
         check(dev, 'after the 40: a place to stop, 今天做到这里也行 as the main button, 再做 beside it', head.startswith('这一轮复习了 40 个') and '今天做到这里也行' in stop
               and again.startswith('再做') and 'primary' not in (pg.get_attribute('#again', 'class') or '')
               and (pg.text_content('.done-card a.btn.primary[href="#/"]') or '').strip() == '今天就到这里', (head, stop, again))
-        for page, sel, name in (('#/report', '.card a.link[href="#/easy"]', '周报「去读」'), ('#/report', '.card a.link[href="#/speak"]', '周报「去练」'),
+        for page, sel, name in (('#/report', '.rep-row[href="#/easy"]', '周报「轻松读」那一行'), ('#/report', '.rep-row[href="#/speak"]', '周报「口语情景」那一行'), ('#/report', '.rep-more[href="#/radar"]', '周报「看雷达」'),
                                 ('#/', '.section-head a.link[href="#/welcome/edit"]', '今日「按 B1 挑选 · 调整」'), (f'#/m/{PID}/listen', '#originMore', '材料的「怎么写的」')):
             go(pg, page); pg.wait_for_timeout(300)
             t = pg.evaluate(TAP44_JS, sel)
