@@ -146,7 +146,7 @@ def cards_anki(c, uid):
                 f'<i>{clean(x["context"])}</i>' if x['context'] else '', f'<small>{clean(x["source"])}</small>' if x['source'] else '',
                 f'<small>常用搭配（AI 生成）：{clean(x["colloc"])}</small>' if x['colloc'] else '',
                 f'<small>近义词（AI 生成）：{clean(x["near"])}</small>' if x['near'] else '']
-        tag = '语流 ' + x['kind'].replace('·', '_')
+        tag = '语流 ' + x['kind'].replace('·', '_') + (' 语流_AI生成' if x['colloc'] or x['near'] else '')  # filtered in Anki at once (D2)
         lines.append('\t'.join([clean(x['text']), '<br>'.join(b for b in back if b), tag]))
     return ('\n'.join(lines) + '\n').encode('utf-8')
 

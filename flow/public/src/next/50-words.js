@@ -331,7 +331,7 @@
     const xs = c.extras || []; if (!xs.length) return;
     openSheet(`<div class="stack"><h2 class="h2" id="sheetTitle">哪一条不对？</h2>
       <div class="xpicks" role="radiogroup" aria-labelledby="sheetTitle">${xs.map(x => `<label class="xpick"><input type="radio" name="xpick" value="${x.id}"><span><b>${esc(x.en)}</b>${x.zh ? ' ' + esc(x.zh) : ''}</span></label>`).join('')}</div>
-      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说"></textarea></label>
+      <label class="stack-s"><span class="small">哪里不对？（可以不写）</span><textarea id="xNote" rows="2" maxlength="100" placeholder="比如：意思不对、不常这样说（不用写你的名字）"></textarea></label>
       <p class="tiny muted">留言会给语流的管理员看，不显示你的名字。标了以后这条不再给你看，在这个词的详情里可以放回。</p>
       <div class="row"><button class="btn primary" id="xGo" type="button" disabled>提交</button><button class="btn ghost" data-close type="button">取消</button></div></div>`, card => {
       const go = card.querySelector('#xGo');

@@ -44,6 +44,7 @@ class ExtrasOnTheCardTests(unittest.TestCase):
         # B7's count for the console (B6): one learner, the note, no name
         rep = wx.reported(self.c)
         self.assertEqual([(r['en'], r['users'], r['notes']) for r in rep], [('a tough decision', 1, ['不常用'])])
+        self.assertFalse({'user_id', 'user', 'username', 'email', 'uid'} & set(rep[0]))  # 「不显示你的名字」: nothing that leads to the learner (D2)
         self.assertEqual(vs.unflag_extra(self.c, 1, {'id': bad})[1], 200)
         self.assertIn(bad, [x['id'] for x in self.card(1)['extras']]); self.assertEqual(vs.detail(self.c, 1, self.cid)[0]['marked'], [])
 
@@ -74,6 +75,7 @@ class ExtrasOnTheCardTests(unittest.TestCase):
         anki = account_data.cards_anki(self.c, 1).decode('utf-8')
         self.assertIn('常用搭配（AI 生成）：make a decision 做决定', anki); self.assertIn('近义词（AI 生成）：choice 选择（更口语）', anki)
         self.assertNotIn('tough', anki)
+        self.assertIn('\t语流 单词 语流_AI生成', anki)  # a tag to find them in Anki (D2)
 
     def test_the_marks_are_in_the_learners_data_and_go_with_the_account(self):
         vs.flag_extra(self.c, 1, {'id': self.ids['choice'], 'note': '不对'})
