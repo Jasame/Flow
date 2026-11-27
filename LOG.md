@@ -1371,3 +1371,10 @@
   - #535 更新记录 r41：练习记录、使用习惯、切换账号、新手引导 v2、单词搭配（内容）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45916671929
+
+### b167 · 2026-11-27 10:25
+- main `1f81362`，构建 `789df92`
+- 新合并的 PR（自 b166 起）：
+  - #514 学了一天：首页数字里的「最近 7 天」也按同一条规则算（操作指南）
+- 自检：DEPLOYED，装了 4 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45928157100
