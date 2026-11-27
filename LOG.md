@@ -1364,3 +1364,10 @@
   - #534 使用习惯：两个选择挨得很近时都记在账号上，不再丢掉前一个（测试）
 - 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
 - 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45915443335
+
+### b166 · 2026-11-27 08:27
+- main `58e2929`，构建 `0b9b344`
+- 新合并的 PR（自 b165 起）：
+  - #535 更新记录 r41：练习记录、使用习惯、切换账号、新手引导 v2、单词搭配（内容）
+- 自检：DEPLOYED，装了 3 个文件（0 个新的）；轻量 e2e 168/168，服务器报错 0
+- 发布：GitHub Actions，https://github.com/Jasame/Flow/actions/runs/45916671929
