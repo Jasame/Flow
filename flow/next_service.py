@@ -1107,14 +1107,10 @@ def home(c, uid, level=None, themes=None):
 def stats(c, uid):
     now = time.time()
     week_start = now - 7 * 86400
-    days = set()
-    for (t,) in c.execute('SELECT created FROM next_progress WHERE user_id=? AND created>?', (uid, week_start)):
-        days.add(_day(t))
-    for (t,) in c.execute('SELECT created FROM next_reviews WHERE user_id=? AND created>?', (uid, week_start)):
-        days.add(_day(t))
-    for (t,) in c.execute('SELECT created FROM next_relisten WHERE user_id=? AND created>?', (uid, week_start)):
-        days.add(_day(t))
     week = [_day(now - i * 86400) for i in range(6, -1, -1)]
+    # the last 7 days, each studied or not by the one rule 今日's 这周, 我的, 我的进步 and 班级 all count by
+    # (progress_service.study_days: anything learned; signing in or saving a word is not studying)
+    days = {d.isoformat() for d in __import__('progress_service').study_days(c, uid, now - 8 * 86400)}
     import vocab_service
     vocab_service.introduce(c, uid, now)  # today's new words from the learner's word book, so home shows the real task
     # words only (单词 and its badge); 其他复习 apart (练习's badge, review-split-plan.md). Today's share under the word
