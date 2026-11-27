@@ -100,6 +100,17 @@ class LineTests(Db):
 
 
 class PageTests(unittest.TestCase):
+    def test_the_plan_heads_minutes_are_english_in_every_state(self):
+        # 今天的计划's head reads 「约 15 分钟 · 0 / 3」: the minutes are a text of their own, so English mode finds them
+        # whatever the state (not started, started, all done, done and studied); 「约 16 分钟 ·」 was once left in Chinese
+        # just after midnight, when the test learners' plan had nothing done yet
+        self.assertIn('<span><span class="tp-left">${esc(f.left)}</span> · ', JS)
+        en = (Path(app.ROOT) / 'public' / 'src' / 'next' / '01-en-today.js').read_text(encoding='utf-8')
+        for zh in ('约 {n} 分钟', '还要约 {n} 分钟', '今天学了约 {n} 分钟', '都做完了', '贴一篇'):  # and 我的材料's card with nothing pasted yet
+            self.assertIn(f"'{zh}':", en, zh)
+        self.assertIn("`约 ${p.must_minutes} 分钟`", JS)
+        self.assertIn("`还要约 ${p.left_minutes} 分钟`", JS)
+
     def test_today_draws_both_looks_from_one_order_and_the_line_opens_in_place(self):
         # r39 (the user's picks 2026-11-26, B9's spec 第 4 版): one order for 列表 and 卡片, the learner's (调整顺序), 今天的计划
         # first by default; 列表's top fixed (这周, 今天的计划, its button); 好句 and 一读 no longer above the plan; the
