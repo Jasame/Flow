@@ -173,7 +173,7 @@
     '今天要做的几步': "Today's steps", '学了几天、记住多少': 'Days studied, words remembered', '每天一句，能听能跟读': 'A line a day to hear and shadow',
     '你自己贴进来的那篇': 'The text you pasted in', '每天一篇短文': 'A short text every day', '错题、复听、语法': 'Mistakes, listening again, grammar',
     '{n} 步，做完 {n} 步了': '{1} steps, {2} done', '{n} 步，都做完了': '{1} steps, all done', '学了 {n} 步，共 {n} 步': '{1} of {2} steps done',
-    '还没开始': 'Not started', '接着读': 'Keep reading', '开始练': 'Start', '读这篇': 'Read this',
+    '还没开始': 'Not started', '接着读': 'Keep reading', '开始练': 'Start', '贴一篇': 'Paste a text', '读这篇': 'Read this',
     '还可以再练 {n} 项': '{1} more to practice', '不算进今天的计划': "Not part of today's plan",
     '上一张': 'Previous', '下一张': 'Next', '今日，{n} 张卡片，左右翻': 'Today, {1} cards: swipe left or right', '第 {n} 张，共 {n} 张，{x}': 'Card {1} of {2}: {3}',
     '调整顺序': 'Reorder', '编辑': 'Edit', '上移': 'Move up', '下移': 'Move down',

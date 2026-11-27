@@ -112,7 +112,7 @@
       week: () => w ? `<button class="tv-card tv-week" id="weekCard" type="button" data-tap="home-week" aria-label="${esc(w.label)}"><span class="tv-hd"><b>这周${esc(w.title)}</b>`
         + `<span class="tv-days" aria-hidden="true">${w.days.map(d => `<i class="${d.active ? 'on' : ''}"></i>`).join('')}</span></span>${w.sub ? `<span class="tv-sub">${esc(w.sub)}</span>` : ''}</button>` : '',
       plan: () => `<section class="today-plan" aria-labelledby="tpTitle">${backHTML(f.p, f.next)}
-        <div class="tv-card tv-plan"><div class="tv-hd"><h1 id="tpTitle">${f.next ? '今天的计划' : '今天的计划完成了'}</h1><span>${esc(f.left)} · `
+        <div class="tv-card tv-plan"><div class="tv-hd"><h1 id="tpTitle">${f.next ? '今天的计划' : '今天的计划完成了'}</h1><span><span class="tp-left">${esc(f.left)}</span> · `
         + `<span class="tp-count" role="img" aria-label="今天的计划，已完成 ${f.p.done} 步，共 ${f.p.total} 步"><span aria-hidden="true">${f.p.done} / ${f.p.total}</span></span></span></div>
           ${sprintLine(h)}${stepsHTML(f)}${f.p.note ? `<p class="tiny muted tp-note">${esc(f.p.note)}</p>` : ''}</div>
         ${goHTML(f)}${overLineHTML(f.p, f.next)}${doneHTML(f)}
