@@ -1,3 +1,3 @@
-0b9b344867ae32a88574ac9f2deb694aaa173b1f 4a82a1e31df24443f794313cee1e194f6cdaccff3b081262666e21e352fdb72a e2e light ref=build-58e292998d8e tag=b166 tools=8c2d55d8d44c34465347d9800fe4e3b843d977e15e4a675236cde864ab66d1e6
-# b166 main: Merge pull request #535 from Jasame/updates-r41 = build of 58e292998d8e
+789df921f3412109f8e5ea7a55352dc36c21b925 3dc5f70eca2fd5070fbae442209983fb5a2a7ee3905f20204f869b8973e13087 e2e light ref=build-1f81362745ab tag=b167 tools=8c2d55d8d44c34465347d9800fe4e3b843d977e15e4a675236cde864ab66d1e6
+# b167 main: Merge pull request #514 from Jasame/study-day-one-rule = build of 1f81362745ab
 # Format: <commit sha> <manifest sha256> [e2e [light]] [ref=<tag>] tag=<tag> tools=<sha256 of TOOLS>; signed in REQUEST.sig. Written by tools/deploy.sh, read by tools/flow-autodeploy.py.
